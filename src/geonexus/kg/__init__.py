@@ -3,7 +3,7 @@
 只提供**图引擎**，不含任何 GeoNexus 领域内容：
 
 - 实体/关系类型: :class:`KGEntity`, :class:`KGRelation`
-- 内存图存储: :class:`KnowledgeGraph`（CRUD / 邻居 / 类型与标签检索 / 统计）
+- 内存图存储: :class:`KnowledgeGraph`（CRUD / 出边与入边邻居 / 类型与标签检索 / 统计）
 - 持久化: ``geonexus.kg.storage``（JSON / NDJSON，支持 gzip 与增量 append）
 - 可选 Neo4j 后端: ``geonexus.kg.neo4j_store``
 - 从 GAAG 合约导入实体: :meth:`KnowledgeGraph.import_from_gaag`
@@ -124,8 +124,48 @@ class KnowledgeGraph:
                 results.append((target, rel))
         return results
 
-    def search_by_type(self, entity_type: str) -> list[KGEntity]:
+    def incoming(self, entity_id: str, relation: str | None = None) -> list[tuple[KGEntity, KGRelation]]:
+        """查询所有入边邻居：**谁指向** ``entity_id``。
+
+        与 :meth:`neighbors`（只走出边）相对。领域图里大量边是指向宿主的，例如
+        ``monitor.AFG.6.6.1 --LOCATED_IN--> country.AFG`` 和
+        ``admin1.BRA.* --LOCATED_IN--> country.BRA``，所以只看 out 边时国家节点
+        的邻域几乎是空的（Brazil：出边 1 条，入边 39 条）。任何"从一个节点看它
+        周围有什么"的功能都必须两个方向都走。
+
+        返回 ``(源实体, 关系)``。关系对象保持原始方向（``source_id → target_id``），
+        因此邻居是 ``rel.source_id`` 而不是 ``rel.target_id``。
+
+        反向索引 ``_incoming`` 一直由 :meth:`add_relation` 维护，:meth:`load`
+        也是逐条 ``add_relation`` 重建，因此加载后的图和内存构建的图行为一致。
+        """
+        results: list[tuple[KGEntity, KGRelation]] = []
+        for rel in self._incoming.get(entity_id, []):
+            if relation and rel.relation != relation:
+                continue
+            source = self._entities.get(rel.source_id)
+            if source:
+                results.append((source, rel))
+        return results
+
+    def entities(self, entity_type: str | None = None) -> list[KGEntity]:
+        """列出全部实体，可按类型过滤。
+
+        之前只能靠 ``search_by_type`` 按类型取、或 ``search`` 按关键词取，没有
+        "把图里的实体列出来"的办法——做检索排序、类型统计、图视图都需要它。
+        """
+        if entity_type is None:
+            return list(self._entities.values())
         return [e for e in self._entities.values() if e.type == entity_type]
+
+    def relations(self, relation: str | None = None) -> list[KGRelation]:
+        """列出全部关系，可按关系类型过滤（``entities()`` 的边对应物）。"""
+        if relation is None:
+            return list(self._relations)
+        return [r for r in self._relations if r.relation == relation]
+
+    def search_by_type(self, entity_type: str) -> list[KGEntity]:
+        return self.entities(entity_type)
 
     def search_by_label(self, label: str) -> list[KGEntity]:
         return [e for e in self._entities.values() if label in e.labels]

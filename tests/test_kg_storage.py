@@ -279,3 +279,100 @@ class TestLowLevelApi:
         kg2 = KnowledgeGraph.load(p)
         assert kg2.entity_count() == 4
         assert kg2.get_entity("ok") is not None
+
+# --------------------------------------------------------------------------- #
+# 反向遍历
+# --------------------------------------------------------------------------- #
+
+class TestIncoming:
+    """`neighbors()` 只走出边；`incoming()` 是补上的另一半。
+
+    领域图里很多边指向宿主（`monitor.AFG.6.6.1 --LOCATED_IN--> country.AFG`），
+    只看 out 边会让国家节点的邻域几乎是空的——这曾让一张图可视化从国家看过去
+    完全空白。反向索引一直存在（`add_relation` 维护），此前没有任何访问器。
+    """
+
+    def _dag(self) -> KnowledgeGraph:
+        kg = KnowledgeGraph("dag")
+        for eid in ("a", "b", "c", "hub"):
+            kg.add_entity(KGEntity(eid, "Thing", {"name": eid.upper()}, ["test"]))
+        kg.add_relation("a", "hub", "LOCATED_IN")
+        kg.add_relation("b", "hub", "LOCATED_IN")
+        kg.add_relation("c", "hub", "MEASURES")
+        kg.add_relation("hub", "a", "OWNS")
+        return kg
+
+    def test_incoming_returns_sources_not_targets(self):
+        kg = self._dag()
+        got = {ent.id: rel.relation for ent, rel in kg.incoming("hub")}
+        assert got == {"a": "LOCATED_IN", "b": "LOCATED_IN", "c": "MEASURES"}
+
+    def test_neighbors_is_still_outgoing_only(self):
+        """默认语义不得改变——已有调用方依赖 `rel.target_id`。"""
+        kg = self._dag()
+        assert [ent.id for ent, _ in kg.neighbors("hub")] == ["a"]
+        assert [rel.target_id for _, rel in kg.neighbors("hub")] == ["a"]
+
+    def test_incoming_relation_filter(self):
+        kg = self._dag()
+        only = [ent.id for ent, _ in kg.incoming("hub", "LOCATED_IN")]
+        assert sorted(only) == ["a", "b"]
+
+    def test_incoming_on_leaf_is_empty_and_missing_id_is_safe(self):
+        kg = self._dag()
+        assert kg.incoming("a") != []          # `hub --OWNS--> a`
+        assert kg.incoming("no-such-id") == []
+
+    def test_incoming_survives_save_load(self, tmp_path):
+        """load() 逐条 add_relation 重建，因此入边索引必须同样可用。"""
+        kg = self._dag()
+        p = str(tmp_path / "dag.ndjson.gz")
+        kg.save(p)
+        kg2 = KnowledgeGraph.load(p)
+        got = {ent.id: rel.relation for ent, rel in kg2.incoming("hub")}
+        assert got == {"a": "LOCATED_IN", "b": "LOCATED_IN", "c": "MEASURES"}
+
+
+class TestEnumeration:
+    """`entities()` / `relations()` —— 枚举图内容的唯一公开入口。
+
+    在此之前只能按类型取（`search_by_type`）或按关键词取（`search`），没有
+    "把图列出来"的办法；检索排序、类型统计、图视图都需要它。
+    """
+
+    def test_entities_lists_all_and_filters_by_type(self):
+        kg = KnowledgeGraph("e")
+        kg.add_entity(KGEntity("a", "Alpha", {}, []))
+        kg.add_entity(KGEntity("b", "Beta", {}, []))
+        kg.add_entity(KGEntity("c", "Alpha", {}, []))
+        assert {e.id for e in kg.entities()} == {"a", "b", "c"}
+        assert {e.id for e in kg.entities("Alpha")} == {"a", "c"}
+        assert kg.entities("Nope") == []
+
+    def test_search_by_type_delegates_to_entities(self):
+        kg = KnowledgeGraph("e")
+        kg.add_entity(KGEntity("a", "Alpha", {}, []))
+        assert [e.id for e in kg.search_by_type("Alpha")] == \
+               [e.id for e in kg.entities("Alpha")]
+
+    def test_entities_returns_a_copy_not_the_live_dict(self):
+        """调用方拿到的是列表副本，改它不能影响图。"""
+        kg = KnowledgeGraph("e")
+        kg.add_entity(KGEntity("a", "Alpha", {}, []))
+        got = kg.entities()
+        got.clear()
+        assert kg.entity_count() == 1
+
+    def test_relations_lists_all_and_filters(self):
+        kg = _small_graph(n=4)
+        assert len(kg.relations()) == kg.relation_count() == 3
+        assert {r.relation for r in kg.relations("NEXT")} == {"NEXT"}
+        assert kg.relations("NOPE") == []
+
+    def test_enumeration_survives_save_load(self, tmp_path):
+        kg = _small_graph(n=6)
+        p = str(tmp_path / "g.ndjson.gz")
+        kg.save(p)
+        kg2 = KnowledgeGraph.load(p)
+        assert {e.id for e in kg2.entities()} == {e.id for e in kg.entities()}
+        assert len(kg2.relations("NEXT")) == len(kg.relations("NEXT"))
