@@ -78,7 +78,7 @@ pip install "geonexus-sdk[mcp]"   # + Model Context Protocol bridge support
 ### Install from source (development)
 
 ```bash
-cd /path/to/GeoNexus-SDK
+cd /Users/mac/Repos/GeoNexus/core
 python3.12 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 
@@ -129,100 +129,30 @@ python3.12 -m venv .venv
 # STAC write side: publish GeoCards as STAC Items (round trip)
 .venv/bin/geonexus demo stac-write
 
-# Run the tests (460 tests)
+# Run the tests
 .venv/bin/pytest
 ```
 
 See `docs/QUICKSTART.md` for the full 10-minute walkthrough, including
 starting a live node and calling it with `curl`.
 
-## Run the services locally
-
-The three long-running services are separate processes with separate ports, so
-you can start only what you need:
-
-```bash
-# 1. Shared GeoCard Registry — discovery layer          (default port 8790)
-.venv/bin/geonexus registry start --port 8790 --persist registry.json --health-probe
-
-# 2. Local GeoNode over GeoMCP — the execution plane    (default port 8787)
-.venv/bin/geonexus node start --port 8787
-
-# 3. Web BFF — JWT auth, async tasks, SSE progress      (default port 8900)
-.venv/bin/geonexus web start --port 8900 \
-  --registry http://127.0.0.1:8790 \
-  --node     http://127.0.0.1:8787 \
-  --user     admin=admin
-```
-
-`--health-probe` makes `GET /nodes` actively probe each node instead of
-reporting `healthy: null` (unknown). Note that a node only appears there once
-something of its is registered, so a fresh registry reports `count: 0` — either
-pass `--registry http://127.0.0.1:8790` to `node start` to advertise its demo
-cards, or register skills/cards explicitly:
-
-```bash
-.venv/bin/geonexus registry skill register ndvi-analysis \
-  --url http://127.0.0.1:8790 --node http://127.0.0.1:8787
-.venv/bin/geonexus registry register examples/amazon_ndvi/geocard.yaml \
-  --url http://127.0.0.1:8790 --node http://127.0.0.1:8787
-```
-
-> ⚠️ **`--user` is required for anything behind auth.** `WebConfig.users` has no
-> default and there is no environment fallback, so without it `POST
-> /api/auth/login` can only answer `Invalid credentials` and every
-> JWT-protected route is unreachable. The flag is repeatable and splits on the
-> first `=`, so passwords may contain `=`. When it is omitted the command prints
-> a warning saying so.
-
-The Web BFF exposes 16 routes under `/api` (`/docs` has the OpenAPI page):
-
-| Group | Routes |
-|-------|--------|
-| Auth | `POST /api/auth/login` |
-| Read (JWT) | `GET /api/{health,cards,skills,nodes,tasks}` |
-| Execute (JWT) | `POST /api/execute`, `POST /api/goals` |
-| Tasks (JWT) | `GET /api/tasks/{id}`, `POST /api/tasks/{id}/cancel`, `GET /api/tasks/{id}/stream` (SSE) |
-| Data registration (JWT) | `GET /api/datasets/pending`, `POST /api/datasets/upload`, `POST /api/datasets/{id}/submit`, `POST /api/datasets/{card_id}/{approve,reject}` |
-
-`POST /api/execute` and `POST /api/goals` return `202` with a `task_id`
-immediately — a GeoNode call can take minutes, so results are fetched from
-`/api/tasks/{id}` or streamed from `/api/tasks/{id}/stream`.
-
-A round trip, end to end:
-
-```bash
-TOKEN=$(curl -s -X POST http://127.0.0.1:8900/api/auth/login \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"admin","password":"admin"}' | python -c 'import json,sys;print(json.load(sys.stdin)["token"])')
-
-TASK=$(curl -s -X POST http://127.0.0.1:8900/api/execute \
-  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-  -d '{"skill":"buffer-analysis","params":{"geometry":{"type":"Point","coordinates":[100.5,13.75]},"distance":0.01}}' \
-  | python -c 'import json,sys;print(json.load(sys.stdin)["task_id"])')
-
-curl -s http://127.0.0.1:8900/api/tasks/$TASK -H "Authorization: Bearer $TOKEN"
-```
-
 ## Repository layout
 
 ```
-GeoNexus-SDK/
+core/
 ├── schemas/geocard.schema.json   # Official GeoCard JSON Schema (draft 2020-12)
 ├── src/geonexus/
 │   ├── geocard/                  # model, builder, loader, validator (contract)
 │   ├── geomcp/                   # protocol, models, server, client
 │   ├── geonode/                  # node, registry, runtime, skill
-│   ├── gaag/                     # GAAG contract registry (scan→register→gate)
 │   ├── registry/                 # shared Registry: cards+skills, persistence+auth
 │   ├── federation/               # pushdown execution (V0.3)
-│   ├── cafe/                     # CAFE: computation-to-data pushdown engine
 │   ├── agent/                    # GeoAgent: planner + pipeline DAG + LLM translator
-│   ├── kg/                       # generic geospatial knowledge-graph primitives
-│   ├── ggihs/                    # observation plane: health/catalog aggregation
-│   ├── security/                 # security gateway: OPA-style policy + zero trust
-│   ├── web/                      # Web BFF: JWT auth, task manager, SSE, datasets
 │   ├── adapters/                 # STAC + OGC API read/write adapters (V0.4/V1.0)
+│   ├── kg/                       # generic knowledge-graph primitives + storage
+│   ├── cafe/                     # CAFE pushdown engine (central + worker)
+│   ├── security/                 # zero-trust gateway + legal ontology
+│   ├── gaag/                     # GAAG contract registry + contract types
 │   ├── mcp_adapter.py            # official MCP SDK bridge: stdio + HTTP (V0.5/V1.0)
 │   └── cli.py                    # `geonexus` command line interface
 ├── examples/
@@ -231,14 +161,13 @@ GeoNexus-SDK/
 │   ├── federated/                # registry + data node + pushdown demo
 │   ├── federation_deep/          # node delegation + health-aware routing (V1.0+)
 │   ├── ggihs/                    # cross-registry health/catalog aggregation (V1.0+)
-│   ├── stac/                     # STAC Item examples
 │   ├── stac_real/                # real Sentinel-2 NDVI demo (V0.4)
 │   ├── stac_write/               # GeoCard -> STAC Item round trip (V1.0+)
 │   ├── agent/                    # pipeline DAG demo (V1.0)
 │   ├── ogc_process/              # OGC write-side bridge demo (V1.0)
 │   ├── ogc_coverage/             # OGC Coverages raster demo (V1.0)
 │   └── ogc_pipeline/             # OGC skills in GeoAgent pipelines (V1.0)
-├── tests/                        # pytest suite (460 tests)
+├── tests/                        # pytest suite
 └── docs/                         # architecture & component documentation
 ```
 
@@ -258,9 +187,11 @@ GeoNexus-SDK/
 - `docs/STAC.md` — the STAC adapter: read (import) + write (export) sides.
 - `docs/API.md` — Python SDK public API reference.
 - `docs/API_STABILITY.md` — frozen public API + deprecation policy (v1.0).
-- `docs/GAAG.md` — GAAG contract registry: scan, embed, register, semantic search, contract gating.
+- `docs/RELEASE.md` — release process checklist.
 - `docs/QUICKSTART.md` — run the entire demo in less than 10 minutes.
 - `docs/MVP_IMPLEMENTATION.md` — what was built, acceptance checks, limitations.
+- `docs/ROADMAP.md` — 下一步路线图：GeoTask 统一任务模型、CAFE 唯一下推化、
+  模型可调用闭环与算力调度（含现状实测评估与分阶段验收判据）。
 - `CHANGELOG.md` — release history.
 
 ## License
