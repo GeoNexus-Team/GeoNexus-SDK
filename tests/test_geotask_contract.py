@@ -1,23 +1,16 @@
-"""GeoTask 契约测试 —— ROADMAP Phase 0 的"失败测试"。
+"""GeoTask 契约测试 —— ``docs/GEOTASK.md`` 的可执行形式。
 
-分两类，目的不同：
+两类，目的不同：
 
-1. **今天必须通过**：`docs/GEOTASK.md` 里那段 `geotask-state-machine` JSON 的自洽性
-   检查。文档是权威契约，但权威契约如果自相矛盾（迁移指向未声明的状态、终态还能往外
-   走），实现者会照着错的东西写。所以先让文档被机器检查。
+1. **文档自洽性**：``GEOTASK.md`` 里那段 ``geotask-state-machine`` JSON 是权威契约，
+   但它如果自相矛盾（迁移指向未声明的状态、终态还能往外走），实现者会照着错的写。
+   所以先让文档被机器检查。
 
-2. **今天必须失败（strict xfail）**：实现尚不存在（ROADMAP Phase 1），但这些断言
-   定义的是**实现必须满足的契约**：状态机与文档逐条相等、非法迁移被拒、DAG 就绪集
-   可并行、重启对账不撒谎、事件 seq 无洞、幂等。
+2. **实现契约**：状态机与文档**逐条相等**、非法迁移被拒、DAG 就绪集可并行、
+   fail-fast 级联、重启对账不撒谎、事件 seq 无洞可重放、幂等。
 
-关于"红"的做法：契约测试用 `@pytest.mark.xfail(strict=True)` 而不是让套件直接变红。
-理由是——一整套红的测试会淹没**新出现的**回归，而 strict xfail 同时做到两件事：
-它明确标记"这个契约未实现"，并且一旦 Phase 1 实现到能通过，它会变成 XPASS，
-`strict=True` 会让套件**失败**，逼着移除标记。
-
-想看它们真的红：
-
-    pytest tests/test_geotask_contract.py --runxfail -q
+Phase 0 时第 2 类曾用 ``xfail(strict=True)`` 标记（契约先写、实现后做），
+Phase 1 落地后标记已全部移除——**这 16 项现在必须真的通过**，它们就是实现的门禁。
 """
 
 from __future__ import annotations
@@ -31,7 +24,6 @@ import pytest
 DOC = Path(__file__).resolve().parent.parent / "docs" / "GEOTASK.md"
 
 #: 实现未落地前的统一标记；Phase 1 完成后逐条移除
-PENDING = "GeoTask 未实现（ROADMAP Phase 1）；本测试定义的是已冻结的契约"
 
 
 def _state_machine_block() -> dict:
@@ -121,7 +113,6 @@ class TestDocumentedContract:
 # 第二类：实现契约（strict xfail，今天为红）
 # --------------------------------------------------------------------------- #
 class TestStateMachineContract:
-    @pytest.mark.xfail(strict=True, reason=PENDING)
     def test_implementation_matches_documented_machine(self) -> None:
         """实现导出的状态机必须与文档**逐条相等**，防止文档与代码漂移。"""
         geotask = _import_geotask()
@@ -132,7 +123,6 @@ class TestStateMachineContract:
         assert {(s.value, d.value) for s, d in geotask.TRANSITIONS} == {
             tuple(t) for t in m["transitions"]}
 
-    @pytest.mark.xfail(strict=True, reason=PENDING)
     def test_illegal_transition_is_rejected(self) -> None:
         """状态机必须是代码里的关卡，不是文档约定。"""
         geotask = _import_geotask()
@@ -141,7 +131,6 @@ class TestStateMachineContract:
         with pytest.raises(geotask.IllegalTransition):
             geotask.assert_transition(geotask.TaskState.CANCELLED, geotask.TaskState.QUEUED)
 
-    @pytest.mark.xfail(strict=True, reason=PENDING)
     def test_terminal_states_are_absorbing(self) -> None:
         geotask = _import_geotask()
         for state in geotask.TERMINAL_STATES:
@@ -149,7 +138,6 @@ class TestStateMachineContract:
                 with pytest.raises(geotask.IllegalTransition):
                     geotask.assert_transition(state, target)
 
-    @pytest.mark.xfail(strict=True, reason=PENDING)
     def test_store_transition_enforces_the_machine(self) -> None:
         """`transition()` 是唯一改状态的入口，非法迁移要被拒。"""
         geotask = _import_geotask()
@@ -165,7 +153,6 @@ class TestStateMachineContract:
 class TestDagContract:
     """DAG 就绪集：路线图点名要求"独立步骤真并行"，这是它的契约。"""
 
-    @pytest.mark.xfail(strict=True, reason=PENDING)
     def test_ready_set_exposes_parallelism(self) -> None:
         """a → c, b → c：a 与 b 必须同时可跑，而不是排队。"""
         geotask = _import_geotask()
@@ -181,7 +168,6 @@ class TestDagContract:
         graph.mark_done("b")
         assert set(graph.ready()) == {"c"}
 
-    @pytest.mark.xfail(strict=True, reason=PENDING)
     def test_cycle_is_rejected(self) -> None:
         geotask = _import_geotask()
         with pytest.raises(geotask.TaskGraphError):
@@ -192,7 +178,6 @@ class TestDagContract:
                                 spec={"skill": "x"}, depends_on=["a"]),
             ])
 
-    @pytest.mark.xfail(strict=True, reason=PENDING)
     def test_missing_dependency_is_rejected(self) -> None:
         geotask = _import_geotask()
         with pytest.raises(geotask.TaskGraphError):
@@ -201,7 +186,6 @@ class TestDagContract:
                                 spec={"skill": "x"}, depends_on=["nope"]),
             ])
 
-    @pytest.mark.xfail(strict=True, reason=PENDING)
     def test_upstream_failure_cascades_fail_fast(self) -> None:
         """契约 5.3：上游失败，下游 failed(upstream_failed)，且递归传播。"""
         geotask = _import_geotask()
@@ -217,7 +201,6 @@ class TestDagContract:
         assert graph.error_of("b").code == "upstream_failed"
         assert graph.state_of("c") is geotask.TaskState.FAILED
 
-    @pytest.mark.xfail(strict=True, reason=PENDING)
     def test_skipped_upstream_does_not_cascade_failure(self) -> None:
         """契约 5.3：跳过是策略决定，下游仍可跑。"""
         geotask = _import_geotask()
@@ -233,7 +216,6 @@ class TestDagContract:
 class TestRestartReconciliation:
     """契约第六节："重启后不许撒谎"。"""
 
-    @pytest.mark.xfail(strict=True, reason=PENDING)
     def test_expired_running_task_is_not_reported_running(self) -> None:
         geotask = _import_geotask()
         store = geotask.TaskStore.memory()
@@ -253,7 +235,6 @@ class TestRestartReconciliation:
         assert store.get("t1").error.code == "executor_lost"
         assert report["requeued"] == 0 and report["failed"] == 1
 
-    @pytest.mark.xfail(strict=True, reason=PENDING)
     def test_expired_task_with_retries_left_is_requeued(self) -> None:
         geotask = _import_geotask()
         store = geotask.TaskStore.memory()
@@ -269,7 +250,6 @@ class TestRestartReconciliation:
         assert store.get("t1").state is geotask.TaskState.QUEUED
         assert store.get("t1").attempt == 1
 
-    @pytest.mark.xfail(strict=True, reason=PENDING)
     def test_terminal_tasks_are_untouched_by_reconcile(self) -> None:
         geotask = _import_geotask()
         store = geotask.TaskStore.memory()
@@ -285,7 +265,6 @@ class TestRestartReconciliation:
 class TestEventContract:
     """契约第四节：同一任务内 seq 严格递增、可重放、无洞。"""
 
-    @pytest.mark.xfail(strict=True, reason=PENDING)
     def test_sequence_is_per_task_and_monotonic(self) -> None:
         geotask = _import_geotask()
         store = geotask.TaskStore.memory()
@@ -295,7 +274,6 @@ class TestEventContract:
         assert (a, b) == (1, 2), "同一任务内 seq 从 1 起严格递增"
         assert c == 1, "seq 是**每个任务内**的，不是全局的"
 
-    @pytest.mark.xfail(strict=True, reason=PENDING)
     def test_replay_since_is_gap_free_and_duplicate_free(self) -> None:
         geotask = _import_geotask()
         store = geotask.TaskStore.memory()
@@ -306,7 +284,6 @@ class TestEventContract:
         assert latest == 5
         assert all(e["task_id"] == "t1" for e in events)
 
-    @pytest.mark.xfail(strict=True, reason=PENDING)
     def test_state_change_emits_an_event_automatically(self) -> None:
         """状态迁移必须自带事件，不能靠调用方记得发。"""
         geotask = _import_geotask()
@@ -320,7 +297,6 @@ class TestEventContract:
 
 
 class TestIdempotency:
-    @pytest.mark.xfail(strict=True, reason=PENDING)
     def test_resubmitting_same_task_id_does_not_restart_it(self) -> None:
         """契约 5.4：task_id 是幂等键——跨节点重投递不得重复执行。"""
         geotask = _import_geotask()

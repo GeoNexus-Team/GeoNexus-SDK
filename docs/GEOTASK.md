@@ -1,6 +1,6 @@
 # GeoTask — 统一任务模型与执行契约
 
-**状态**：契约已冻结（ROADMAP Phase 0 产出）。Phase 1 按本文实现。
+**状态**：契约已冻结（Phase 0），**核心已实现**（Phase 1；见 §10 实现进度）。
 **定位**：这是 **P0 冻结的契约**，不是实现说明。实现可以让本文变具体，但不该让本文
 变正确——改契约要回到本文改，并让 `tests/test_geotask_contract.py` 跟着变。
 
@@ -394,3 +394,34 @@ class ExecutionBackend(Protocol):
 | 任务亲和性 / 数据缓存亲和 | 需要节点级缓存模型，属于 Phase 4 之后 |
 | 多租户配额与计费 | schema 里留了 `tenant`，但配额策略是运营决策，不是 SDK 契约 |
 | 状态机的可视化编辑器 | 图视图已有（GeoKG/门户），任务图用现成渲染即可 |
+
+---
+
+## 十、实现进度
+
+| 契约条目 | 实现 | 测试 |
+|---|---|---|
+| §2 数据模型（GeoTask/TaskIO/资源/重试） | `geotask/model.py` | `test_geotask_contract.py` |
+| §3 状态机（唯一关卡） | `geotask/machine.py` + `store.transition()` | 契约逐条相等 + 非法迁移被拒 |
+| §4 事件契约（seq / since / 410） | `geotask/events.py` + `store.events_since()` | 无洞、可重放、超窗报错 |
+| §5 失败语义（错误码/重试/级联/幂等） | `model.ERROR_RETRYABLE` + `graph._cascade` | fail-fast 级联、重试至成功、幂等 no-op |
+| §6 持久化与重启对账 | `store.JsonTaskStore` + `store.reconcile()` | 落盘 → 重载 → 不报 running |
+| §7 执行后端协议 | `geotask/backend.py`（`LocalBackend`） | 能力声明诚实（`cancel()` 返回 False） |
+| §8 迁移映射 | 文档 + `cafe.events` 已加 `seq`/`latest_seq` | 事件层已统一，其余见下 |
+
+**"就绪集并行"已落地并有确定性证明**：`TaskGraph.ready()` 返回**所有**可跑节点，
+`TaskRunner` 一轮全部提交；测试用 `threading.Barrier(3)` 证明三个独立任务**同时**
+在跑（串行执行会超时失败），而不是用计时断言。
+
+### 尚未完成（Phase 1 剩余）
+
+| 项 | 为什么还没做 |
+|---|---|
+| `web.TaskManager` 改为 GeoTask 适配器 | 需要把 `done/queued` 那套旧词表在**边界投影**回去（契约 §8.2），是 287 行的重写；`tests/test_web_tasks.py` 的 11 项是回归防线，值得单独一轮做 |
+| HTTP + CLI 提交/查询/取消 + SSE | 依赖适配器先定型，否则会有两套任务 API 并存 |
+| `agent.PlanExecutor` 改用就绪集并行 | 需要把 `${stepN.outputs.key}` 模板改成**提交时**从已有结果解析（并行后不能再假设"上一步刚跑完"），且要把 `PlanStep.status(done/failed/skipped)` 投影回 GeoTask 状态。这是"让用户真正看到并行收益"的关键一步，但它动的是 agent 的执行语义，单独一轮做 |
+| `TaskRouter` 调度策略（数据本地性+算力余量+合规） | 路线图 Phase 2 |
+| 资源占用记账 | 路线图 Phase 4 |
+
+> 换句话说：**能力已具备且被证明，但还没接到用户入口上**。这几项都不改变本文契约——
+> 它们是把契约接到既有入口，而不是改契约。

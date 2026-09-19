@@ -132,3 +132,37 @@ class TestNeo4jStore:
         store._driver = None
         results = store.search("test")
         assert results == []
+
+class TestEventSequence:
+    """事件必须带 seq —— 否则客户端无法判断丢帧、重连无法去重。
+
+    与 GeoTask 的事件契约（docs/GEOTASK.md §4）同一语义：每任务内从 1 严格递增。
+    """
+
+    def test_seq_starts_at_one_and_increments(self):
+        from geonexus.cafe.events import clear_events, latest_seq, push_event
+
+        clear_events("seq-test")
+        push_event("seq-test", "a", {})
+        push_event("seq-test", "b", {})
+        assert latest_seq("seq-test") == 2
+        # 历史里能看到序号
+        from geonexus.cafe import events
+
+        assert [e["seq"] for e in events._event_history["seq-test"]] == [1, 2]
+
+    def test_seq_is_per_request_id(self):
+        from geonexus.cafe.events import clear_events, latest_seq, push_event
+
+        clear_events("seq-a")
+        clear_events("seq-b")
+        push_event("seq-a", "x", {})
+        push_event("seq-b", "x", {})
+        assert latest_seq("seq-a") == 1 and latest_seq("seq-b") == 1
+
+    def test_clear_resets_seq(self):
+        from geonexus.cafe.events import clear_events, latest_seq, push_event
+
+        push_event("seq-reset", "x", {})
+        clear_events("seq-reset")
+        assert latest_seq("seq-reset") == 0

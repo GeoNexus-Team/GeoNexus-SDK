@@ -21,12 +21,18 @@ logger = logging.getLogger(__name__)
 # 全局事件总线（单进程内存实现，可替换为 Redis pub/sub）
 _event_streams: dict[str, list[asyncio.Queue]] = defaultdict(list)
 _event_history: dict[str, list[dict[str, Any]]] = defaultdict(list)
+#: 每个 request_id 的事件序号。**这是对原先 payload 的修正**：没有 seq 时客户端
+#: 无法判断是否丢帧，重连后也无法去重。GeoTask 的事件契约（docs/GEOTASK.md §4）
+#: 把它定为必需字段，这里跟上，两边语义一致。
+_event_seq: dict[str, int] = defaultdict(int)
 
 
 def push_event(request_id: str, event_type: str, data: dict[str, Any]) -> None:
     """向所有订阅 request_id 的 SSE 客户端推送事件。"""
+    _event_seq[request_id] += 1
     payload = {
         "request_id": request_id,
+        "seq": _event_seq[request_id],
         "event": event_type,
         "data": data,
         "timestamp": time.time(),
@@ -75,9 +81,15 @@ async def subscribe_events(request_id: str) -> AsyncGenerator[str, None]:
 
 
 def clear_events(request_id: str) -> None:
-    """清理指定 request_id 的事件历史和流。"""
+    """清理指定 request_id 的事件历史、流与序号。"""
     _event_history.pop(request_id, None)
     _event_streams.pop(request_id, None)
+    _event_seq.pop(request_id, None)
+
+
+def latest_seq(request_id: str) -> int:
+    """已发出的最大 seq——客户端重连时报它即可续订（无重复、无空洞）。"""
+    return _event_seq.get(request_id, 0)
 
 
 # ── Convenience: emit progress during geo.execute ──

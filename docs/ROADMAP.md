@@ -190,7 +190,7 @@ TaskRouter 选节点/服务 ──▶ InferenceBackend（HTTP/gRPC）
 > 用 strict xfail 而不是让套件直接变红：一整套红的测试会淹没**新出现的**回归。
 > 想看真实的红，加 `--runxfail` 即可。
 
-### Phase 1 — GeoTask 模型 + 本地执行后端（1.5 周）
+### Phase 1 — GeoTask 模型 + 本地执行后端（1.5 周）🟡 **核心完成，入口待接**
 
 - `geonexus/geotask/`：`GeoTask`、`TaskState`、`TaskStore`(memory/JSON)、
   `TaskGraph`（依赖、拓扑、**就绪集并行**）、状态机与取消
@@ -198,11 +198,24 @@ TaskRouter 选节点/服务 ──▶ InferenceBackend（HTTP/gRPC）
 - HTTP + CLI 提交/查询/取消；SSE 进度
 - `web.TaskManager` 改为 GeoTask 的**适配器视图**（现有 16 条路由不改契约）
 
-**验收**
-- 一个含 3 步依赖的任务图：无依赖的步骤**真并行**（现在 agent 是串行）
-- 进程重启后，未完成任务状态被对账为 `failed`/`queued`，**不报 `running`**
-- 协作式取消在步骤边界生效，且终态为 `cancelled` 而非 `done`
-- 现有 470 项测试全过
+**验收（四条全部达成，且是可证的）**
+- ✅ 含 3 步依赖的任务图：无依赖的步骤**真并行** —— `tests/test_geotask_runner.py`
+  用 `threading.Barrier(3)` 证明三个任务**同时**在跑（串行会超时失败），不用计时断言
+- ✅ 重启后不撒谎 —— `JsonTaskStore` 落盘 → 重新载入 → `reconcile()` 把无执行者的
+  `running` 判为 `failed(executor_lost)` 或退回 `queued`（按重试余量）
+- ✅ 协作式取消在步骤边界生效，终态 `cancelled` 而非 `succeeded`
+- ✅ 套件 **512 通过 / 0 失败**（原 470 + 16 项契约由 xfail 转正 + 26 项新行为）
+
+**已交付**：`geonexus/geotask/`（model / machine / events / store 内存+JSON / graph /
+backend / runner）、`LocalBackend` 线程池、`cafe.events` 补 `seq`+`latest_seq`。
+
+**Phase 1 剩余（已明确，不改变契约）**
+| 项 | 说明 |
+|---|---|
+| `web.TaskManager` → GeoTask 适配器 | 需在边界把 `done/queued` 旧词表投影回去（契约 §8.2）；11 项 web 测试是防线 |
+| HTTP + CLI 提交/查询/取消 + SSE | 依赖适配器先定型，避免两套任务 API 并存 |
+| `agent.PlanExecutor` 改用就绪集 | 关键一步：`${stepN.outputs.key}` 模板要改成**提交时**解析（并行后不能假设"上一步刚跑完"），`PlanStep.status` 要投影回 GeoTask 状态 |
+| `TaskRouter` 调度策略 | 属 Phase 2 |
 
 ### Phase 2 — CAFE 唯一化为下推引擎（1.5 周）
 
