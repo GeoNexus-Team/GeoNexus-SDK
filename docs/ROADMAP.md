@@ -157,14 +157,38 @@ TaskRouter 选节点/服务 ──▶ InferenceBackend（HTTP/gRPC）
 
 ## 四、分阶段计划
 
-### Phase 0 — 冻结设计与现状清账（0.5 周）
+### Phase 0 — 冻结设计与现状清账（0.5 周）✅ **已完成**
 
-- 本路线图 + 新增 `docs/GEOTASK.md`（数据模型、状态机、事件契约、失败语义）
-- 三个"任务"概念的迁移映射表：`web.TaskManager` / `cafe.PushdownRequest` /
-  `agent.Plan` 各自在新的分层里对应什么、哪些字段被吸收、哪些被弃用
-- 先写**失败测试**：状态机全路径、DAG 并行就绪集、重启对账
+- ✅ 本路线图 + `docs/GEOTASK.md`（数据模型、状态机、事件契约、失败语义、
+  持久化与重启对账、执行后端协议、迁移映射）
+- ✅ 迁移映射表：三个"任务"概念 + **四套状态词表**（`web` / `cafe` / `agent` /
+  `OgeTaskPoller`）→ 统一的 `TaskState` + `error.code`
+- ✅ 失败测试就位：`tests/test_geotask_contract.py`（16 项 strict xfail 契约 +
+  4 项文档自洽性）
 
-**验收**：设计文档评审通过；失败测试就位并明确红。
+**评审时发现的四个契约级留白，已在 `GEOTASK.md` 中定死**（这正是 P0 的价值所在）：
+
+| 留白 | 决定 | 位置 |
+|---|---|---|
+| 事件顺序与重放 | 每任务内 `seq` 严格递增（现有 `cafe.events` 没有序号，客户端无法判断丢帧）；`since=` 重放，超窗口返回 `410` 而不是静默从头 | GEOTASK §4 |
+| 幂等键 | `task_id` 即幂等键：重复提交不新建、不重启，返回既有任务 | GEOTASK §5.4 |
+| 依赖失败级联 | fail-fast：下游 `blocked → failed(upstream_failed)` 并递归传播；`skipped` 不级联；可选依赖边不做 | GEOTASK §5.3 |
+| 占用记账单位 | 按 `cpu_cores` / `memory_mb` / `gpu_count`(+`gpu_kind`) 记**预约**而非实际用量；显存声明了才记 | GEOTASK §2.2 |
+
+另有两处刻意的取舍需要留意：**`skipped` 是终态**（agent 现有语义，"按策略不执行"
+≠ "失败"，压进 `failed` 会让失败率失真）；**`timeout` 不是状态**而是
+`failed` + `code=timeout`（状态描述"走到哪"，错误码描述"为什么"）。
+
+**验收证据**
+- 文档自洽性由机器检查：状态自洽（迁移端点已声明、终态吸收、非终态有出边、
+  全部可达、无重复无自环）
+- 契约测试 **今天为红**且可证：`pytest tests/test_geotask_contract.py --runxfail -q`
+  → 16 项全部 `ImportError: cannot import name 'geotask'`，即契约未实现
+- 套件保持绿：**474 通过 / 0 失败 / 16 xfail**（`strict=True`，Phase 1 一旦实现到
+  能通过就会 XPASS 并让套件失败，逼着移除标记）
+
+> 用 strict xfail 而不是让套件直接变红：一整套红的测试会淹没**新出现的**回归。
+> 想看真实的红，加 `--runxfail` 即可。
 
 ### Phase 1 — GeoTask 模型 + 本地执行后端（1.5 周）
 

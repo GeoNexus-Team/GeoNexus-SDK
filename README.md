@@ -192,6 +192,9 @@ core/
 - `docs/MVP_IMPLEMENTATION.md` — what was built, acceptance checks, limitations.
 - `docs/ROADMAP.md` — 下一步路线图：GeoTask 统一任务模型、CAFE 唯一下推化、
   模型可调用闭环与算力调度（含现状实测评估与分阶段验收判据）。
+- `docs/GEOTASK.md` — **任务契约**（已冻结）：数据模型、状态机、事件契约、
+  失败语义与错误码、持久化与重启对账、执行后端协议、迁移映射。
+  契约由 `tests/test_geotask_contract.py` 机器校验。
 - `CHANGELOG.md` — release history.
 
 ## License
