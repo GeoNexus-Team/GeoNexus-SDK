@@ -214,7 +214,7 @@ backend / runner）、`LocalBackend` 线程池、`cafe.events` 补 `seq`+`latest
 |---|---|
 | `web.TaskManager` → GeoTask 适配器 | 需在边界把 `done/queued` 旧词表投影回去（契约 §8.2）；11 项 web 测试是防线 |
 | HTTP + CLI 提交/查询/取消 + SSE | 依赖适配器先定型，避免两套任务 API 并存 |
-| `agent.PlanExecutor` 改用就绪集 | 关键一步：`${stepN.outputs.key}` 模板要改成**提交时**解析（并行后不能假设"上一步刚跑完"），`PlanStep.status` 要投影回 GeoTask 状态 |
+| ~~`agent.PlanExecutor` 改用就绪集~~ | ✅ **已完成**：模板依赖显式化 + 栅栏法证明并行 + 失败文案逐字保留 |
 | `TaskRouter` 调度策略 | 属 Phase 2 |
 
 ### Phase 2 — CAFE 唯一化为下推引擎（1.5 周）

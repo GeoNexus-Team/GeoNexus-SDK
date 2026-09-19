@@ -413,13 +413,34 @@ class ExecutionBackend(Protocol):
 `TaskRunner` 一轮全部提交；测试用 `threading.Barrier(3)` 证明三个独立任务**同时**
 在跑（串行执行会超时失败），而不是用计时断言。
 
+### agent 侧的就绪集化（已完成）
+
+`PlanExecutor.run` 与 `ReflectiveExecutor._execute_available` 现在共用
+`_execute_ready_set`：一轮把所有"依赖已满足"的步骤一起提交。并行是**确定性可证**的
+——`tests/test_agent_parallel.py` 用 `threading.Barrier(3)`，串行时三个步骤会
+`BrokenBarrierError`（实测：`max_workers=4` → 3 成功；`max_workers=1` → 3 失败）。
+
+改这东西最容易悄悄弄坏的两处，都已钉住：
+
+* **隐式依赖**：``${stepN.outputs.k}`` 隐含"先跑 N"。旧实现靠串行顺序让它"碰巧能用"，
+  并行后必须把这条边显式化——`_effective_deps()` 取**显式 `depends_on` ∪ 模板
+  推断**的并集。这不是新语义，而是把原本靠执行顺序维持的关系写进 DAG。
+* **依赖失败的步骤**仍是 ``failed`` + ``a dependency step failed``（逐字保留，
+  避免按文案判断的下游代码失效）。
+
+另外修了一处并行前置问题：`FederatedGeoMCPClient._node_client` 是"先查后建"，
+两个线程同时首次访问同一节点会各建一个客户端并泄漏其中一个；加了锁（只锁缓存
+字典，不串行化请求本身）。`LocalBackend` 的路由键也从"复用 `spec['skill']`"改成
+显式的 `spec['handler']`——步骤同时带着"用哪个处理器"和"执行哪个技能"两件事，
+挤在同一个键上会撞。
+
 ### 尚未完成（Phase 1 剩余）
 
 | 项 | 为什么还没做 |
 |---|---|
 | `web.TaskManager` 改为 GeoTask 适配器 | 需要把 `done/queued` 那套旧词表在**边界投影**回去（契约 §8.2），是 287 行的重写；`tests/test_web_tasks.py` 的 11 项是回归防线，值得单独一轮做 |
 | HTTP + CLI 提交/查询/取消 + SSE | 依赖适配器先定型，否则会有两套任务 API 并存 |
-| `agent.PlanExecutor` 改用就绪集并行 | 需要把 `${stepN.outputs.key}` 模板改成**提交时**从已有结果解析（并行后不能再假设"上一步刚跑完"），且要把 `PlanStep.status(done/failed/skipped)` 投影回 GeoTask 状态。这是"让用户真正看到并行收益"的关键一步，但它动的是 agent 的执行语义，单独一轮做 |
+| ~~`agent.PlanExecutor` 改用就绪集并行~~ | ✅ **已完成**（见下） |
 | `TaskRouter` 调度策略（数据本地性+算力余量+合规） | 路线图 Phase 2 |
 | 资源占用记账 | 路线图 Phase 4 |
 

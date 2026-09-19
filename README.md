@@ -147,7 +147,8 @@ core/
 │   ├── geonode/                  # node, registry, runtime, skill
 │   ├── registry/                 # shared Registry: cards+skills, persistence+auth
 │   ├── federation/               # pushdown execution (V0.3)
-│   ├── agent/                    # GeoAgent: planner + pipeline DAG + LLM translator
+│   ├── agent/                    # GeoAgent: planner + pipeline DAG (ready-set
+│   │                             #   parallel execution) + LLM translator
 │   ├── adapters/                 # STAC + OGC API read/write adapters (V0.4/V1.0)
 │   ├── kg/                       # generic knowledge-graph primitives + storage
 │   ├── geotask/                  # unified task model: state machine, DAG

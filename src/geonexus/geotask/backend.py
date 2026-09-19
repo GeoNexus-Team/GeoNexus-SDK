@@ -127,7 +127,15 @@ class LocalBackend:
         )
 
     def _handler_for(self, task: GeoTask) -> Handler | None:
-        for key in (task.spec.get("skill"), task.spec.get("key")):
+        """按 ``spec`` 里的处理器键查表。
+
+        查找顺序是 ``handler`` → ``skill`` → ``key``。``handler`` 放在最前是**刻意**
+        的：``skill`` 既是路由键又是业务字段（技能名），agent 的计划步骤就同时带着
+        "用哪个处理器执行"和"执行哪个技能"两件事，放在同一个键上会撞——第一版正是
+        这么写的，症状是"没有为 ... 注册执行体"。
+        """
+        for key in (task.spec.get("handler"), task.spec.get("skill"),
+                    task.spec.get("key")):
             if key and key in self._handlers:
                 return self._handlers[key]
         return None

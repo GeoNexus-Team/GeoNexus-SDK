@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 from typing import Any
 
 from ..geomcp import GeoMCPClient, GeoMCPClientError
@@ -41,6 +42,7 @@ class FederatedGeoMCPClient:
         self.api_key = api_key
         self._registry = RegistryClient(self.registry_url, timeout=timeout)
         self._nodes: dict[str, GeoMCPClient] = {}
+        self._nodes_lock = threading.Lock()
 
     # ------------------------------------------------------------------ #
     # Discovery
@@ -255,11 +257,21 @@ class FederatedGeoMCPClient:
 
     # ------------------------------------------------------------------ #
     def _node_client(self, node_url: str) -> GeoMCPClient:
-        if node_url not in self._nodes:
-            self._nodes[node_url] = GeoMCPClient(
-                node_url, timeout=self.timeout, api_key=self.api_key
-            )
-        return self._nodes[node_url]
+        """取（必要时创建）指向某个节点的客户端。
+
+        **加锁是因为并行执行**：计划执行器现在会同时下推多个步骤，两个线程同时
+        首次访问同一节点时，"先查后建"会各建一个客户端并泄漏其中一个（httpx.Client
+        持有连接池）。锁只保护这个缓存字典，不串行化请求本身——``httpx.Client``
+        自身可以并发使用。
+        """
+        with self._nodes_lock:
+            client = self._nodes.get(node_url)
+            if client is None:
+                client = GeoMCPClient(
+                    node_url, timeout=self.timeout, api_key=self.api_key
+                )
+                self._nodes[node_url] = client
+            return client
 
     def close(self) -> None:
         self._registry.close()

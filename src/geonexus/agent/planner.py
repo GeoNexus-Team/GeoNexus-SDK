@@ -19,13 +19,35 @@ from typing import Any
 from pydantic import BaseModel
 
 from ..federation import FederatedExecutionError, FederatedGeoMCPClient
+from ..geotask import (
+    GeoTask,
+    LocalBackend,
+    TaskGraph,
+    TaskKind,
+    TaskRunner,
+    TaskState,
+    TaskStore,
+)
 from ..registry import RegistryClient, RegistryClientError
 
 logger = logging.getLogger(__name__)
 
+#: 执行后端里注册的处理器名。GeoTask 的 ``spec["skill"]`` 用它路由到"执行一个
+#: 计划步骤"这件事本身（步骤真正要调用的技能名在 ``spec["step_skill"]`` 里）。
+_AGENT_STEP_HANDLER = "__agent_plan_step__"
+
 
 class ExecutionError(Exception):
     """Raised when a goal cannot be planned or executed."""
+
+
+class _StepFailed(Exception):
+    """执行体内部信号：该步骤失败。
+
+    执行后端的 ``Handler`` 协议只有"返回=成功、抛异常=失败"两种结局，而
+    ``_run_step`` 已经把失败原因写进 ``step.error``（保持与旧实现逐字一致），
+    所以这里只做一个不携带信息的信号，投影阶段不改写 ``step.error``。
+    """
 
 
 class GoalStep(BaseModel):
@@ -330,6 +352,114 @@ def _topo_order(steps: list[tuple[int, list[int]]]) -> list[int]:
 _TEMPLATE_RE = re.compile(r"\$\{step(\d+)\.outputs\.([A-Za-z0-9_]+)\}")
 
 
+# --------------------------------------------------------------------------- #
+# PlanStep ↔ GeoTask 的桥接
+# --------------------------------------------------------------------------- #
+def _task_id(step_id: int) -> str:
+    """PlanStep 的数字 id → GeoTask 的 task_id。
+
+    ``PlanStep.step_id`` 是 1 起的整数（``${step1...}`` 模板也用它），而 GeoTask
+    用字符串。前缀是为了让两者在同一张图里可读地对照。
+    """
+    return f"step-{step_id}"
+
+
+def _template_deps(step: PlanStep) -> set[int]:
+    """从参数模板里推断依赖：``${stepN.outputs.k}`` 隐含"必须先跑 N"。
+
+    旧执行器是**串行拓扑序**，所以即使没写 ``depends_on``，只要步骤按顺序排列，
+    模板也能取到值——隐式依赖"碰巧能用"。并行之后这条假设不成立（两个独立步骤会
+    同时开跑），因此必须把隐式依赖变成显式的图边。
+
+    这不是新增语义，而是把原本靠执行顺序维持的关系写进 DAG。
+    """
+    found: set[int] = set()
+
+    def walk(value: Any) -> None:
+        if isinstance(value, str):
+            found.update(int(m.group(1)) for m in _TEMPLATE_RE.finditer(value))
+        elif isinstance(value, dict):
+            for item in value.values():
+                walk(item)
+        elif isinstance(value, list):
+            for item in value:
+                walk(item)
+
+    walk(step.params)
+    return found
+
+
+def _effective_deps(step: PlanStep, by_id: dict[int, PlanStep]) -> list[int]:
+    """显式 ``depends_on`` ∪ 模板推断出的依赖，去重并保持升序。"""
+    deps = {d for d in step.depends_on if d in by_id}
+    deps |= {d for d in _template_deps(step) if d in by_id and d != step.step_id}
+    return sorted(deps)
+
+
+def _to_geotask(step: PlanStep, by_id: dict[int, PlanStep]) -> GeoTask:
+    return GeoTask(
+        task_id=_task_id(step.step_id),
+        kind=TaskKind.SKILL,
+        # handler 是**路由键**（后端据此选执行体），step_skill 才是真正的技能名
+        spec={"handler": _AGENT_STEP_HANDLER, "step_id": step.step_id,
+              "step_skill": step.skill},
+        depends_on=[_task_id(d) for d in _effective_deps(step, by_id)],
+        description=step.description or step.skill,
+        labels={"node_url": step.node_url} if step.node_url else {},
+    )
+
+
+def _preload_settled(graph: TaskGraph, plan: Plan,
+                     task_of: dict[int, str]) -> None:
+    """把已经处于终态的步骤预先标记好。
+
+    :class:`ReflectiveExecutor` 的反思循环会反复调用"执行所有可执行步骤"，此时
+    上一轮已 ``done``/``skipped`` 的步骤必须作为**依赖已满足**参与，而不是重新跑。
+    """
+    for step in plan.steps:
+        task_id = task_of[step.step_id]
+        if step.status == "done":
+            graph.mark_done(task_id)
+        elif step.status == "skipped":
+            graph.mark_skipped(task_id)
+
+
+def _project_plan(plan: Plan, by_id: dict[int, PlanStep],
+                  graph: TaskGraph, task_of: dict[int, str]) -> None:
+    """把图/任务状态投影回 ``PlanStep.status``（agent 的四值词汇表）。
+
+    映射（契约 §8.2 的反向）::
+
+        succeeded → done      failed → failed
+        skipped   → skipped   cancelled → failed（agent 词汇表里没有"已取消"，
+                                           且该状态在今天不可达——没有取消入口）
+
+    只有**被级联**（依赖失败而自己没跑）的步骤需要在这里补状态，而且错误文案逐字
+    保留旧实现的 ``a dependency step failed``——避免按文案判断的下游代码失效。
+    """
+    for step in plan.steps:
+        if step.status in ("done", "skipped"):
+            continue
+        state = graph.state_of(task_of[step.step_id])
+        if state is TaskState.SUCCEEDED:
+            step.status = "done"
+            continue
+        if state is TaskState.SKIPPED:
+            step.status = "skipped"
+            continue
+        if state in (TaskState.FAILED, TaskState.CANCELLED):
+            step.status = "failed"
+            if not step.error:
+                if state is TaskState.CANCELLED:
+                    step.error = "cancelled"
+                else:
+                    error = graph.error_of(task_of[step.step_id])
+                    step.error = ("a dependency step failed"
+                                  if error is None or error.code == "upstream_failed"
+                                  else error.message or error.code)
+        # pending/created/queued/…（理论上不会出现在终态之后）：保持原样
+
+
 def _resolve_templates(value: Any, by_id: dict[int, PlanStep]) -> Any:
     """Resolve ``${stepN.outputs.key}`` templates against completed steps.
 
@@ -359,13 +489,25 @@ class PlanExecutor:
 
     Steps with dependencies run after their dependencies; ``${stepN.outputs.key}``
     templates in step params are resolved from earlier steps' results.
+
+    Independent steps run **in parallel** (ready-set execution); ``max_workers``
+    bounds the concurrency, and ``max_workers=1`` restores the old serial order.
     """
+
+    #: 哪些异常算"这一步失败"（而不是让整个执行器崩掉）。
+    #:
+    #: 基类只认协议层的 :class:`FederatedExecutionError`；:class:`ReflectiveExecutor`
+    #: 把它放宽到所有异常——它的职责就是对"意料之外"的失败（自定义 client、序列化
+    #: 问题等）也给出反思建议。两者原本各有一份 ``_run_step`` 来体现这个差别，
+    #: 合并时若简单地取其一就会把语义悄悄改掉，所以留成显式的钩子。
+    step_error_types: tuple[type[BaseException], ...] = (FederatedExecutionError,)
 
     def __init__(
         self,
         registry_url: str,
         timeout: float = 30.0,
         api_key: str | None = None,
+        max_workers: int = 4,
     ) -> None:
         """Create an executor.
 
@@ -374,47 +516,96 @@ class PlanExecutor:
             timeout: Request timeout for node calls.
             api_key: Optional ``X-API-Key`` forwarded on node calls — needed
                 when nodes enforce authentication (server-side / BFF usage).
+            max_workers: 同时执行多少步。步骤是网络下推（IO 密集），所以默认
+                并发 4；设成 1 就退回旧的串行语义。
         """
         self.client = FederatedGeoMCPClient(registry_url, timeout=timeout, api_key=api_key)
+        self.max_workers = max(1, max_workers)
 
     def run(self, plan: Plan) -> Plan:
+        """执行计划（就绪集并行，见 :meth:`_execute_ready_set`）。"""
+        return self._execute_ready_set(plan)
+
+    def _execute_ready_set(self, plan: Plan) -> Plan:
+        """就绪集并行执行：每一轮把所有"依赖已满足"的步骤一起提交。
+
+        旧实现是 ``for step_id in order:`` —— 严格串行，DAG 里可并行的部分被浪费。
+        独立步骤现在真的同时执行，由 ``tests/test_agent_parallel.py`` 用栅栏证明
+        （不用计时断言）。
+
+        语义与旧实现保持一致的两处关键点：
+
+        1. ``${stepN.outputs.key}`` 模板在**提交时**解析。就绪集保证被引用的步骤
+           已完成，所以并行不会让模板取到空值；
+        2. 依赖失败的步骤仍然是 ``failed`` + ``a dependency step failed``
+           （逐字保留，避免下游按文案判断的代码失效）。
+
+        独立成方法而不是写在 ``run()`` 里，是因为 :class:`ReflectiveExecutor`
+        覆盖了 ``run()``：它需要调用**这套执行逻辑**而不是（会递归的）``self.run``。
+        """
         by_id = {s.step_id: s for s in plan.steps}
+        store = TaskStore.memory()
+        backend = LocalBackend(
+            handlers={_AGENT_STEP_HANDLER: self._step_handler(by_id)},
+            max_workers=self.max_workers,
+        )
+        task_of = {step.step_id: _task_id(step.step_id) for step in plan.steps}
+        graph = TaskGraph.from_tasks([_to_geotask(step, by_id) for step in plan.steps])
+        graph.bind(store)
+        _preload_settled(graph, plan, task_of)
         try:
-            order = _topo_order([(s.step_id, s.depends_on) for s in plan.steps])
-        except ExecutionError:
-            order = [s.step_id for s in plan.steps]
-        for step_id in order:
-            step = by_id[step_id]
-            if any(by_id[d].status != "done" for d in step.depends_on if d in by_id):
-                step.status = "failed"
-                step.error = "a dependency step failed"
-                continue
-            params = _resolve_templates(step.params, by_id)
-            try:
-                if step.kind == "card-skill":
-                    result = self.client.execute(
-                        step.skill,
-                        geocards=step.geocards,
-                        spatial=step.spatial,
-                        temporal=step.temporal,
-                        params=params,
-                        request_id=f"agent-step-{step.step_id}",
-                    )
-                else:
-                    result = self.client.execute_skill(
-                        step.skill,
-                        params=params,
-                        spatial=step.spatial,
-                        temporal=step.temporal,
-                        request_id=f"agent-step-{step.step_id}",
-                    )
-                step.result = result
-                step.status = "done"
-            except FederatedExecutionError as exc:
-                logger.warning("Plan step %d failed: %s", step.step_id, exc)
-                step.status = "failed"
-                step.error = str(exc)
+            TaskRunner(store, backend, executor_id="agent").run(graph)
+        finally:
+            backend.close()
+        _project_plan(plan, by_id, graph, task_of)
         return plan
+
+    # ------------------------------------------------------------------ #
+    def _step_handler(self, by_id: dict[int, PlanStep]) -> Any:
+        """执行后端的处理器：把一次任务执行映射成一个计划步骤。"""
+
+        def handler(task: GeoTask, _ctx: Any) -> dict[str, Any]:
+            step = by_id[int(task.spec["step_id"])]
+            self._run_step(step, by_id)
+            if step.status == "failed":
+                # 失败原因已由 _run_step 写在 step.error 上，这里只是让后端知道
+                # 该任务失败了（Handler 协议：返回=成功，抛异常=失败）
+                raise _StepFailed(step.error or "step failed")
+            return {"step_id": step.step_id, "status": step.status}
+
+        return handler
+
+    def _run_step(self, step: PlanStep, by_id: dict[int, PlanStep]) -> None:
+        """执行单个步骤：解析模板 → 下推 → 记录状态。
+
+        失败只写 ``step.status/error``，不抛异常——调用方（执行后端）据此决定
+        任务结局；:class:`ReflectiveExecutor` 也需要它在失败后继续反思。
+        """
+        try:
+            params = _resolve_templates(step.params, by_id)
+            if step.kind == "card-skill":
+                result = self.client.execute(
+                    step.skill,
+                    geocards=step.geocards,
+                    spatial=step.spatial,
+                    temporal=step.temporal,
+                    params=params,
+                    request_id=f"agent-step-{step.step_id}",
+                )
+            else:
+                result = self.client.execute_skill(
+                    step.skill,
+                    params=params,
+                    spatial=step.spatial,
+                    temporal=step.temporal,
+                    request_id=f"agent-step-{step.step_id}",
+                )
+            step.result = result
+            step.status = "done"
+        except self.step_error_types as exc:  # type: ignore[misc]
+            logger.warning("Plan step %d failed: %s", step.step_id, exc)
+            step.status = "failed"
+            step.error = str(exc)
 
     def close(self) -> None:
         self.client.close()

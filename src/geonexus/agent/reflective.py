@@ -195,6 +195,9 @@ class PlanReflector:
 class ReflectiveExecutor(PlanExecutor):
     """PlanExecutor that reflects on failed steps and retries per LLM advice.
 
+    与基类的一处**刻意差异**：任何异常都算"这一步失败"，因为它要对意料之外的
+    失败也给出建议（基类只认协议层错误）。
+
     Args:
         registry_url: Base URL of the shared GeoCard Registry.
         reflector: :class:`PlanReflector` (or compatible) used for advice.
@@ -205,6 +208,8 @@ class ReflectiveExecutor(PlanExecutor):
             propose replacements from the real registry surface (defaults to
             discovering them from the registry).
     """
+
+    step_error_types = (Exception,)
 
     def __init__(
         self,
@@ -330,45 +335,18 @@ class ReflectiveExecutor(PlanExecutor):
         return "\n".join(lines)
 
     def _execute_available(self, plan: Plan, by_id: dict[int, PlanStep]) -> None:
-        """Deterministic pass executing every step whose deps are satisfiable."""
-        for step in plan.steps:
-            deps_ok = all(by_id[d].status == "done" for d in step.depends_on if d in by_id)
-            if not deps_ok:
-                step.status = "failed"
-                step.error = "a dependency step failed"
-                continue
-            if step.status in ("done", "skipped"):
-                continue
-            self._run_step(step, by_id)
+        """确定性第一遍：执行所有依赖已满足的步骤。
 
-    def _run_step(self, step: PlanStep, by_id: dict[int, PlanStep]) -> None:
-        from .planner import _resolve_templates
+        与 :meth:`PlanExecutor.run` 共用同一套"就绪集并行"（原来的注释就说它
+        "same order semantics as PlanExecutor"，现在两者是真的同一套），因此独立
+        步骤并行、依赖失败的步骤仍是 ``failed`` + ``a dependency step failed``。
 
-        try:
-            params = _resolve_templates(step.params, by_id)
-            if step.kind == "card-skill":
-                result = self.client.execute(
-                    step.skill,
-                    geocards=step.geocards,
-                    spatial=step.spatial,
-                    temporal=step.temporal,
-                    params=params,
-                    request_id=f"agent-step-{step.step_id}",
-                )
-            else:
-                result = self.client.execute_skill(
-                    step.skill,
-                    params=params,
-                    spatial=step.spatial,
-                    temporal=step.temporal,
-                    request_id=f"agent-step-{step.step_id}",
-                )
-            step.result = result
-            step.status = "done"
-        except Exception as exc:  # noqa: BLE001 - surface to reflection
-            logger.warning("Plan step %d failed: %s", step.step_id, exc)
-            step.status = "failed"
-            step.error = str(exc)
+        反思循环本身仍是**串行**的：它一次只对一个失败步骤征求建议，并行没有意义。
+
+        调用 ``_execute_ready_set`` 而不是 ``self.run``——后者被本类覆盖，
+        会回到这里形成无限递归。
+        """
+        self._execute_ready_set(plan)
 
 
 def evaluate_plan(
