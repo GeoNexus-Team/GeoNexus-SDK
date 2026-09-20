@@ -12,13 +12,19 @@ notice (`_`-prefixed names, private modules, import paths under
 | `geonexus.geocard` | `GeoCard`, `GeoCardBuilder`, `GeoCardError`, `GeoCardValidationError`, `ContractValidator`, `ContractResult`, `SchemaReport`, `validate_card_schema`, `load_geocard`, `load_geocard_dict`, `load_many`, section models (`SpatialSection`, `TemporalSection`, `Band`, `IOField`, `Capability`, `AccessSection`, `ProvenanceSection`, `LicenseField`, `ComplianceSection`, `TrustSection`, `RuntimeSection`, `RenderingSection`) |
 | `geonexus.geomcp` | `GeoMCPServer`, `GeoMCPClient`, `GeoMCPClientError`, `GeoMCPDispatcher`, `GeoMCPProtocolError`, `PROTOCOL_VERSION`, `GeoMCPRequest`, `GeoMCPResponse`, `GeoMCPError`, `ExecuteParams`, `DescribeParams`, `SpatialContext`, `TemporalContext`, `build_request`, `build_response`, `make_request_id`, `parse_request`, error-code constants (`PARSE_ERROR` … `EXECUTION_FAILED`) |
 | `geonexus.geonode` | `GeoNode`, `RunningServer`, `GeoNodeError`, `DuplicateEntryError`, `EntryNotFoundError`, `GeoCardRegistry`, `SkillRegistry`, `LocalRuntime`, `Skill`, `SkillContext` |
-| `geonexus.registry` | `RegistryServer`, `RegistryClient`, `RegistryClientError`, `RegistryStore`, `RegistryFederator`, `RegistryEntry`, `RegistrySearchResult`, `SkillDescriptor`, `SkillEntry` |
+| `geonexus.registry` | `RegistryServer`, `RegistryClient`, `RegistryClientError`, `RegistryStore`, `RegistryFederator`, `RegistryEntry`, `RegistrySearchResult`, `SkillDescriptor`, `SkillEntry`, status constants (`STATUS_PENDING`, `STATUS_APPROVED`, `STATUS_REJECTED`, `REVIEW_STATUSES`); client methods `RegistryClient.approve`, `RegistryClient.reject`, `RegistryClient.register`, `RegistryClient.list_cards`; server `/cards/{id}/approve|reject` |
 | `geonexus.federation` | `FederatedGeoMCPClient`, `FederatedExecutionError` |
-| `geonexus.agent` | `Goal`, `GoalStep`, `Plan`, `PlanStep`, `GeoAgentPlanner`, `PlanExecutor`, `run_goal`, `ExecutionError`, `LLMConfig`, `LLMGoalPlanner`, `plan_from_text` |
+| `geonexus.agent` | `Goal`, `GoalStep`, `Plan`, `PlanStep`, `GeoAgentPlanner`, `PlanExecutor`, `run_goal`, `ExecutionError`, `LLMConfig`, `LLMGoalPlanner`, `plan_from_text`, `plan_from_text_with_registry`, `PlanReflector`, `ReflectiveExecutor`, `ReflectionAdvice`, `ReflectionError`, `evaluate_plan`, action constants (`ACTION_RETRY`, `ACTION_REPLACE`, `ACTION_SKIP`, `ACTION_ABORT`), `DEFAULT_MAX_REFLECTIONS` |
 | `geonexus.ggihs` | `GGIHSService` |
-| `geonexus.adapters` | `import_stac_item`, `fetch_stac_item`, `stac_item_to_geocard`, `geocard_to_stac_item`, `geocard_to_stac_catalog`, `save_stac_item`, `fetch_ogc_collection`, `fetch_ogc_feature`, `fetch_ogc_process`, `list_ogc_collections`, `list_ogc_processes`, `ogc_collection_to_geocard`, `ogc_feature_to_geocard`, `ogc_process_to_geocard`, `fetch_ogc_coverage_metadata`, `fetch_coverage_range`, `parse_coveragejson`, `coverage_to_geotiff`, `OgcProcessExecutor`, `make_ogc_process_skill`, `make_ogc_process_handler`, `register_ogc_process_skill`, and their error types (`StacAdapterError`, `OgcAdapterError`, `OgcCoverageError`, `OgcProcessExecutionError`) |
+| `geonexus.resource` | `ComputeCapability`, `ResourceMatch`, `ResourceError`, `match_resource`, `resolve_compute_capabilities`, `parse_memory` |
+| `geonexus.metadata` | `inspect_raster`, `raster_stats`, `raster_to_geocard` |
+| `geonexus.web` | `WebConfig`, `JWTConfig`, `BearerAuth`, `APIKeyAuth`, `AuthError`, `create_token`, `decode_token`, `create_web_router`, `create_web_app`, `run_web`, `TaskManager`, `Task`, `TaskNotFoundError`, `TaskNotCancellableError`, `LoginRequest`, `LoginResponse`, `ExecuteRequest`, `GoalRequest`, `TaskResponse`, state constants (`QUEUED`, `RUNNING`, `DONE`, `FAILED`, `CANCELLED`) |
+| `geonexus.adapters` | `import_stac_item`, `fetch_stac_item`, `stac_item_to_geocard`, `geocard_to_stac_item`, `geocard_to_stac_catalog`, `save_stac_item`, `fetch_ogc_collection`, `fetch_ogc_feature`, `fetch_ogc_process`, `list_ogc_collections`, `list_ogc_processes`, `ogc_collection_to_geocard`, `ogc_feature_to_geocard`, `ogc_process_to_geocard`, `fetch_ogc_coverage_metadata`, `fetch_coverage_range`, `parse_coveragejson`, `coverage_to_geotiff`, `OgcProcessExecutor`, `make_ogc_process_skill`, `make_ogc_process_handler`, `register_ogc_process_skill`, `list_ogc_record_collections`, `fetch_ogc_record`, `list_ogc_records`, `ogc_record_collection_to_geocard`, `ogc_record_to_geocard`, `list_ogc_tilesets`, `fetch_ogc_tileset`, `ogc_tileset_to_geocard`, `list_ogc_styles`, `fetch_ogc_style`, `ogc_style_to_geocard`, `ogc_visualization_to_geocards`, `fetch_wms_capabilities`, `list_wms_layers`, `wms_layer_to_geocard`, `fetch_wmts_capabilities`, `list_wmts_layers`, `wmts_layer_to_geocard`, and their error types (`StacAdapterError`, `OgcAdapterError`, `OgcCoverageError`, `OgcProcessExecutionError`, `OgcLegacyError`) |
 | `geonexus.mcp_adapter` | `create_mcp_server`, `create_streamable_http_app`, `run_stdio`, `run_http` |
-| CLI | `geonexus version`, `card validate|inspect|import-stac|import-ogc|import-ogc-process|import-ogc-coverage|export-stac`, `node start`, `registry start|register|search|sync|skill`, `skill list`, `inspector`, `agent run|ask`, `mcp run|serve`, `ggihs start`, `demo *`, `init` |
+| `geonexus.mcp_client` | `MCPToolClient`, `MCPTool`, `MCPClientError` |
+| `geonexus.geotask` | `GeoTask`, `TaskKind`, `TaskState`, `TaskError`, `TaskIO`, `TaskResult`, `RetryPolicy`, `ResourceRequirement`, `GpuRequirement`, `ERROR_RETRYABLE`, `TaskStore`, `JsonTaskStore`, `TaskNotFound`, `EventHistoryGone`, `TaskGraph`, `TaskGraphError`, `ExecutionBackend`, `ExecutionContext`, `BackendCapabilities`, `TaskOutcome`, `Handle`, `LocalBackend`, `TaskRunner`, `RunReport`, `make_local_runner`, `DEFAULT_LEASE_SECONDS`, `Scheduler`, `Reservation`, `Capacity`, `Occupancy`, `AdmissionResult`, state/event constants (`INITIAL_STATE`, `TERMINAL_STATES`, `TRANSITIONS`, `TASK_CREATED`, `TASK_STATE_CHANGED`, `TASK_PROGRESS`, `TASK_OUTPUT`, `TASK_FAILED`, `TASK_CANCELLED`, `EVENT_TYPES`) |
+| `geonexus.model` | `ModelInvocation`, `ModelOutcome`, `ModelProvider`, `ModelError`, `InferenceProvider`, `BatchProvider`, `ModelBackend`, `invoke_model`, `choose_provider`, `validate_inputs`, `validate_outputs` |
+| CLI | `geonexus version`, `card validate|inspect|import-stac|import-ogc|import-ogc-process|import-ogc-coverage|import-ogc-records|import-ogc-tiles|import-ogc-legacy|export-stac`, `node start`, `registry start|register|search|sync|skill`, `skill list`, `inspector`, `agent run|ask`, `mcp run|serve|import`, `ggihs start`, `task list|show|events|reconcile`, `demo *`, `init` |
 
 ## Versioning & compatibility
 
@@ -32,10 +38,14 @@ notice (`_`-prefixed names, private modules, import paths under
   removal happens no earlier than the **next MAJOR** release. Deprecations
   are announced in `CHANGELOG.md` and logged with `DeprecationWarning` when
   practical.
-- **Protocol stability.** The GeoMCP method set (`geo.capabilities`,
+- **Protocol stability.** The original GeoMCP method set (`geo.capabilities`,
   `geo.describe`, `geo.execute`, `geo.health`), the JSON-RPC 2.0 envelope and
   the error code registry are frozen for the 1.x line; additions go through
-  capability negotiation (`geo.capabilities` → `methods`).
+  capability negotiation (`geo.capabilities` → `methods`). `geo.invoke`
+  (Phase 3, see `docs/MODEL.md`) is such an **additive** extension: clients
+  that do not know it ignore it, nodes that do not implement it answer with
+  the JSON-RPC `METHOD_NOT_FOUND` (-32601) error. No existing method's
+  semantics changed.
 
 ## What is NOT stable
 

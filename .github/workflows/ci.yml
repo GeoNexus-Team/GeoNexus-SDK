@@ -25,7 +25,13 @@ jobs:
         run: pip install -e ".[dev]"
 
       - name: Lint (ruff)
-        run: ruff check src tests examples
+        run: ruff check src tests examples scripts/check_docs.py
+
+      - name: Docs consistency
+        # Phase 5 gate: every public name listed in docs/API_STABILITY.md must
+        # really be exported, every `geo.<method>` must be registered in
+        # METHODS, and every doc link / in-repo path reference must resolve.
+        run: python scripts/check_docs.py
 
       - name: Format check (ruff)
         run: ruff format --check src tests examples

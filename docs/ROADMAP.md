@@ -3,14 +3,17 @@
 **主题**：把「能描述」补成「能协同调度与执行」—— GeoTask 统一任务模型、CAFE 成为唯一
 下推引擎、模型成为可调用的一等资产。
 
-**状态**：设计已定，待实施。
-**依据**：本文第一节是实测评估（含行数、测试数、调用点核查），不是印象。
+**状态**：**P0–P5 全部完成**（每个 Phase 标题带 ✅，验收证据见该节与 §七）。
+**依据**：本文第一节是**改动前**的实测评估（含行数、测试数、调用点核查），不是印象；
+它记录的是"为什么要有这条路线图"，不是当前状态。
 
 ---
 
 ## 一、现状评估（实测）
 
-`core/` 共 78 个 py 文件 / 16,988 行 / 470 项测试。
+改动前：`core/` 共 78 个 py 文件 / 16,988 行 / 470 项测试。
+改动后：**669 项测试全过**（原 470 + 契约由 xfail 转正 16 + 各 Phase 新增 183），
+ruff 干净。
 
 | 层 | 完成度 | 证据 |
 |---|---|---|
@@ -238,38 +241,58 @@ backend / runner）、`LocalBackend` 线程池、`cafe.events` 补 `seq`+`latest
 **顺带修掉**：`PushdownResult(status="failed")` 用字符串导致 `to_dict()` 必抛
 AttributeError 的潜伏缺陷（零调用点所以一直没暴露）。
 
-### Phase 3 — 模型可调用闭环（1.5 周）
+### Phase 3 — 模型可调用闭环（1.5 周）✅ **已完成**
 
-- `ModelProvider` 抽象 + `InferenceProvider`(HTTP/gRPC) + `BatchProvider`(提交→轮询→回收)
-- `match_resource` 前置到路由：**不匹配就不进执行**，且拒绝理由可读
-- model card 的 `access` / `runtime` 语义落到调用路径；产物按 IOField 登记
-- `geo.capabilities` 广告新能力；新调用方法加法式引入
-- 演示：`model card → 匹配算力 → 独立推理服务 → 结果回传`
+- ✅ `ModelProvider` 抽象 + `InferenceProvider`(HTTP) + `BatchProvider`(提交→轮询→回收)
+  —— gRPC **未做**，遇到 `access.protocol: grpc` 明确报错而不是猜（见 `MODEL.md` §8）
+- ✅ `match_resource` 前置到路由：**不匹配就不进执行**，且拒绝理由可读
+- ✅ model card 的 `access` / `runtime` 语义落到调用路径；产物按 IOField 登记
+- ✅ `geo.capabilities` 广告新能力（`model_invocation` 键）；`geo.invoke` 加法式引入
+- ✅ 演示：`model card → 匹配算力 → 独立推理服务 → 结果回传`（门禁结论真的改写调用目标）
 
-**验收**
-- 端到端闭环 1 条（真实 HTTP 推理服务，非 mock）
-- 无兼容算力的模型**带理由拒绝**，而不是执行时才失败
-- 批作业：提交 → 轮询 → 回收 全路径可测
-- 老客户端（不协商新能力）行为不变
+**验收（四条全部达成）**
+- ✅ 端到端闭环 1 条（真实 HTTP 推理服务，非 mock）—— `ThreadingHTTPServer` + 真 httpx
+- ✅ 无兼容算力的模型**带理由拒绝**，而不是执行时才失败 —— 并断言该服务**零请求**
+- ✅ 批作业：提交 → 轮询 → 回收 全路径可测 —— 断言请求序列是 POST 后接 GET
+- ✅ 老客户端（不协商新能力）行为不变 —— 原四方法表顺序不变、老节点返回 -32601
 
-### Phase 4 — 算力调度与占用管理（1.5 周）
+**新增**：`geonexus/model/`（`invocation` / `inference` / `batch` / `backend`）、
+GeoMCP `geo.invoke`、`docs/MODEL.md`、`tests/test_model.py`（52 项）。
 
-- 队列 + 优先级 + 公平；租约与并发上限；GPU/显存记账
-- 重试与退避；失败隔离（一个任务炸掉不拖垮节点）
-- 占用与队列深度的观测面（指标 + `/health` 式的诊断字段）
+### Phase 4 — 算力调度与占用管理（1.5 周）✅ **已完成**
 
-**验收**
-- N 个并发模型任务在资源约束下**排队而非自由竞争**；超限有可解释状态（`blocked`）
-- 占用记账与实际并发一致（可断言）
-- 故障注入：单任务失败不影响同节点其他任务
+- ✅ 队列 + 优先级 + **属主轮转公平**；租约与并发上限；GPU 卡数记账
+- ✅ 重试与退避（`RetryPolicy.backoff_for`）；失败隔离（`submit`/`poll`/执行三处边界）
+- ✅ 占用与队列深度的观测面（`Scheduler.stats()` / `RunReport.occupancy`）
 
-### Phase 5 — 收口（0.5 周）
+**验收（三条全部达成）**
+- ✅ N 个并发任务在资源约束下**排队而非自由竞争**；超限是 `blocked` + 可读理由
+  （`tests/test_geotask_scheduler.py`：容量 2、后端 8 线程 → **实测**并发只有 2）
+- ✅ 占用记账与实际并发一致（可断言）—— 用执行体内的**独立探针**测真实并发，
+  与 `Scheduler.peak_parallel` 比对；收工时 `occupancy.held() == 0`（不泄漏）
+- ✅ 故障注入：单任务失败不影响同节点其他任务（含 `poll` 抛异常的后端）
 
-- `API_STABILITY.md` 增补新公开面；`docs/GEOTASK.md` / `CAFE.md`（新）/ `RESOURCE.md` 更新
-- 迁移指南：老 `TaskManager` 用户、`federation` 用户
-- README 与 CLI 帮助同步
+**关键设计**：三类判定分开——**装不下**（`no_compatible_compute` 拒绝）、
+**暂时没空**（`blocked` + 理由，容量释放后重新参选）、**能起**（扣预约）。
+把"装不下"也当排队就会永远排队，那是把部署错误伪装成资源紧张。
 
-**验收**：文档与实现一致（有检查：文档里列的公开名必须真实存在）。
+**新增**：`geotask/scheduler.py`、`TaskGraph` 的 `blocked` 回归路径、
+`RunReport.blocked/rejected/occupancy`、`tests/test_geotask_scheduler.py`（49 项）。
+
+### Phase 5 — 收口（0.5 周）✅ **已完成**
+
+- ✅ `API_STABILITY.md` 增补 `geonexus.geotask` / `geonexus.model` 两行与
+  `geo.invoke` 的加法式扩展说明；`GEOTASK.md` / `CAFE.md` / `RESOURCE.md` /
+  `MODEL.md`（新）更新
+- ✅ 迁移指南：`docs/MIGRATION.md`（老 `TaskManager` 用户、`federation` 用户）
+- ✅ README 与 CLI 帮助同步
+
+**验收**：文档与实现一致 —— **有检查**：`scripts/check_docs.py`（CI 里跑），
+逐条校验 ①`API_STABILITY.md` 表里每个公开名都能 `getattr` 到；②全文 `geonexus.*`
+点号名可解析；③`` `geo.<method>` `` 必须在 `METHODS` 里注册；④相对链接与仓库内路径引用
+真实存在。运行它会打印实际检查项数；当前 **0 处不一致**。`tests/test_docs_consistency.py`
+反过来验证"检查器会红"——对每一类检查各造一个假（假公开名、假点号名、假协议方法、
+假路径、假链接），确保它不是只会通过的摆设。
 
 ---
 
@@ -304,4 +327,5 @@ AttributeError 的潜伏缺陷（零调用点所以一直没暴露）。
 | M2 (Phase 2) | 全仓库只剩一条下推实现，worker 掉线可自愈 |
 | M3 (Phase 3) | 模型能端到端被调用；无算力时带理由拒绝 |
 | M4 (Phase 4) | 资源约束下排队与占用记账可断言 |
-| 全程 | 现有 470 项测试保持全过；`federation` 公开 API 不变 |
+| M5 (Phase 5) | 文档一致性检查通过（公开名/协议方法/路径全部真实存在） |
+| 全程 | 全套 **655** 项测试保持全过；`federation` 公开 API 不变；ruff 干净 |

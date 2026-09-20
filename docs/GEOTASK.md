@@ -406,7 +406,8 @@ class ExecutionBackend(Protocol):
 | §4 事件契约（seq / since / 410） | `geotask/events.py` + `store.events_since()` | 无洞、可重放、超窗报错 |
 | §5 失败语义（错误码/重试/级联/幂等） | `model.ERROR_RETRYABLE` + `graph._cascade` | fail-fast 级联、重试至成功、幂等 no-op |
 | §6 持久化与重启对账 | `store.JsonTaskStore` + `store.reconcile()` | 落盘 → 重载 → 不报 running |
-| §7 执行后端协议 | `geotask/backend.py`（`LocalBackend`） | 能力声明诚实（`cancel()` 返回 False） |
+| §7 执行后端协议 | `geotask/backend.py`（`LocalBackend`）、`model/backend.py`（`ModelBackend`） | 能力声明诚实（`cancel()` 返回 False） |
+| §2.2 资源预约与准入（P4） | `geotask/scheduler.py` | 容量约束下排队、记账 == 实际并发 |
 | §8 迁移映射 | 文档 + `cafe.events` 已加 `seq`/`latest_seq` | 事件层已统一，其余见下 |
 
 **"就绪集并行"已落地并有确定性证明**：`TaskGraph.ready()` 返回**所有**可跑节点，
@@ -441,11 +442,41 @@ class ExecutionBackend(Protocol):
 | ~~`web.TaskManager` 改为 GeoTask 适配器~~ | ✅ **已完成**：状态归 `TaskStore`，边界做词表投影（`WEB_TO_STATE`/`STATE_TO_WEB`）；11 项旧测试未改动即通过 |
 | ~~HTTP + CLI + SSE~~ | ✅ **已完成**：16 条 web 路由（含 SSE）全部转为 GeoTask 支撑；新增 `geonexus task list/show/events/reconcile`。CLI **刻意不做**提交/取消——取消是协作式的，异进程改标志无人读，详见 §10.1 |
 | ~~`agent.PlanExecutor` 改用就绪集并行~~ | ✅ **已完成**（见下） |
-| `TaskRouter` 调度策略（数据本地性+算力余量+合规） | 路线图 Phase 2 |
-| 资源占用记账 | 路线图 Phase 4 |
+| ~~资源占用记账~~ | ✅ **已完成**（Phase 4）：`geotask/scheduler.py`，见下 |
+| 模型调用接入任务契约 | ✅ **已完成**（Phase 3）：`geonexus.model.ModelBackend`，见 `MODEL.md` |
+| `TaskRouter` 调度策略（数据本地性+合规） | 数据本地性与合规路由属于**跨节点**决策，Phase 2 的 CAFE 已覆盖；节点内调度见下 |
 
 > 换句话说：**能力已具备且被证明，但还没接到用户入口上**。这几项都不改变本文契约——
 > 它们是把契约接到既有入口，而不是改契约。
+
+### Phase 4：算力调度与占用记账（已完成）
+
+没有调度器时 `ready()` 返回什么就跑什么：N 个并发请求**自由竞争**同一份 CPU /
+显存，`running` 的个数与节点真实容量无关。`geotask/scheduler.py` 补上这一层，
+并把判定刻意分成三类——混在一起是运维事故的常见来源：
+
+| 情况 | 结果 |
+|---|---|
+| 需求 > 节点**总**容量（装不下） | 直接 `no_compatible_compute` 拒绝（带理由） |
+| 空闲容量不足（暂时没空） | `blocked` + 理由，等释放后**重新参选** |
+| 能装下且有空 | 发租约、扣预约、交给后端 |
+
+第一类若也按"排队"处理就会永远排队——一个要 64GiB 的任务排在 16GiB 的节点上，
+看起来像"资源紧张"，实际是**部署错误**。
+
+为此 `TaskGraph._RUNNABLE` 纳入了 `blocked`（状态机里 `blocked → queued` 这条边
+本来就存在，Phase 4 才真正用上），于是容量释放后被卡住的任务会重新进就绪集。
+`mark_blocked()` 把理由写进 `state_changed` 事件的 `reason` 与 `task.message`——
+**不带理由的 `blocked` 是运维最讨厌的状态**：看得见卡住，看不见缺什么。
+
+记账口径仍是契约 §2.2 的"预约之和"，因此可以断言：
+`Scheduler.peak_parallel` == 执行体里实测的峰值并发，且收工时
+`occupancy.held() == 0`（不泄漏）。测试用**独立探针**（在执行体内增减计数器）
+测量真实并发，而不是信调度器自己的账。
+
+退避也在这里：可重试失败后 `RetryPolicy.backoff_for()` 决定何时允许重新准入，
+退避窗口内容量让给别人（不是占着坑等）。故障隔离有三处边界：`submit` 抛异常、
+`poll` 抛异常、单个任务失败——都被收成**一个任务**的失败，`run()` 不中断。
 
 ### 10.1 为什么 CLI 不做提交与取消
 

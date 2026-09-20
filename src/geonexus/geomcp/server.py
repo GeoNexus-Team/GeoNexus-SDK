@@ -17,13 +17,15 @@ from fastapi.responses import JSONResponse
 
 from ..geocard.model import GeoCard
 from ..geocard.validator import ContractValidator
-from .models import DescribeParams, ExecuteParams
+from .models import DescribeParams, ExecuteParams, InvokeParams
 from .protocol import (
     CONTRACT_NOT_SATISFIED,
     EXECUTION_FAILED,
     GEOCARD_NOT_FOUND,
+    INVALID_ARGUMENT,
     INVALID_PARAMS,
     SKILL_NOT_FOUND,
+    WRITE_METHODS,
     GeoMCPDispatcher,
     GeoMCPProtocolError,
 )
@@ -109,6 +111,7 @@ class GeoMCPServer:
         forward_timeout: float = 60.0,
         api_keys: set[str] | None = None,
         forward_api_key: str | None = None,
+        model_backend: Any | None = None,
     ) -> None:
         self.name = name
         self.engine = engine
@@ -118,6 +121,9 @@ class GeoMCPServer:
         self.forward_api_key = forward_api_key
         self.geocard_registry = geocard_registry
         self.skill_registry = skill_registry
+        #: ``geonexus.model.ModelBackend``（或任何有 ``invoke_card`` 的对象）。
+        #: 为 ``None`` 时 ``geo.invoke`` **明确拒绝**而不是假装可用——见 capabilities()。
+        self.model_backend = model_backend
         self.contract_validator = contract_validator or ContractValidator()
 
         self._tools: dict[str, _Tool] = {}
@@ -128,6 +134,7 @@ class GeoMCPServer:
             capabilities_fn=self._handle_capabilities,
             describe_fn=self._handle_describe,
             execute_fn=self._handle_execute,
+            invoke_fn=self._handle_invoke,
             health_fn=self._handle_health,
         )
 
@@ -177,6 +184,15 @@ class GeoMCPServer:
             raise GeoMCPProtocolError(INVALID_PARAMS, f"Invalid geo.execute params: {exc}") from exc
         return self.execute(execute_params)
 
+    def _handle_invoke(self, params: dict[str, Any]) -> dict[str, Any]:
+        try:
+            invoke_params = InvokeParams(**params)
+        except Exception as exc:
+            raise GeoMCPProtocolError(
+                INVALID_PARAMS, f"Invalid geo.invoke params: {exc}"
+            ) from exc
+        return self.invoke(invoke_params)
+
     # ------------------------------------------------------------------ #
     # Public API
     # ------------------------------------------------------------------ #
@@ -202,7 +218,67 @@ class GeoMCPServer:
             "skills": skills,
             "geocards": [c["id"] for c in cards],
             "geocard_ids": [c["id"] for c in cards],
+            # 加法式扩展：老客户端读不认识的键会忽略它；认识它的客户端据此判断
+            # 这个节点能不能真的执行模型调用，而不是发出去才知道。
+            "model_invocation": self.model_invocation_capability(),
         }
+
+    def model_invocation_capability(self) -> dict[str, Any]:
+        """``geo.invoke`` 的可用性声明。"""
+        if self.model_backend is None:
+            return {
+                "enabled": False,
+                "method": "geo.invoke",
+                "reason": "此节点未配置 model_backend，geo.invoke 会返回 invalid_argument",
+            }
+        names = getattr(self.model_backend, "provider_names", None)
+        return {
+            "enabled": True,
+            "method": "geo.invoke",
+            "compute_gate": True,
+            "providers": sorted(names() if callable(names) else (names or [])),
+            "accepted_cards": ["model"],
+        }
+
+    def invoke(self, params: InvokeParams) -> dict[str, Any]:
+        """Invoke a ``type: model`` GeoCard (``geo.invoke``).
+
+        Synchronous by design: the caller gets the full
+        :class:`~geonexus.model.ModelOutcome` -- including ``error_code``,
+        ``retryable`` and the compute-gate ``reasons`` -- as the JSON-RPC
+        result. Scheduling it as a task is a separate concern and belongs to
+        ``geonexus.geotask`` + ``ModelBackend``.
+        """
+        if self.model_backend is None:
+            raise GeoMCPProtocolError(
+                INVALID_ARGUMENT,
+                "此节点未配置模型调用能力（model_backend），无法执行 geo.invoke",
+                {"capability": self.model_invocation_capability()},
+            )
+
+        card = self._resolve_card(params.model)
+        if card is None:
+            raise GeoMCPProtocolError(
+                GEOCARD_NOT_FOUND,
+                f"GeoCard not found: {params.model}",
+                {"missing": params.model},
+            )
+        card_type = getattr(card, "type", None)
+        card_type = getattr(card_type, "value", card_type)
+        if card_type != "model":
+            raise GeoMCPProtocolError(
+                INVALID_ARGUMENT,
+                f"geo.invoke 只接受 type=model 的卡片，{params.model} 是 {card_type!r}",
+                {"model": params.model, "type": card_type},
+            )
+
+        timeout = params.timeout
+        if timeout is None:
+            timeout = float(getattr(card, "timeout_seconds", None) or 300.0)
+        outcome = self.model_backend.invoke_card(
+            card, params.inputs, params=params.params, timeout=timeout
+        )
+        return outcome.to_dict()
 
     def describe(self, params: DescribeParams | None = None) -> dict[str, Any]:
         """Describe registered GeoCards and/or skills."""
@@ -433,8 +509,9 @@ class GeoMCPServer:
           - ``GET  /health``        — health check
           - ``GET  /capabilities``  — protocol surface
 
-        When :attr:`api_keys` is non-empty, ``geo.execute`` requests require
-        an ``X-API-Key`` header; discovery methods stay open.
+        When :attr:`api_keys` is non-empty, write methods (``geo.execute``,
+        ``geo.invoke``) require an ``X-API-Key`` header; discovery methods
+        stay open.
         """
         app = FastAPI(title=f"GeoMCP server: {self.name}", version=PROTOCOL_VERSION)
 
@@ -442,13 +519,14 @@ class GeoMCPServer:
             if not self.api_keys:
                 return
             method = payload.get("method")
-            if method != "geo.execute":
+            # 两个都是**写**方法：会占用算力、可能产生费用，不能匿名开放
+            if method not in WRITE_METHODS:
                 return
             supplied = request.headers.get("X-API-Key")
             if supplied not in self.api_keys:
                 raise GeoMCPProtocolError(
                     INVALID_PARAMS,
-                    "geo.execute requires a valid X-API-Key header",
+                    f"{method} requires a valid X-API-Key header",
                 )
 
         @app.post("/geomcp")

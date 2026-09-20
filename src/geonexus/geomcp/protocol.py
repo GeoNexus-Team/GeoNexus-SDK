@@ -38,7 +38,20 @@ GEOCARD_NOT_FOUND = 2002
 EXECUTION_FAILED = 2003
 INVALID_ARGUMENT = 2004
 
-METHODS = ("geo.capabilities", "geo.describe", "geo.execute", "geo.health")
+#: GeoMCP 方法表。``geo.invoke`` 是 V2 追加的**加法式**扩展：调用一个
+#: ``type: model`` 的 GeoCard。老客户端只读 ``geo.capabilities.methods``
+#: 即可发现它，不认识它的实现按 JSON-RPC 返回 ``METHOD_NOT_FOUND``。
+METHODS = (
+    "geo.capabilities",
+    "geo.describe",
+    "geo.execute",
+    "geo.invoke",
+    "geo.health",
+)
+
+#: 会**改变状态或消耗资源**的方法：需要 API key。其余方法保持开放，
+#: 因为"能不能用"必须先能被发现（与注册中心的鉴权策略一致）。
+WRITE_METHODS = frozenset({"geo.execute", "geo.invoke"})
 
 
 class GeoMCPProtocolError(Exception):
@@ -137,6 +150,7 @@ class GeoMCPDispatcher:
         capabilities_fn: Handler | None = None,
         describe_fn: Handler | None = None,
         execute_fn: Handler | None = None,
+        invoke_fn: Handler | None = None,
         health_fn: Handler | None = None,
     ) -> None:
         self._handlers: dict[str, Handler] = {}
@@ -146,6 +160,8 @@ class GeoMCPDispatcher:
             self._handlers["geo.describe"] = describe_fn
         if execute_fn:
             self._handlers["geo.execute"] = execute_fn
+        if invoke_fn:
+            self._handlers["geo.invoke"] = invoke_fn
         if health_fn:
             self._handlers["geo.health"] = health_fn
 

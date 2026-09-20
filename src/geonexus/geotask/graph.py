@@ -34,9 +34,16 @@ __all__ = ["TaskGraph", "TaskGraphError"]
 #: 依赖被满足的判定：这两者都算"上游已经不再挡路"。
 _SATISFIED = frozenset({TaskState.SUCCEEDED, TaskState.SKIPPED})
 
-#: ``ready()`` 认为"可跑"的状态：``created``=还没交出去；``queued``=交出去了但当前
-#: 没有执行者在跑（重试、让出、调度器退回都会落到这里）。``running`` 不算可跑。
-_RUNNABLE = frozenset({TaskState.CREATED, TaskState.QUEUED})
+#: ``ready()`` 认为"可跑"的状态：
+#:
+#: - ``created``  还没交出去
+#: - ``queued``   交出去了但当前没有执行者在跑（重试、让出、调度器退回都会落到这里）
+#: - ``blocked``  **被调度器按资源卡住**的任务（P4）。它必须重新进就绪集，否则容量
+#:   释放后没人会再试它——那是永久排队。阻塞型 ``blocked``（依赖失败）随后立刻转
+#:   ``failed``，不会留在就绪集里，所以两者不冲突。
+#:
+#: ``running`` 不算可跑：它已经在执行者手里。
+_RUNNABLE = frozenset({TaskState.CREATED, TaskState.QUEUED, TaskState.BLOCKED})
 
 
 class TaskGraphError(Exception):
@@ -197,6 +204,27 @@ class TaskGraph:
         self._move(task_id, TaskState.FAILED, error=self._errors[task_id])
         self._cascade(task_id)
 
+    def mark_blocked(self, task_id: str, reasons: list[str] | str = "",
+                     code: str = "resource_unavailable") -> None:
+        """把任务标成"被调度器卡住"，并把理由落到事件流与 ``message``。
+
+        理由**必须**可读：``blocked`` 不带理由是运维最讨厌的状态——看得见卡住，
+        看不见缺什么。已经在 ``blocked`` 的任务只更新理由，不重复迁移。
+        """
+        text = "；".join(reasons) if isinstance(reasons, (list, tuple)) else str(reasons)
+        message = f"{code}: {text}" if text else code
+        task = self._task(task_id)
+        if task.state is TaskState.BLOCKED:
+            # 已经在 blocked：只更新理由。这不算状态变化，事件里不该多一条。
+            task.message = message
+            return
+        if task.state is TaskState.CREATED:
+            self._move(task_id, TaskState.QUEUED, reason=message)
+        if task.state is TaskState.QUEUED:
+            # 理由随 state_changed 事件走（契约 §4 的事件类型表不变）
+            self._move(task_id, TaskState.BLOCKED, reason=message)
+        task.message = message
+
     def mark_skipped(self, task_id: str) -> None:
         self._ensure_blocked(task_id)
         self._move(task_id, TaskState.SKIPPED)
@@ -218,7 +246,13 @@ class TaskGraph:
             raise TaskGraphError(f"未知 task_id: {task_id}") from None
 
     def _ensure_queued(self, task_id: str) -> None:
-        if self._task(task_id).state is TaskState.CREATED:
+        """推进到 ``queued``。
+
+        ``blocked → queued`` 是资源卡住之后"容量有了、重新参选"的回归路径
+        （状态机里本来就有这条边，P4 才真正用上）。
+        """
+        state = self._task(task_id).state
+        if state in (TaskState.CREATED, TaskState.BLOCKED):
             self._move(task_id, TaskState.QUEUED)
 
     def _ensure_blocked(self, task_id: str) -> None:
@@ -228,19 +262,23 @@ class TaskGraph:
         （契约 §3.1），必须先经过 ``blocked``。这不是绕路：任务确实是被"卡住"
         （依赖失败）才走到那一步的，``blocked`` 正是这个语义的落点。
         """
+        if self._task(task_id).state is TaskState.BLOCKED:
+            return                      # 已经在 blocked，别做 queued→blocked 的往返
         self._ensure_queued(task_id)
         if self._task(task_id).state is TaskState.QUEUED:
             self._move(task_id, TaskState.BLOCKED)
 
     def _move(self, task_id: str, to: TaskState,
-              error: TaskError | None = None, result: Any = None) -> None:
+              error: TaskError | None = None, result: Any = None,
+              reason: str = "") -> None:
         task = self._task(task_id)
         if task.state is to:
             return
         if self._store is not None:
             # 绑定了 store：迁移（校验 + 事件）统一由 store 负责
             try:
-                self._store.transition(task_id, to, error=error, result=result)
+                self._store.transition(task_id, to, reason=reason,
+                                       error=error, result=result)
             except IllegalTransition:
                 if task.is_terminal():
                     return
@@ -256,6 +294,8 @@ class TaskGraph:
         task.state = to
         if error is not None:
             task.error = error
+        if reason:
+            task.message = reason
 
     def _cascade(self, source_id: str) -> None:
         """fail-fast：递归把下游标成 ``failed(upstream_failed)``。"""

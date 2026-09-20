@@ -10,6 +10,7 @@
     store.py     状态与事件的唯一入口（内存 + JSON）
     graph.py     依赖 DAG：**就绪集并行** + fail-fast 级联
     backend.py   执行后端协议（Phase 1：LocalBackend）
+    scheduler.py 算力调度：容量记账 / 优先级 / 公平 / 退避（Phase 4）
     runner.py    执行器：把就绪集真的并行跑起来
 
 存在意义：把 SDK 里原先**四套互不相干的任务/状态概念**（``web.TaskManager``、
@@ -58,6 +59,7 @@ from .model import (
     TaskState,
 )
 from .runner import DEFAULT_LEASE_SECONDS, RunReport, TaskRunner, make_local_runner
+from .scheduler import AdmissionResult, Capacity, Occupancy, Reservation, Scheduler
 from .store import EventHistoryGone, JsonTaskStore, TaskNotFound, TaskStore
 
 __all__ = [
@@ -78,4 +80,6 @@ __all__ = [
     "ExecutionBackend", "ExecutionContext", "BackendCapabilities",
     "TaskOutcome", "Handle", "LocalBackend",
     "TaskRunner", "RunReport", "make_local_runner", "DEFAULT_LEASE_SECONDS",
+    # 调度（P4）
+    "Scheduler", "Reservation", "Capacity", "Occupancy", "AdmissionResult",
 ]

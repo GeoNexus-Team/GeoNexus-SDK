@@ -51,3 +51,28 @@ Pair with the registry (`search(type="compute")`) and the planner: after
 model step to the compute node that satisfies its runtime. The reference app
 (`geonexus-web`) demonstrates the full flow with a teaching timeline:
 retrieve → contract check → resource match → plan → execute.
+
+### "execute" 现在真的存在了（Phase 3）
+
+在 Phase 3 之前，匹配结果没有任何东西消费——`geo.execute` 只接受技能名，模型卡
+匹配完就断了。`geonexus.model.invoke_model` 补上了最后一步，并且**把门禁前置**：
+
+```python
+from geonexus.model import invoke_model
+
+outcome = invoke_model(model_card, {"image": "s3://…"}, capabilities=resolve_compute_capabilities(reg))
+if not outcome.ok:
+    print(outcome.error_code, outcome.reasons)   # 例如 no_compatible_compute + gpu 理由
+```
+
+**匹配结论必须真的影响调用目标**：门禁选中的节点会通过 `provider.retarget()` 改写
+实际 endpoint，否则门禁只是个装饰。细节见 `MODEL.md`。
+
+### 节点内调度（Phase 4）
+
+`match_resource` 回答"**哪台**算力能满足这个模型"，不回答"**现在**能不能起"。
+后者由 `geonexus.geotask.scheduler.Scheduler` 负责：按 `cpu_cores` / `memory_mb` /
+`gpu_count` 的预约之和做准入，容量不足时任务进 `blocked`（带理由），装不下则直接
+拒绝。两者是同一套单位（`ResourceRequirement.from_geocard_runtime` 复用
+`parse_memory`），所以模型的 `runtime` 声明可以直接变成调度预约。详见
+`GEOTASK.md` §10。

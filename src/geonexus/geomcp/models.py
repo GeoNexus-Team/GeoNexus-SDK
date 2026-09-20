@@ -64,6 +64,22 @@ class ExecuteParams(BaseModel):
     )
 
 
+class InvokeParams(BaseModel):
+    """Parameters of ``geo.invoke`` —— 调用一个 ``type: model`` 的 GeoCard."""
+
+    model: str = Field(description="model GeoCard id to invoke.")
+    inputs: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Inputs named after the card's declared inputs.",
+    )
+    params: dict[str, Any] = Field(
+        default_factory=dict, description="Model-specific invocation parameters."
+    )
+    timeout: float | None = Field(
+        default=None, description="Override the card/task timeout in seconds."
+    )
+
+
 class DescribeParams(BaseModel):
     """Parameters of ``geo.describe``."""
 

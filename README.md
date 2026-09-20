@@ -107,6 +107,10 @@ python3.12 -m venv .venv
 .venv/bin/geonexus task events    <task_id> --since 3 --state geotask.json
 .venv/bin/geonexus task reconcile --state geotask.json
 
+# Invoke a model GeoCard (compute gate first: no compatible node -> refused with reasons)
+#   over the protocol:  geo.invoke   (see docs/MODEL.md)
+#   from Python:        geonexus.model.invoke_model(card, inputs, capabilities=caps)
+
 # Run the MCP bridges (GeoMCP over Model Context Protocol)
 .venv/bin/geonexus mcp run --bare        # stdio (local AI assistants)
 .venv/bin/geonexus mcp serve --port 9000 # Streamable HTTP (remote clients)
@@ -158,7 +162,10 @@ core/
 │   ├── adapters/                 # STAC + OGC API read/write adapters (V0.4/V1.0)
 │   ├── kg/                       # generic knowledge-graph primitives + storage
 │   ├── geotask/                  # unified task model: state machine, DAG
-│   │                             #   ready-set parallelism, seq'd events, replay
+│   │                             #   ready-set parallelism, seq'd events, replay,
+│   │                             #   capacity/priority/fairness scheduling
+│   ├── model/                    # model invocation: compute gate → provider
+│   │                             #   (HTTP inference / batch submit-poll-collect)
 │   ├── cafe/                     # CAFE: the only pushdown engine
 │   │                             #   central (routing/leases) + local/remote workers
 │   ├── security/                 # zero-trust gateway + legal ontology
@@ -203,10 +210,17 @@ core/
 - `docs/ROADMAP.md` — 下一步路线图：GeoTask 统一任务模型、CAFE 唯一下推化、
   模型可调用闭环与算力调度（含现状实测评估与分阶段验收判据）。
 - `docs/CAFE.md` — 唯一的下推引擎：两种 worker 的分工、三阶段路由、租约与故障转移。
+- `docs/MODEL.md` — **模型调用契约**：算力门禁前置、两种 provider 的线上约定、
+  `geo.invoke` 的加法式扩展、`ModelBackend` 如何接进任务契约。
+- `docs/MIGRATION.md` — 迁移指南：老 `TaskManager` 用户、`federation` 用户。
 - `docs/GEOTASK.md` — **任务契约**（已冻结、核心已实现）：数据模型、状态机、
   事件契约、失败语义与错误码、持久化与重启对账、执行后端协议、迁移映射；
   §10 为实现进度。契约由 `tests/test_geotask_contract.py` 机器校验。
 - `CHANGELOG.md` — release history.
+
+文档与实现的一致性由 `scripts/check_docs.py` 机器校验（CI 里跑）：`API_STABILITY.md`
+表里的公开名必须能被 `getattr` 到、全文 `geonexus.*` 点号名可解析、`geo.<method>`
+必须在 `METHODS` 里注册、相对链接与仓库内路径引用真实存在。
 
 ## License
 

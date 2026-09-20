@@ -8,6 +8,73 @@ project uses Semantic Versioning.
 
 ### Added
 
+- **`geonexus.model` (v1.2, Phase 3)** — model invocation contract: a
+  `type: model` GeoCard finally has an execution path.
+  - `invoke_model(card, inputs, ...)` runs **compute gate → provider →
+    I/O contract check**; `match_resource` is evaluated *before* the call, so
+    an incompatible model is refused **with reasons** and nothing is sent.
+  - `InferenceProvider` (synchronous HTTP) and `BatchProvider`
+    (submit → poll → collect, with `submit`/`poll`/`collect` usable
+    separately for long jobs).
+  - Providers are selected from `card.access.protocol`; an unknown protocol
+    (e.g. `grpc`) is an explicit error rather than a silent fallback.
+  - `ModelOutcome` carries `error_code` / `retryable` / `reasons` /
+    `compute_node`; failures are returned, not raised.
+  - `ModelBackend` exposes model invocation as a `geotask`
+    `ExecutionBackend`, so model tasks share the state machine, leases,
+    retries and observability of every other task.
+  - GeoMCP gains one **additive** method, `geo.invoke`; it is advertised in
+    `geo.capabilities.model_invocation` and is a write method for
+    `X-API-Key` purposes. Nodes that do not implement it answer with the
+    standard `METHOD_NOT_FOUND` (-32601).
+  - `docs/MODEL.md`, `tests/test_model.py` (52 tests).
+
+- **`geonexus.geotask.scheduler` (v1.2, Phase 4)** — capacity accounting and
+  admission control for task execution.
+  - `Scheduler` / `Reservation` / `Occupancy` / `AdmissionResult`: admission
+    by `cpu_cores` / `memory_mb` / `gpu_count` (+`gpu_kind`) reservations.
+  - Three deliberately separate verdicts: **does not fit at all** →
+    `no_compatible_compute` rejection with reasons; **no capacity right now**
+    → `blocked` (re-enters the ready set once capacity is released);
+    **fits and free** → reserve and run. Treating "does not fit" as queueing
+    would queue forever, disguising a deployment error as resource pressure.
+  - Priority ordering plus **per-owner rotation** so one submitter cannot
+    starve another; backfill so a small task can use a large task's leftover
+    capacity.
+  - Retry backoff (`RetryPolicy.backoff_for`) defers re-admission and yields
+    capacity to other tasks meanwhile; failure isolation at three boundaries
+    (`submit`, `poll`, handler) so one bad task cannot take down a run.
+  - `TaskGraph` learns the `blocked → queued` return path (the state machine
+    edge always existed); `mark_blocked()` records the reason in the
+    `state_changed` event and `task.message`.
+  - Observability: `Scheduler.stats()`, `TaskRunner.scheduling()`,
+    `RunReport.blocked` / `rejected` / `occupancy`.
+  - `tests/test_geotask_scheduler.py` (49 tests), including an independent
+    probe that measures real concurrency inside the handler and asserts the
+    scheduler's accounting matches it exactly.
+
+- **Docs consistency gate (v1.2, Phase 5)** — `scripts/check_docs.py` (run in
+  CI) verifies that every public name listed in `docs/API_STABILITY.md` is
+  really exported, that every `geonexus.*` dotted name in the docs resolves,
+  that every `geo.<method>` is registered in `METHODS`, and that every doc
+  link and in-repo path reference exists. `tests/test_docs_consistency.py`
+  proves the checker can fail (one fake of each kind).
+  New: `docs/MIGRATION.md` (old `TaskManager` / `federation` users).
+
+### Changed
+
+- `TaskGraph.ready()` now also returns `blocked` nodes whose dependencies are
+  satisfied, so a task blocked on resources is retried once capacity frees.
+  `mark_blocked()` is idempotent and carries a human-readable reason.
+- `RunReport` gained `blocked`, `rejected` and `occupancy`; `TaskRunner`
+  accepts an optional `scheduler=`. **Without a scheduler the previous
+  behaviour is unchanged** (unlimited capacity).
+- A `poll()` exception from an `ExecutionBackend` now fails only that task
+  (`executor_lost`, retryable) instead of propagating out of `run()`.
+- `API_STABILITY.md` documents `geonexus.geotask`, `geonexus.model` and the
+  additive nature of `geo.invoke`.
+
+
 - **`geonexus.web` (v1.1)** — Web backend-for-frontend layer:
   - JWT auth (`JWTConfig` HS256/RS256, stateless, distributed-friendly;
     `BearerAuth` / `APIKeyAuth` FastAPI dependencies).
