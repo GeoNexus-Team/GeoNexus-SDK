@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from .protocol import PushdownRequest, PushdownResult, TaskStatus
+from .remote import WorkerCapabilities
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +90,23 @@ class WorkerNode:
     # ------------------------------------------------------------------ #
     # Data management
     # ------------------------------------------------------------------ #
+    def capabilities(self) -> WorkerCapabilities:
+        """本地 worker 只会执行**代码**下推（在子进程沙箱里跑）。
+
+        远端 worker（:class:`~geonexus.cafe.remote.RemoteWorker`）只会执行**技能调用**。
+        router 按这份声明做硬过滤，所以代码任务不会被派到远端、技能调用也不会被派到
+        一个只认代码的本地 worker。
+        """
+        return WorkerCapabilities(
+            payload_kinds=frozenset({"code"}),
+            resource_dims=("cpu", "memory"),
+            supports_cancel=False,   # 子进程可以杀，但协议里没有取消入口
+        )
+
+    def heartbeat(self) -> bool:
+        """本地 worker 永远在线。保留同名接口，让 router 不必区分两种传输。"""
+        return True
+
     def register_asset(self, name: str, local_path: str) -> WorkerNode:
         """Register a local data asset this worker owns."""
         self.data_assets[name] = local_path

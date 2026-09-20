@@ -1,4 +1,19 @@
-"""Federated GeoMCP client: discovery via registry, execution via pushdown."""
+"""Federated GeoMCP client: discovery via registry, execution via CAFE pushdown.
+
+## 执行部分已经交给 CAFE
+
+这个类原来自己维护一整套"到节点的 HTTP 传输 + 执行"（``_node_client``、
+``GeoMCPClient`` 缓存、逐节点调用）。那是与 CAFE **重复的下推实现**，而 CAFE 那一份
+没人用。现在：
+
+* **传输与执行**：``geonexus.cafe.RemoteWorker``（HTTP/GeoMCP）+ ``CentralServer``
+  的租约与失败换点；
+* **保留在这里的**：注册中心发现、以及"每张卡归哪个节点"的**归属分组**——那是本类
+  的对外语义（``execute`` 要按节点聚合结果），属于策略而非传输。
+
+公开 API 与返回形状一字未改（``resolve_nodes`` / ``discover`` / ``node_health`` /
+``discover_skills`` / ``search_skills`` / ``search`` / ``execute_skill`` / ``execute``）。
+"""
 
 from __future__ import annotations
 
@@ -6,7 +21,7 @@ import logging
 import threading
 from typing import Any
 
-from ..geomcp import GeoMCPClient, GeoMCPClientError
+from ..cafe import CentralServer, PushdownRequest, RemoteWorker, TaskStatus
 from ..registry import RegistryClient, RegistryClientError
 
 logger = logging.getLogger(__name__)
@@ -41,8 +56,10 @@ class FederatedGeoMCPClient:
         self.timeout = timeout
         self.api_key = api_key
         self._registry = RegistryClient(self.registry_url, timeout=timeout)
-        self._nodes: dict[str, GeoMCPClient] = {}
-        self._nodes_lock = threading.Lock()
+        # 下推走 CAFE：一个 worker 一个远端节点，缓存复用（含连接池）
+        self._central = CentralServer(server_id=f"federation:{self.registry_url}")
+        self._workers: dict[str, RemoteWorker] = {}
+        self._workers_lock = threading.Lock()
 
     # ------------------------------------------------------------------ #
     # Discovery
@@ -164,20 +181,16 @@ class FederatedGeoMCPClient:
                 {"skill": skill},
             )
         node_url = entry["node_url"]
-        client = self._node_client(node_url)
-        try:
-            return client.execute(
-                skill=skill,
-                params=params,
-                spatial=spatial,
-                temporal=temporal,
-                request_id=request_id,
-            )
-        except GeoMCPClientError as exc:
-            raise FederatedExecutionError(
-                f"Node {node_url} refused skill execution: {exc}",
-                {"node": node_url, "skill": skill, "code": exc.code},
-            ) from exc
+        result = self._dispatch(
+            node_url,
+            PushdownRequest(
+                skill=skill, params=dict(params or {}),
+                spatial=spatial, temporal=temporal,
+                # request_id 落到任务的 id 上：远端用它关联自己的事件流
+                task_id=request_id or PushdownRequest.__dataclass_fields__["task_id"].default_factory(),
+            ),
+        )
+        return result
 
     def execute(
         self,
@@ -212,26 +225,39 @@ class FederatedGeoMCPClient:
 
         results: list[dict[str, Any]] = []
         for node_url, node_cards in nodes.items():
-            client = self._node_client(node_url)
-            try:
-                result = client.execute(
-                    skill=skill,
-                    geocards=node_cards,
-                    spatial=spatial,
-                    temporal=temporal,
-                    params=params,
-                    request_id=request_id,
-                )
-            except GeoMCPClientError as exc:
-                raise FederatedExecutionError(
-                    f"Node {node_url} refused execution: {exc}",
-                    {"node": node_url, "cards": node_cards, "code": exc.code},
-                ) from exc
+            result = self._dispatch(
+                node_url,
+                PushdownRequest(
+                    skill=skill, params=dict(params or {}),
+                    geocards=list(node_cards),
+                    spatial=spatial, temporal=temporal,
+                    task_id=request_id or PushdownRequest.__dataclass_fields__["task_id"].default_factory(),
+                ),
+            )
             results.append({"node": node_url, "cards": node_cards, "result": result})
 
         if len(results) == 1:
             return results[0]["result"]
         return {"status": "ok", "results": results}
+
+    def _dispatch(self, node_url: str, request: PushdownRequest) -> dict[str, Any]:
+        """经 CAFE 把请求下推到指定节点，并按本类的错误契约抛异常。
+
+        ``RemoteWorker`` 失败时返回结果而不抛（路由层要靠它换点），但 federated
+        API 的对外契约是**抛** ``FederatedExecutionError``（调用方按异常处理，
+        例如 agent 的计划步骤靠它判定失败），所以这里做一次转换。
+        """
+        # 先确保这个节点的 worker 已建好并注册进 central——dispatch_to 只认已注册的
+        # worker（第一版漏了这一步，症状是 "worker not found: <node>"）
+        self._worker(node_url)
+        result = self._central.dispatch_to(node_url, request)
+        if result.status is TaskStatus.SUCCEEDED:
+            return result.result
+        raise FederatedExecutionError(
+            f"Node {node_url} refused execution: {result.error}",
+            {"node": node_url, "skill": request.skill,
+             "cards": list(request.geocards), "code": result.error_code},
+        )
 
     # ------------------------------------------------------------------ #
     def _filter_healthy(self, nodes: dict[str, list[str]]) -> dict[str, list[str]]:
@@ -256,27 +282,24 @@ class FederatedGeoMCPClient:
         return filtered
 
     # ------------------------------------------------------------------ #
-    def _node_client(self, node_url: str) -> GeoMCPClient:
-        """取（必要时创建）指向某个节点的客户端。
+    def _worker(self, node_url: str) -> RemoteWorker:
+        """取（必要时创建）指向某个节点的 CAFE worker。
 
-        **加锁是因为并行执行**：计划执行器现在会同时下推多个步骤，两个线程同时
-        首次访问同一节点时，"先查后建"会各建一个客户端并泄漏其中一个（httpx.Client
-        持有连接池）。锁只保护这个缓存字典，不串行化请求本身——``httpx.Client``
-        自身可以并发使用。
+        **加锁是因为并行执行**：计划执行器会同时下推多个步骤，两个线程同时首次访问
+        同一节点时"先查后建"会各建一个 worker 并泄漏其中一个（每个持有 httpx 连接池）。
+        锁只保护这个缓存，不串行化请求本身——``httpx.Client`` 可并发使用。
         """
-        with self._nodes_lock:
-            client = self._nodes.get(node_url)
-            if client is None:
-                client = GeoMCPClient(
-                    node_url, timeout=self.timeout, api_key=self.api_key
-                )
-                self._nodes[node_url] = client
-            return client
+        with self._workers_lock:
+            worker = self._workers.get(node_url)
+            if worker is None:
+                worker = RemoteWorker(node_url, timeout=self.timeout, api_key=self.api_key)
+                self._workers[node_url] = worker
+                self._central.register_worker(worker)
+            return worker
 
     def close(self) -> None:
         self._registry.close()
-        for client in self._nodes.values():
-            client.close()
+        self._central.close()   # 关闭所有远端 worker 的连接池
 
     def __enter__(self) -> FederatedGeoMCPClient:
         return self

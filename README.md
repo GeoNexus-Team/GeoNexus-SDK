@@ -159,7 +159,8 @@ core/
 │   ├── kg/                       # generic knowledge-graph primitives + storage
 │   ├── geotask/                  # unified task model: state machine, DAG
 │   │                             #   ready-set parallelism, seq'd events, replay
-│   ├── cafe/                     # CAFE pushdown engine (central + worker)
+│   ├── cafe/                     # CAFE: the only pushdown engine
+│   │                             #   central (routing/leases) + local/remote workers
 │   ├── security/                 # zero-trust gateway + legal ontology
 │   ├── gaag/                     # GAAG contract registry + contract types
 │   ├── mcp_adapter.py            # official MCP SDK bridge: stdio + HTTP (V0.5/V1.0)
@@ -201,6 +202,7 @@ core/
 - `docs/MVP_IMPLEMENTATION.md` — what was built, acceptance checks, limitations.
 - `docs/ROADMAP.md` — 下一步路线图：GeoTask 统一任务模型、CAFE 唯一下推化、
   模型可调用闭环与算力调度（含现状实测评估与分阶段验收判据）。
+- `docs/CAFE.md` — 唯一的下推引擎：两种 worker 的分工、三阶段路由、租约与故障转移。
 - `docs/GEOTASK.md` — **任务契约**（已冻结、核心已实现）：数据模型、状态机、
   事件契约、失败语义与错误码、持久化与重启对账、执行后端协议、迁移映射；
   §10 为实现进度。契约由 `tests/test_geotask_contract.py` 机器校验。

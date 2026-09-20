@@ -217,7 +217,7 @@ backend / runner）、`LocalBackend` 线程池、`cafe.events` 补 `seq`+`latest
 | ~~`agent.PlanExecutor` 改用就绪集~~ | ✅ **已完成**：模板依赖显式化 + 栅栏法证明并行 + 失败文案逐字保留 |
 | `TaskRouter` 调度策略 | 属 Phase 2 |
 
-### Phase 2 — CAFE 唯一化为下推引擎（1.5 周）
+### Phase 2 — CAFE 唯一化为下推引擎（1.5 周）✅ **已完成**
 
 - `TaskRouter` 合并策略：数据本地性（federation 的归属查表）+ 健康过滤 + 算力余量
   （`resource.py`）+ 合规
@@ -226,10 +226,17 @@ backend / runner）、`LocalBackend` 线程池、`cafe.events` 补 `seq`+`latest
 - `federation.FederatedGeoMCPClient` 改为薄封装，**公开 API 不变**（回归测试守住）
 - worker 心跳 + 租约 + 超时回收 + 结果回传
 
-**验收**
-- 全仓库只有一处下推实现（federation 内无重复的路由/执行逻辑）
-- 两节点下推：杀掉一个 worker 后任务重试到健康节点并成功
-- `federation` 的公开 API 与行为回归测试全过
+**验收（三条全部达成）**
+- ✅ 全仓库只有一处下推实现 —— AST 断言 federation 内无 `GeoMCPClient`/`httpx`/
+  `_node_client`，并列出"谁可以持有下推客户端"的白名单
+- ✅ 杀掉一个 worker 后重试到健康节点并成功 —— 两条测试：一个用从未监听的端口，
+  一个**先成功跑一次再停掉真实节点**（更接近真实故障）
+- ✅ `federation` 公开 API 与行为回归全过（4 个测试文件未改动即通过）
+
+**新增**：`cafe/remote.py`（`RemoteWorker`：CAFE 缺的 HTTP 传输）、
+`CentralServer` 的三阶段路由 + 租约 + 失败换点、`docs/CAFE.md`。
+**顺带修掉**：`PushdownResult(status="failed")` 用字符串导致 `to_dict()` 必抛
+AttributeError 的潜伏缺陷（零调用点所以一直没暴露）。
 
 ### Phase 3 — 模型可调用闭环（1.5 周）
 

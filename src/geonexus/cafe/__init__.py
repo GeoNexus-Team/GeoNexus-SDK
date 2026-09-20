@@ -9,13 +9,18 @@
 即把计算逻辑推送到数据所在 Worker 执行（零原始数据下载）。
 """
 
-from .central import CentralServer, RoutingDecision, TaskRouter
+from .central import CentralServer, Lease, RoutingDecision, TaskRouter, capacity_of
 from .protocol import PushdownRequest, PushdownResult, TaskStatus
+from .remote import RemoteWorker, WorkerCapabilities
 from .worker import WorkerNode, worker_function
 
 __all__ = [
     "CentralServer",
     "WorkerNode",
+    "RemoteWorker",
+    "WorkerCapabilities",
+    "Lease",
+    "capacity_of",
     "worker_function",
     "PushdownRequest",
     "PushdownResult",
