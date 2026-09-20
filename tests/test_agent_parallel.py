@@ -60,18 +60,20 @@ def _plan(*steps: GoalStep) -> Plan:
     goal = Goal(capability="x", steps=list(steps))
     plan = Plan(goal=goal.model_dump(exclude_none=True), registry_url="http://r:8790")
     for i, gs in enumerate(steps, start=1):
-        plan.steps.append(PlanStep(
-            step_id=i,
-            kind="skill-only",
-            skill=gs.skill,
-            node_url="http://node:8787",
-            geocards=list(gs.geocards),
-            spatial=None,
-            temporal=gs.temporal,
-            params=dict(gs.params),
-            description=gs.label or gs.skill,
-            depends_on=list(gs.depends_on),
-        ))
+        plan.steps.append(
+            PlanStep(
+                step_id=i,
+                kind="skill-only",
+                skill=gs.skill,
+                node_url="http://node:8787",
+                geocards=list(gs.geocards),
+                spatial=None,
+                temporal=gs.temporal,
+                params=dict(gs.params),
+                description=gs.label or gs.skill,
+                depends_on=list(gs.depends_on),
+            )
+        )
     return plan
 
 
@@ -118,8 +120,11 @@ class TestReadySetParallelism:
         plan = _plan(
             GoalStep(skill="a"),
             GoalStep(skill="b"),
-            GoalStep(skill="c", depends_on=[1, 2],
-                     params={"x": "${step1.outputs.value}", "y": "${step2.outputs.value}"}),
+            GoalStep(
+                skill="c",
+                depends_on=[1, 2],
+                params={"x": "${step1.outputs.value}", "y": "${step2.outputs.value}"},
+            ),
         )
         with _executor(_FakeClient(handler)) as ex:
             plan = ex.run(plan)
@@ -165,6 +170,7 @@ class TestImplicitDependency:
         旧执行器是串行拓扑序，所以这种写法"碰巧能用"；并行之后若不把模板里隐含的
         依赖变成图边，两个步骤会同时开跑、模板取到空值。
         """
+
         def handler(skill: str) -> dict:
             if skill == "produce":
                 return {"outputs": {"value": "42"}}
@@ -183,8 +189,9 @@ class TestImplicitDependency:
         # 客户端**收到**的 n 必须是解析后的值；若依赖没被推断出来、两步并行，
         # 这里会是未解析的 "${step1.outputs.value}"
         consume_params = dict(client.params)["consume"]
-        assert consume_params["n"] == "42", \
+        assert consume_params["n"] == "42", (
             f"模板应在提交时解析出真实值，实际 {consume_params['n']!r}"
+        )
 
     def test_explicit_and_implicit_dependencies_are_merged(self) -> None:
         """显式 ``depends_on`` 与模板推断出的依赖取并集，不互相覆盖。"""
@@ -193,8 +200,7 @@ class TestImplicitDependency:
         plan = _plan(
             GoalStep(skill="a"),
             GoalStep(skill="b"),
-            GoalStep(skill="c", depends_on=[2],
-                     params={"x": "${step1.outputs.v}"}),
+            GoalStep(skill="c", depends_on=[2], params={"x": "${step1.outputs.v}"}),
         )
         by_id = {s.step_id: s for s in plan.steps}
         assert _effective_deps(by_id[3], by_id) == [1, 2]
@@ -208,6 +214,7 @@ class TestImplicitDependency:
 class TestFailureSemanticsUnchanged:
     def test_failed_step_cascades_with_the_legacy_message(self) -> None:
         """依赖失败的步骤仍是 ``failed`` + ``a dependency step failed``。"""
+
         def handler(skill: str) -> dict:
             if skill == "boom":
                 raise RuntimeError("上游炸了")
@@ -249,6 +256,7 @@ class TestFailureSemanticsUnchanged:
 
     def test_sibling_failure_does_not_affect_independent_branch(self) -> None:
         """一个分支失败不影响另一个独立分支——并行带来的实际好处。"""
+
         def handler(skill: str) -> dict:
             if skill == "boom":
                 raise RuntimeError("nope")

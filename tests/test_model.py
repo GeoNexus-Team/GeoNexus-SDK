@@ -58,13 +58,15 @@ class _Handler(BaseHTTPRequestHandler):
         except ValueError:
             body = {}
         with service.lock:
-            service.requests.append({
-                "method": self.command,
-                "path": self.path,
-                "body": body,
-                "authorization": self.headers.get("Authorization"),
-                "api_key": self.headers.get("X-API-Key"),
-            })
+            service.requests.append(
+                {
+                    "method": self.command,
+                    "path": self.path,
+                    "body": body,
+                    "authorization": self.headers.get("Authorization"),
+                    "api_key": self.headers.get("X-API-Key"),
+                }
+            )
             seq = len(service.requests)
         status, payload = service.responder(self.command, self.path, body, seq)
         data = payload if isinstance(payload, bytes) else json.dumps(payload).encode()
@@ -169,8 +171,9 @@ def _model_card(
     return card
 
 
-def _caps(url: str, *, cpu: int = 8, memory_gb: float = 16.0,
-          gpu: str = "none") -> list[ComputeCapability]:
+def _caps(
+    url: str, *, cpu: int = 8, memory_gb: float = 16.0, gpu: str = "none"
+) -> list[ComputeCapability]:
     return [ComputeCapability(node_url=url, cpu=cpu, memory_gb=memory_gb, gpu=gpu)]
 
 
@@ -219,8 +222,12 @@ class TestComputeGate:
 
     def test_no_gate_means_no_compute_node(self) -> None:
         with _Service(_ok_responder({})) as svc:
-            outcome = invoke_model(_model_card(endpoint=svc.url), {},
-                                   capabilities=_caps(svc.url), require_compute=False)
+            outcome = invoke_model(
+                _model_card(endpoint=svc.url),
+                {},
+                capabilities=_caps(svc.url),
+                require_compute=False,
+            )
             assert outcome.ok
             assert outcome.compute_node is None, "没过门禁就不该报一个节点"
 
@@ -280,8 +287,9 @@ class TestInferenceProvider:
     def test_end_to_end_over_real_http(self) -> None:
         with _Service(_ok_responder({"embedding": [1.0, 2.0]})) as svc:
             provider = InferenceProvider(svc.url, timeout=10.0)
-            outcome = provider.invoke(ModelInvocation(
-                model_id="m1", inputs={"text": "hello"}, params={"top_k": 3}))
+            outcome = provider.invoke(
+                ModelInvocation(model_id="m1", inputs={"text": "hello"}, params={"top_k": 3})
+            )
             provider.close()
 
             assert outcome.ok
@@ -340,8 +348,10 @@ class TestInferenceProvider:
         也未必返回拒绝，靠真实 socket 测这条分支会是环境相关的假红/假绿。
         """
         provider = InferenceProvider(
-            "http://127.0.0.1:1/infer", timeout=2.0, client=_failing_client(
-                httpx.ConnectError("connection refused")))
+            "http://127.0.0.1:1/infer",
+            timeout=2.0,
+            client=_failing_client(httpx.ConnectError("connection refused")),
+        )
         outcome = provider.invoke(ModelInvocation(model_id="m1"))
         provider.close()
         assert outcome.error_code == "executor_lost"
@@ -349,8 +359,10 @@ class TestInferenceProvider:
 
     def test_timeout_maps_to_timeout(self) -> None:
         provider = InferenceProvider(
-            "http://127.0.0.1:1/infer", timeout=2.0, client=_failing_client(
-                httpx.ReadTimeout("too slow")))
+            "http://127.0.0.1:1/infer",
+            timeout=2.0,
+            client=_failing_client(httpx.ReadTimeout("too slow")),
+        )
         outcome = provider.invoke(ModelInvocation(model_id="m1"))
         provider.close()
         assert outcome.error_code == "timeout"
@@ -483,16 +495,19 @@ class TestChooseProvider:
         with _Service(_ok_responder({"v": 1})) as svc:
             provider = InferenceProvider(svc.url, timeout=5.0)
             outcome = invoke_model(
-                _model_card(), {}, capabilities=_caps(svc.url),
-                providers={"inference": provider})
+                _model_card(), {}, capabilities=_caps(svc.url), providers={"inference": provider}
+            )
             provider.close()
             assert outcome.ok and outcome.outputs == {"v": 1}
 
     def test_declared_batch_model_is_not_silently_called_synchronously(self) -> None:
         """声明 batch 却没有注册 batch provider → 明确失败，不退回同步调用。"""
         outcome = invoke_model(
-            _model_card(protocol="batch"), {}, capabilities=_caps("http://n:1"),
-            providers={"inference": InferenceProvider("http://n:1")})
+            _model_card(protocol="batch"),
+            {},
+            capabilities=_caps("http://n:1"),
+            providers={"inference": InferenceProvider("http://n:1")},
+        )
         assert outcome.error_code == "execution_error"
         assert "batch" in (outcome.error or "")
 
@@ -510,7 +525,8 @@ class TestModelBackend:
     def test_task_succeeds_with_outputs(self) -> None:
         with _Service(_ok_responder({"embedding": [3.0]})) as svc:
             backend = ModelBackend(
-                {"m1": _model_card(endpoint=svc.url)}, capabilities=_caps(svc.url))
+                {"m1": _model_card(endpoint=svc.url)}, capabilities=_caps(svc.url)
+            )
             task = _backend_task(model="m1", params={"top_k": 2})
             backend.submit(task, ExecutionContext(task=task))
             outcome = backend.wait("t1", timeout=10)
@@ -532,7 +548,8 @@ class TestModelBackend:
     def test_error_code_and_retryability_cross_the_boundary(self) -> None:
         with _Service(lambda *a: (503, {"error": "unavailable"})) as svc:
             backend = ModelBackend(
-                {"m1": _model_card(endpoint=svc.url)}, capabilities=_caps(svc.url))
+                {"m1": _model_card(endpoint=svc.url)}, capabilities=_caps(svc.url)
+            )
             task = _backend_task(model="m1")
             backend.submit(task, ExecutionContext(task=task))
             outcome = backend.wait("t1", timeout=10)
@@ -544,7 +561,8 @@ class TestModelBackend:
     def test_gate_rejection_reaches_the_scheduler_with_reasons(self) -> None:
         backend = ModelBackend(
             {"m1": _model_card(runtime={"cpu": 99, "memory": "999Gi"})},
-            capabilities=_caps("http://n:1", cpu=1, memory_gb=1.0))
+            capabilities=_caps("http://n:1", cpu=1, memory_gb=1.0),
+        )
         task = _backend_task(model="m1")
         backend.submit(task, ExecutionContext(task=task))
         outcome = backend.wait("t1", timeout=10)
@@ -584,7 +602,8 @@ class TestModelBackend:
 
         with _Service(_ok_responder({})) as svc:
             backend = ModelBackend(
-                {"m1": _model_card(endpoint=svc.url)}, capabilities=_caps(svc.url))
+                {"m1": _model_card(endpoint=svc.url)}, capabilities=_caps(svc.url)
+            )
             task = _backend_task(model="m1")
             task.inputs = {"image": TaskIO(ref="s3://bucket/a.tif")}
             backend.submit(task, ExecutionContext(task=task))
@@ -613,8 +632,9 @@ class TestGeoInvoke:
         assert off["model_invocation"]["enabled"] is False
         assert "reason" in off["model_invocation"]
 
-        server = GeoMCPServer("n", model_backend=ModelBackend(
-            providers={"inference": InferenceProvider("http://x")}))
+        server = GeoMCPServer(
+            "n", model_backend=ModelBackend(providers={"inference": InferenceProvider("http://x")})
+        )
         on = server.capabilities()
         assert on["model_invocation"]["enabled"] is True
         assert on["model_invocation"]["providers"] == ["inference"]
@@ -623,23 +643,33 @@ class TestGeoInvoke:
 
     def test_legacy_keys_unchanged(self) -> None:
         caps = GeoMCPServer("n").capabilities()
-        for key in ("protocol", "version", "node", "methods", "tools", "resources",
-                    "skills", "geocards", "geocard_ids"):
+        for key in (
+            "protocol",
+            "version",
+            "node",
+            "methods",
+            "tools",
+            "resources",
+            "skills",
+            "geocards",
+            "geocard_ids",
+        ):
             assert key in caps, key
 
     def test_old_dispatcher_without_invoke_returns_method_not_found(self) -> None:
         """老节点（没有注册 geo.invoke）对它的响应是标准 JSON-RPC 错误。"""
         legacy = GeoMCPDispatcher(health_fn=lambda params: {"status": "ok"})
         response = legacy.dispatch(
-            {"jsonrpc": "2.0", "id": 1, "method": "geo.invoke", "params": {}})
+            {"jsonrpc": "2.0", "id": 1, "method": "geo.invoke", "params": {}}
+        )
         assert response["error"]["code"] == -32601
         assert "geo.invoke" not in response["error"]["data"]["supported"]
 
     def test_invoke_without_backend_is_an_explicit_error(self) -> None:
         server = GeoMCPServer("n")
         response = server._dispatcher.dispatch(
-            {"jsonrpc": "2.0", "id": 1, "method": "geo.invoke",
-             "params": {"model": "m1"}})
+            {"jsonrpc": "2.0", "id": 1, "method": "geo.invoke", "params": {"model": "m1"}}
+        )
         assert response["error"]["code"] == 2004
         assert response["error"]["data"]["capability"]["enabled"] is False
 
@@ -647,17 +677,30 @@ class TestGeoInvoke:
         with _Service(_ok_responder({"embedding": [9.0]})) as svc:
             card = _model_card(
                 endpoint=svc.url,
-                outputs=[{"name": "embedding", "type": "vector", "required": True}])
-            server = GeoMCPServer("n", model_backend=ModelBackend(
-                {"clip-vit-b32": card}, capabilities=_caps(svc.url),
-                providers={"inference": InferenceProvider(svc.url, timeout=10.0)}))
+                outputs=[{"name": "embedding", "type": "vector", "required": True}],
+            )
+            server = GeoMCPServer(
+                "n",
+                model_backend=ModelBackend(
+                    {"clip-vit-b32": card},
+                    capabilities=_caps(svc.url),
+                    providers={"inference": InferenceProvider(svc.url, timeout=10.0)},
+                ),
+            )
             server.register_geocard(card)
 
-            response = server._dispatcher.dispatch({
-                "jsonrpc": "2.0", "id": "r1", "method": "geo.invoke",
-                "params": {"model": "clip-vit-b32", "inputs": {"text": "hi"},
-                           "params": {"top_k": 1}},
-            })
+            response = server._dispatcher.dispatch(
+                {
+                    "jsonrpc": "2.0",
+                    "id": "r1",
+                    "method": "geo.invoke",
+                    "params": {
+                        "model": "clip-vit-b32",
+                        "inputs": {"text": "hi"},
+                        "params": {"top_k": 1},
+                    },
+                }
+            )
             server.model_backend.close()
 
             assert "error" not in response, response
@@ -687,11 +730,16 @@ class TestGeoInvoke:
     def test_gate_rejection_surfaces_as_a_result_not_an_error(self) -> None:
         """门禁拒绝是**一次成功的协议调用**、一次说明理由的失败调用。"""
         card = _model_card("m1", runtime={"cpu": 99, "memory": "999Gi"})
-        server = GeoMCPServer("n", model_backend=ModelBackend(
-            {"m1": card}, capabilities=_caps("http://n:1", cpu=1, memory_gb=1.0)))
+        server = GeoMCPServer(
+            "n",
+            model_backend=ModelBackend(
+                {"m1": card}, capabilities=_caps("http://n:1", cpu=1, memory_gb=1.0)
+            ),
+        )
         server.register_geocard(card)
         response = server._dispatcher.dispatch(
-            {"jsonrpc": "2.0", "id": 1, "method": "geo.invoke", "params": {"model": "m1"}})
+            {"jsonrpc": "2.0", "id": 1, "method": "geo.invoke", "params": {"model": "m1"}}
+        )
         server.model_backend.close()
         assert "error" not in response
         assert response["result"]["status"] == "failed"
@@ -726,21 +774,25 @@ class TestGeoInvokeOverHttp:
         with _Service(_ok_responder({"v": 1})) as svc:
             card = _model_card("m1", endpoint=svc.url)
             server = GeoMCPServer(
-                "auth-node", api_keys={"k1"},
-                model_backend=ModelBackend({"m1": card}, capabilities=_caps(svc.url),
-                                           providers={"inference": InferenceProvider(
-                                               svc.url, timeout=10.0)}))
+                "auth-node",
+                api_keys={"k1"},
+                model_backend=ModelBackend(
+                    {"m1": card},
+                    capabilities=_caps(svc.url),
+                    providers={"inference": InferenceProvider(svc.url, timeout=10.0)},
+                ),
+            )
             server.register_geocard(card)
             _, url = _start_server(server.create_app())
-            payload = {"jsonrpc": "2.0", "id": 1, "method": "geo.invoke",
-                       "params": {"model": "m1"}}
+            payload = {"jsonrpc": "2.0", "id": 1, "method": "geo.invoke", "params": {"model": "m1"}}
             try:
                 denied = httpx.post(url + "/geomcp", json=payload, timeout=10)
                 assert denied.status_code == 401
                 assert denied.json()["error"]["code"] == -32602
 
-                allowed = httpx.post(url + "/geomcp", json=payload, timeout=10,
-                                     headers={"X-API-Key": "k1"})
+                allowed = httpx.post(
+                    url + "/geomcp", json=payload, timeout=10, headers={"X-API-Key": "k1"}
+                )
                 assert allowed.status_code == 200
                 assert allowed.json()["result"]["outputs"] == {"v": 1}
 

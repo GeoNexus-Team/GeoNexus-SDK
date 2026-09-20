@@ -39,8 +39,9 @@ def _task(task_id: str, skill: str = "echo", **kw) -> GeoTask:
     return GeoTask(task_id=task_id, kind=TaskKind.SKILL, spec={"skill": skill}, **kw)
 
 
-def _runner(handlers: dict, store: TaskStore | None = None,
-            max_workers: int = 4) -> tuple[TaskRunner, TaskStore, LocalBackend]:
+def _runner(
+    handlers: dict, store: TaskStore | None = None, max_workers: int = 4
+) -> tuple[TaskRunner, TaskStore, LocalBackend]:
     store = store or TaskStore.memory()
     backend = LocalBackend(handlers=handlers, max_workers=max_workers)
     return TaskRunner(store, backend), store, backend
@@ -63,13 +64,12 @@ class TestParallelReadySet:
         def handler(task, ctx):
             with lock:
                 seen.append(task.task_id)
-            barrier.wait()          # 只有真并行才会释放
+            barrier.wait()  # 只有真并行才会释放
             return {"ok": True}
 
         runner, store, backend = _runner({"echo": handler})
         try:
-            report = runner.run(TaskGraph.from_tasks(
-                [_task("a"), _task("b"), _task("c")]))
+            report = runner.run(TaskGraph.from_tasks([_task("a"), _task("b"), _task("c")]))
         finally:
             backend.close()
 
@@ -90,10 +90,13 @@ class TestParallelReadySet:
 
         runner, store, backend = _runner({"echo": handler})
         try:
-            graph = TaskGraph.from_tasks([
-                _task("a"), _task("b"),
-                _task("c", depends_on=["a", "b"]),
-            ])
+            graph = TaskGraph.from_tasks(
+                [
+                    _task("a"),
+                    _task("b"),
+                    _task("c", depends_on=["a", "b"]),
+                ]
+            )
             report = runner.run(graph)
         finally:
             backend.close()
@@ -115,13 +118,15 @@ class TestParallelReadySet:
 
         runner, store, backend = _runner({"echo": handler})
         try:
-            graph = TaskGraph.from_tasks([
-                _task("root"),
-                _task("l1", depends_on=["root"]),
-                _task("l2", depends_on=["root"]),
-                _task("l3", depends_on=["root"]),
-                _task("join", depends_on=["l1", "l2", "l3"]),
-            ])
+            graph = TaskGraph.from_tasks(
+                [
+                    _task("root"),
+                    _task("l1", depends_on=["root"]),
+                    _task("l2", depends_on=["root"]),
+                    _task("l3", depends_on=["root"]),
+                    _task("join", depends_on=["l1", "l2", "l3"]),
+                ]
+            )
             report = runner.run(graph)
         finally:
             backend.close()
@@ -134,8 +139,7 @@ class TestParallelReadySet:
 # 2. 重启对账
 # --------------------------------------------------------------------------- #
 class TestRestartReconciliationEndToEnd:
-    def test_json_store_survives_reload_and_never_reports_running(
-            self, tmp_path: Path) -> None:
+    def test_json_store_survives_reload_and_never_reports_running(self, tmp_path: Path) -> None:
         """真实重启场景：文件落盘 → 新进程载入 → 对账。
 
         这是"不撒谎"原则的端到端验证：旧进程在 running 状态被杀掉，新进程载入后
@@ -235,16 +239,16 @@ class TestCooperativeCancellation:
 
         assert not thread.is_alive(), "取消后执行体没有停下"
         assert store.get("slow").state is TaskState.CANCELLED
-        assert store.get("slow").state is not TaskState.SUCCEEDED, \
+        assert store.get("slow").state is not TaskState.SUCCEEDED, (
             "取消不得被记成成功（GeoKG 的 refresh 踩过这个坑）"
+        )
         assert passed_boundaries < 499, "应当在中途停下，而不是跑完"
 
     def test_cancel_before_start_is_immediate(self) -> None:
         store = TaskStore.memory()
         store.put(_task("t1"))
         store.request_cancel("t1")
-        assert store.get("t1").state is TaskState.CANCELLED, \
-            "尚未开始执行的任务应立即取消"
+        assert store.get("t1").state is TaskState.CANCELLED, "尚未开始执行的任务应立即取消"
 
     def test_cancel_of_terminal_task_is_rejected(self) -> None:
         from geonexus.geotask import IllegalTransition
@@ -284,11 +288,13 @@ class TestFailureAndRetry:
 
         runner, store, backend = _runner({"boom": boom, "echo": ok})
         try:
-            graph = TaskGraph.from_tasks([
-                _task("a", skill="boom"),
-                _task("b", depends_on=["a"]),
-                _task("c", depends_on=["b"]),
-            ])
+            graph = TaskGraph.from_tasks(
+                [
+                    _task("a", skill="boom"),
+                    _task("b", depends_on=["a"]),
+                    _task("c", depends_on=["b"]),
+                ]
+            )
             report = runner.run(graph)
         finally:
             backend.close()
@@ -311,7 +317,8 @@ class TestFailureAndRetry:
         runner, store, backend = _runner({"echo": flaky})
         try:
             graph = TaskGraph.from_tasks(
-                [_task("t1", retry=RetryPolicy(max_attempts=3, backoff_seconds=0))])
+                [_task("t1", retry=RetryPolicy(max_attempts=3, backoff_seconds=0))]
+            )
             report = runner.run(graph)
         finally:
             backend.close()
@@ -323,14 +330,15 @@ class TestFailureAndRetry:
     def test_non_retryable_failure_stops_immediately(self) -> None:
         calls: list[int] = []
 
-        def unknown(task, ctx):     # 没有注册处理器 → invalid_spec（不可重试）
+        def unknown(task, ctx):  # 没有注册处理器 → invalid_spec（不可重试）
             calls.append(1)
             return {}
 
         runner, store, backend = _runner({})
         try:
             graph = TaskGraph.from_tasks(
-                [_task("t1", skill="missing", retry=RetryPolicy(max_attempts=5))])
+                [_task("t1", skill="missing", retry=RetryPolicy(max_attempts=5))]
+            )
             report = runner.run(graph)
         finally:
             backend.close()
@@ -367,8 +375,7 @@ class TestEventStream:
             backend.close()
 
         events, latest = store.events_since("t1")
-        assert [e["seq"] for e in events] == list(range(1, latest + 1)), \
-            "同一任务内 seq 必须无洞"
+        assert [e["seq"] for e in events] == list(range(1, latest + 1)), "同一任务内 seq 必须无洞"
         kinds = [e["event"] for e in events]
         assert kinds[0] == "task.created"
         assert "task.state_changed" in kinds
@@ -405,7 +412,7 @@ class TestEventStream:
             backend.close()
 
         events, _ = store.events_since("t1")
-        json.dumps(events)   # 抛异常即失败
+        json.dumps(events)  # 抛异常即失败
 
 
 class TestProgressAndCapabilities:
@@ -441,8 +448,7 @@ class TestProgressAndCapabilities:
         """GeoCard 的 runtime 是**声明**，这里是换算成**预约**，复用 parse_memory。"""
         from geonexus.geotask import ResourceRequirement
 
-        req = ResourceRequirement.from_geocard_runtime(
-            {"cpu": 4, "memory": "16Gi", "gpu": "cuda"})
+        req = ResourceRequirement.from_geocard_runtime({"cpu": 4, "memory": "16Gi", "gpu": "cuda"})
         assert req.cpu == 4.0
         assert req.memory_mb == 16 * 1024
         assert req.gpu is not None and req.gpu.kind == "cuda"

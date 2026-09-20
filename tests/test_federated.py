@@ -138,8 +138,7 @@ def test_advertise_against_authenticated_registry() -> None:
 
     node = GeoNode(name="auth-node", port=0)
     node.register_geocard(_card("auth-asset"))
-    node.register_skill(name="echo", handler=_echo_skill_handler,
-                        input_schema={"required": []})
+    node.register_skill(name="echo", handler=_echo_skill_handler, input_schema={"required": []})
 
     try:
         # 不带 key：写被拒

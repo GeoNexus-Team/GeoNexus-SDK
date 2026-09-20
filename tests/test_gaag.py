@@ -55,7 +55,10 @@ def _make_geojson(path):
             },
             {
                 "type": "Feature",
-                "geometry": {"type": "Polygon", "coordinates": [[[100, 3], [102, 3], [102, 5], [100, 5], [100, 3]]]},
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[[100, 3], [102, 3], [102, 5], [100, 5], [100, 3]]],
+                },
                 "properties": {"name": "poly-b"},
             },
         ],
@@ -227,10 +230,13 @@ class TestContractGate:
         contract.semantic_embedding = embed_flood()
 
         gate = ContractGate(semantic_threshold=0.2)
-        result = gate.gate(contract, "mekong flood water",
-                           bbox=[-5, -2, 5, 2],
-                           crs="EPSG:4326",
-                           required_bands=["B01", "B02", "B03"])
+        result = gate.gate(
+            contract,
+            "mekong flood water",
+            bbox=[-5, -2, 5, 2],
+            crs="EPSG:4326",
+            required_bands=["B01", "B02", "B03"],
+        )
         assert result.passed
         assert result.semantic_ok
         assert result.contract_ok
@@ -260,9 +266,7 @@ class TestContractGate:
 
         gate = ContractGate(semantic_threshold=0.2)
         # bbox far away (+200 lon) → contract not satisfied
-        result = gate.gate(contract, "mekong flood",
-                           bbox=[120, 30, 130, 40],
-                           crs="EPSG:4326")
+        result = gate.gate(contract, "mekong flood", bbox=[120, 30, 130, 40], crs="EPSG:4326")
         assert not result.passed
         assert result.semantic_ok  # semantic passes
         assert not result.contract_ok  # contract fails
@@ -284,9 +288,7 @@ class TestContractGate:
 
         # gate
         gate = ContractGate(semantic_threshold=0.1)
-        result = gate.gate(contract, "punjab crop ndvi",
-                           bbox=[-5, -2, 5, 2],
-                           crs="EPSG:4326")
+        result = gate.gate(contract, "punjab crop ndvi", bbox=[-5, -2, 5, 2], crs="EPSG:4326")
         assert result.passed
 
 

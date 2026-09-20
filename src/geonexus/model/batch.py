@@ -35,9 +35,15 @@ _FAILED = frozenset({"failed", "error", "cancelled", "canceled", "timeout", "rej
 class BatchProvider:
     """提交作业后轮询直到终态。"""
 
-    def __init__(self, endpoint: str, *, timeout: float = 3600.0,
-                 poll_interval: float = 1.0, api_key: str | None = None,
-                 client: httpx.Client | None = None) -> None:
+    def __init__(
+        self,
+        endpoint: str,
+        *,
+        timeout: float = 3600.0,
+        poll_interval: float = 1.0,
+        api_key: str | None = None,
+        client: httpx.Client | None = None,
+    ) -> None:
         self.name = "batch"
         self.endpoint = endpoint.rstrip("/")
         self.timeout = timeout
@@ -49,13 +55,21 @@ class BatchProvider:
         self.jobs: dict[str, dict[str, Any]] = {}
 
     def capabilities(self) -> dict[str, Any]:
-        return {"name": self.name, "endpoint": self.endpoint, "transport": "http",
-                "modes": ["submit", "poll", "collect"]}
+        return {
+            "name": self.name,
+            "endpoint": self.endpoint,
+            "transport": "http",
+            "modes": ["submit", "poll", "collect"],
+        }
 
     def retarget(self, endpoint: str) -> BatchProvider:
-        clone = BatchProvider(endpoint, timeout=self.timeout,
-                              poll_interval=self.poll_interval,
-                              api_key=self.api_key, client=self._client)
+        clone = BatchProvider(
+            endpoint,
+            timeout=self.timeout,
+            poll_interval=self.poll_interval,
+            api_key=self.api_key,
+            client=self._client,
+        )
         clone._owns_client = False
         return clone
 
@@ -64,9 +78,15 @@ class BatchProvider:
         """只提交，不等待。返回远端作业 id（调用方可持久化后另处续查）。"""
         response = self._client.post(
             self.endpoint,
-            json={"model": invocation.model_id, "inputs": invocation.inputs,
-                  "params": invocation.params, "request_id": invocation.request_id},
-            headers=self._headers(), timeout=invocation.timeout)
+            json={
+                "model": invocation.model_id,
+                "inputs": invocation.inputs,
+                "params": invocation.params,
+                "request_id": invocation.request_id,
+            },
+            headers=self._headers(),
+            timeout=invocation.timeout,
+        )
         response.raise_for_status()
         body = response.json()
         job_id = body.get("job_id") or body.get("id")
@@ -76,8 +96,9 @@ class BatchProvider:
         return str(job_id)
 
     def poll(self, job_id: str) -> dict[str, Any]:
-        response = self._client.get(f"{self.endpoint}/{job_id}",
-                                    headers=self._headers(), timeout=60.0)
+        response = self._client.get(
+            f"{self.endpoint}/{job_id}", headers=self._headers(), timeout=60.0
+        )
         response.raise_for_status()
         return response.json()
 
@@ -88,17 +109,19 @@ class BatchProvider:
         if status in _SUCCEEDED:
             outputs = state.get("outputs")
             if outputs is None:
-                outputs = {k: v for k, v in state.items()
-                           if k not in ("status", "job_id", "id")}
+                outputs = {k: v for k, v in state.items() if k not in ("status", "job_id", "id")}
             if not isinstance(outputs, dict):
                 return ModelOutcome.failure(
-                    "invalid_spec", f"批作业产物不是对象：{type(outputs).__name__}")
+                    "invalid_spec", f"批作业产物不是对象：{type(outputs).__name__}"
+                )
             return ModelOutcome(status="succeeded", outputs=outputs, provider=self.name)
         if status in _FAILED:
             retryable = status in ("timeout", "cancelled", "canceled")
             return ModelOutcome.failure(
                 "timeout" if status == "timeout" else "execution_error",
-                str(state.get("error") or f"批作业状态 {status}"), retryable=retryable)
+                str(state.get("error") or f"批作业状态 {status}"),
+                retryable=retryable,
+            )
         return ModelOutcome.failure("execution_error", f"批作业仍在 {status or '未知'} 状态")
 
     def invoke(self, invocation: ModelInvocation) -> ModelOutcome:
@@ -106,8 +129,9 @@ class BatchProvider:
         try:
             job_id = self.submit(invocation)
         except httpx.HTTPError as exc:
-            return ModelOutcome.failure("executor_lost", f"批服务不可达：{exc}",
-                                        retryable=True, reasons=[str(exc)])
+            return ModelOutcome.failure(
+                "executor_lost", f"批服务不可达：{exc}", retryable=True, reasons=[str(exc)]
+            )
         except ValueError as exc:
             return ModelOutcome.failure("invalid_spec", str(exc))
 
@@ -126,8 +150,11 @@ class BatchProvider:
             time.sleep(self.poll_interval)
 
         return ModelOutcome.failure(
-            "timeout", f"批作业 {job_id} 在 {invocation.timeout}s 内未完成",
-            retryable=True, reasons=[f"job_id={job_id}"])
+            "timeout",
+            f"批作业 {job_id} 在 {invocation.timeout}s 内未完成",
+            retryable=True,
+            reasons=[f"job_id={job_id}"],
+        )
 
     def _headers(self) -> dict[str, str]:
         headers = {"Content-Type": "application/json"}

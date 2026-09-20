@@ -401,16 +401,14 @@ def _to_geotask(step: PlanStep, by_id: dict[int, PlanStep]) -> GeoTask:
         task_id=_task_id(step.step_id),
         kind=TaskKind.SKILL,
         # handler 是**路由键**（后端据此选执行体），step_skill 才是真正的技能名
-        spec={"handler": _AGENT_STEP_HANDLER, "step_id": step.step_id,
-              "step_skill": step.skill},
+        spec={"handler": _AGENT_STEP_HANDLER, "step_id": step.step_id, "step_skill": step.skill},
         depends_on=[_task_id(d) for d in _effective_deps(step, by_id)],
         description=step.description or step.skill,
         labels={"node_url": step.node_url} if step.node_url else {},
     )
 
 
-def _preload_settled(graph: TaskGraph, plan: Plan,
-                     task_of: dict[int, str]) -> None:
+def _preload_settled(graph: TaskGraph, plan: Plan, task_of: dict[int, str]) -> None:
     """把已经处于终态的步骤预先标记好。
 
     :class:`ReflectiveExecutor` 的反思循环会反复调用"执行所有可执行步骤"，此时
@@ -424,8 +422,9 @@ def _preload_settled(graph: TaskGraph, plan: Plan,
             graph.mark_skipped(task_id)
 
 
-def _project_plan(plan: Plan, by_id: dict[int, PlanStep],
-                  graph: TaskGraph, task_of: dict[int, str]) -> None:
+def _project_plan(
+    plan: Plan, by_id: dict[int, PlanStep], graph: TaskGraph, task_of: dict[int, str]
+) -> None:
     """把图/任务状态投影回 ``PlanStep.status``（agent 的四值词汇表）。
 
     映射（契约 §8.2 的反向）::
@@ -454,9 +453,11 @@ def _project_plan(plan: Plan, by_id: dict[int, PlanStep],
                     step.error = "cancelled"
                 else:
                     error = graph.error_of(task_of[step.step_id])
-                    step.error = ("a dependency step failed"
-                                  if error is None or error.code == "upstream_failed"
-                                  else error.message or error.code)
+                    step.error = (
+                        "a dependency step failed"
+                        if error is None or error.code == "upstream_failed"
+                        else error.message or error.code
+                    )
         # pending/created/queued/…（理论上不会出现在终态之后）：保持原样
 
 

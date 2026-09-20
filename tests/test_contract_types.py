@@ -32,6 +32,7 @@ from geonexus.gaag import (
 # 覆盖率
 # --------------------------------------------------------------------------- #
 
+
 class TestContractCoverage:
     def test_at_least_six_types(self):
         """考核要求 ≥6 类。"""
@@ -54,20 +55,24 @@ class TestContractCoverage:
 # 类型探测
 # --------------------------------------------------------------------------- #
 
+
 class TestTypeDetection:
-    @pytest.mark.parametrize("filename,expected", [
-        ("a.tif", "raster"),
-        ("a.geojson", "vector"),
-        ("a.nc", "temporal"),
-        ("a.zarr", "temporal"),
-        ("a.las", "pointcloud"),
-        ("a.laz", "pointcloud"),
-        ("a.csv", "statistical"),
-        ("a.pdf", "text"),
-        ("a.md", "text"),
-        ("a.3dtiles", "volume3d"),
-        ("a.unknown", "other"),
-    ])
+    @pytest.mark.parametrize(
+        "filename,expected",
+        [
+            ("a.tif", "raster"),
+            ("a.geojson", "vector"),
+            ("a.nc", "temporal"),
+            ("a.zarr", "temporal"),
+            ("a.las", "pointcloud"),
+            ("a.laz", "pointcloud"),
+            ("a.csv", "statistical"),
+            ("a.pdf", "text"),
+            ("a.md", "text"),
+            ("a.3dtiles", "volume3d"),
+            ("a.unknown", "other"),
+        ],
+    )
     def test_detect(self, filename, expected):
         assert detect_asset_type(filename) == expected
 
@@ -75,6 +80,7 @@ class TestTypeDetection:
 # --------------------------------------------------------------------------- #
 # 各类扫描器
 # --------------------------------------------------------------------------- #
+
 
 class TestTemporalScanner:
     def test_filename_year_inference(self, tmp_path):
@@ -171,7 +177,9 @@ class TestStatisticalScanner:
 class TestTextScanner:
     def test_markdown_parse(self, tmp_path):
         p = tmp_path / "guide.md"
-        p.write_text("# Flood Monitoring\n\nUse NDVI and NDWI to assess.\n## Data\n", encoding="utf-8")
+        p.write_text(
+            "# Flood Monitoring\n\nUse NDVI and NDWI to assess.\n## Data\n", encoding="utf-8"
+        )
         meta = scan_text(p)
         assert meta["content_type"] == "md"
         assert meta["word_count"] > 5
@@ -193,6 +201,7 @@ class TestTextScanner:
 # --------------------------------------------------------------------------- #
 # 合约校验
 # --------------------------------------------------------------------------- #
+
 
 class TestValidateContract:
     def test_complete_contract_passes(self, tmp_path):
@@ -219,6 +228,7 @@ class TestValidateContract:
 # 端到端：扫描 → 注册到 GAAG
 # --------------------------------------------------------------------------- #
 
+
 class TestEndToEndRegistration:
     def test_register_all_new_types(self, tmp_path):
         """5 类新合约都能扫描并注册到 GAAG。"""
@@ -226,7 +236,9 @@ class TestEndToEndRegistration:
         (tmp_path / "cube_2020_2024.nc").write_bytes(b"nc")
         # volume3d
         (tmp_path / "city.3dtiles").write_text(
-            json.dumps({"root": {"boundingVolume": {"box": [10, 0, 50, 10, 0, 0, 0, 10, 0, 0, 0, 20]}}})
+            json.dumps(
+                {"root": {"boundingVolume": {"box": [10, 0, 50, 10, 0, 0, 0, 10, 0, 0, 0, 20]}}}
+            )
         )
         # pointcloud
         las = bytearray(375)
@@ -253,9 +265,17 @@ class TestEndToEndRegistration:
         """回归：原有 raster 扫描不受影响。"""
         p = str(tmp_path / "r.tif")
         data = np.full((16, 16), 0.5, np.float32)
-        with rasterio.open(p, "w", driver="GTiff", dtype=rasterio.float32, count=2,
-                           width=16, height=16, crs="EPSG:4326",
-                           transform=from_bounds(-10, -5, 10, 5, 16, 16)) as dst:
+        with rasterio.open(
+            p,
+            "w",
+            driver="GTiff",
+            dtype=rasterio.float32,
+            count=2,
+            width=16,
+            height=16,
+            crs="EPSG:4326",
+            transform=from_bounds(-10, -5, 10, 5, 16, 16),
+        ) as dst:
             dst.write(data, 1)
             dst.write(data, 2)
         contract = scan_asset_to_contract(p)

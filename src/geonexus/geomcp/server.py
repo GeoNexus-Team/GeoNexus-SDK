@@ -188,9 +188,7 @@ class GeoMCPServer:
         try:
             invoke_params = InvokeParams(**params)
         except Exception as exc:
-            raise GeoMCPProtocolError(
-                INVALID_PARAMS, f"Invalid geo.invoke params: {exc}"
-            ) from exc
+            raise GeoMCPProtocolError(INVALID_PARAMS, f"Invalid geo.invoke params: {exc}") from exc
         return self.invoke(invoke_params)
 
     # ------------------------------------------------------------------ #

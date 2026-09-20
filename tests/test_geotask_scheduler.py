@@ -70,14 +70,24 @@ class _Probe:
         return run
 
 
-def _task(task_id: str, *, cpu: float = 1.0, memory_mb: int = 0, priority: int = 0,
-          owner: str | None = None, handler: str = "h",
-          retry: RetryPolicy | None = None, timeout: float = 10.0) -> GeoTask:
+def _task(
+    task_id: str,
+    *,
+    cpu: float = 1.0,
+    memory_mb: int = 0,
+    priority: int = 0,
+    owner: str | None = None,
+    handler: str = "h",
+    retry: RetryPolicy | None = None,
+    timeout: float = 10.0,
+) -> GeoTask:
     task = GeoTask(
-        task_id, TaskKind.SKILL,
+        task_id,
+        TaskKind.SKILL,
         spec={"handler": handler},
         resources=ResourceRequirement(cpu=cpu, memory_mb=memory_mb),
-        priority=priority, owner=owner,
+        priority=priority,
+        owner=owner,
         retry=retry or RetryPolicy(),
     )
     task.timeout_seconds = timeout
@@ -91,10 +101,10 @@ class TestReservation:
     def test_from_requirement(self) -> None:
         from geonexus.geotask.model import GpuRequirement
 
-        res = Reservation.of(ResourceRequirement(
-            cpu=2, memory_mb=4096, gpu=GpuRequirement(kind="CUDA", count=2)))
-        assert res == Reservation(cpu_cores=2.0, memory_mb=4096, gpu_count=2,
-                                  gpu_kind="cuda")
+        res = Reservation.of(
+            ResourceRequirement(cpu=2, memory_mb=4096, gpu=GpuRequirement(kind="CUDA", count=2))
+        )
+        assert res == Reservation(cpu_cores=2.0, memory_mb=4096, gpu_count=2, gpu_kind="cuda")
 
     def test_missing_requirement_is_zero(self) -> None:
         assert Reservation.of(None) == Reservation()
@@ -105,21 +115,23 @@ class TestReservation:
         assert Reservation(cpu_cores=2).fits_within(Reservation(cpu_cores=1))
 
     def test_reasons_name_the_dimension(self) -> None:
-        reasons = Reservation(cpu_cores=8, memory_mb=16384, gpu_count=2, gpu_kind="cuda"
-                              ).fits_within(Reservation(cpu_cores=4, memory_mb=8192,
-                                                        gpu_count=1))
+        reasons = Reservation(
+            cpu_cores=8, memory_mb=16384, gpu_count=2, gpu_kind="cuda"
+        ).fits_within(Reservation(cpu_cores=4, memory_mb=8192, gpu_count=1))
         joined = " | ".join(reasons)
         assert "cpu" in joined and "memory" in joined and "gpu" in joined
         assert len(reasons) == 3
 
     def test_gpu_kind_mismatch(self) -> None:
         reasons = Reservation(gpu_count=1, gpu_kind="cuda").fits_within(
-            Reservation(gpu_count=1, gpu_kind="mps"))
+            Reservation(gpu_count=1, gpu_kind="mps")
+        )
         assert any("cuda" in r and "mps" in r for r in reasons)
 
     def test_after_using_clamps_at_zero(self) -> None:
         left = Reservation(cpu_cores=1, memory_mb=100).after_using(
-            Reservation(cpu_cores=4, memory_mb=1000))
+            Reservation(cpu_cores=4, memory_mb=1000)
+        )
         assert left.cpu_cores == 0.0 and left.memory_mb == 0
 
     def test_default_capacity_from_machine(self) -> None:
@@ -159,10 +171,12 @@ class TestOccupancy:
 # ③ 准入：三分类
 # --------------------------------------------------------------------------- #
 class TestAdmission:
-    def _cap(self, cpu: float = 4.0, memory_mb: int = 8192,
-             gpu: int = 0, kind: str | None = None) -> Scheduler:
-        return Scheduler(Reservation(cpu_cores=cpu, memory_mb=memory_mb,
-                                     gpu_count=gpu, gpu_kind=kind))
+    def _cap(
+        self, cpu: float = 4.0, memory_mb: int = 8192, gpu: int = 0, kind: str | None = None
+    ) -> Scheduler:
+        return Scheduler(
+            Reservation(cpu_cores=cpu, memory_mb=memory_mb, gpu_count=gpu, gpu_kind=kind)
+        )
 
     def test_over_capacity_queues_with_reason(self) -> None:
         sched = self._cap(cpu=2)
@@ -308,16 +322,19 @@ class TestGraphBlocked:
         graph.mark_blocked("t1", ["第二次"])
         assert store.get("t1").state is TaskState.BLOCKED
         events = store.subscribe("t1")
-        assert [e["event"] for e in events].count("task.state_changed") == 2, \
+        assert [e["event"] for e in events].count("task.state_changed") == 2, (
             "created→queued、queued→blocked 各一条，重复标记不该再产生迁移"
+        )
 
     def test_reason_lands_in_the_event_stream(self) -> None:
         store = TaskStore.memory()
         graph = TaskGraph([_task("t1")]).bind(store)
         graph.mark_blocked("t1", ["gpu: 需要 1 张，可用 0 张"])
-        changed = [e for e in store.subscribe("t1")
-                   if e["event"] == "task.state_changed"
-                   and e["data"]["to"] == "blocked"]
+        changed = [
+            e
+            for e in store.subscribe("t1")
+            if e["event"] == "task.state_changed" and e["data"]["to"] == "blocked"
+        ]
         assert len(changed) == 1
         assert "gpu" in changed[0]["data"]["reason"]
         assert "gpu" in store.get("t1").message
@@ -423,8 +440,7 @@ class TestRunnerScheduling:
 
     def test_failure_does_not_take_down_siblings(self) -> None:
         probe = _Probe()
-        backend = LocalBackend(handlers={"h": probe.handler(sleep=0.01, fail=True)},
-                               max_workers=4)
+        backend = LocalBackend(handlers={"h": probe.handler(sleep=0.01, fail=True)}, max_workers=4)
         store = TaskStore.memory()
         runner = TaskRunner(store, backend)
         report = runner.run_tasks([_task(f"t{i}") for i in range(4)])
@@ -436,10 +452,13 @@ class TestRunnerScheduling:
 
     def test_one_bad_handler_among_good_ones(self) -> None:
         probe = _Probe()
-        backend = LocalBackend(handlers={
-            "h": probe.handler(sleep=0.01),
-            "boom": probe.handler(sleep=0.01, fail=True),
-        }, max_workers=4)
+        backend = LocalBackend(
+            handlers={
+                "h": probe.handler(sleep=0.01),
+                "boom": probe.handler(sleep=0.01, fail=True),
+            },
+            max_workers=4,
+        )
         store = TaskStore.memory()
         runner = TaskRunner(store, backend)
         tasks = [_task("a"), _task("b"), _task("c", handler="boom"), _task("d")]
@@ -526,7 +545,8 @@ class TestRetryBackoff:
         probe = _Probe()
         policy = RetryPolicy(max_attempts=3, backoff_seconds=0.2, multiplier=2.0)
         backend = LocalBackend(
-            handlers={"h": probe.handler(sleep=0.01, fail_times=1)}, max_workers=2)
+            handlers={"h": probe.handler(sleep=0.01, fail_times=1)}, max_workers=2
+        )
         store = TaskStore.memory()
         sched = Scheduler(Reservation(cpu_cores=4, memory_mb=8192))
         runner = TaskRunner(store, backend, scheduler=sched)
@@ -577,15 +597,13 @@ class TestRetryBackoff:
         backend.close()
 
         assert report.succeeded == 1 and report.failed == 1
-        assert events.index("other") < events.index("flaky", 1), \
-            "退避期间另一个任务应该被放行"
+        assert events.index("other") < events.index("flaky", 1), "退避期间另一个任务应该被放行"
 
     def test_failure_isolation_with_resource_limits(self) -> None:
         probe = _Probe()
         sched = Scheduler(Reservation(cpu_cores=2, memory_mb=8192))
         store = TaskStore.memory()
-        backend = LocalBackend(handlers={"h": probe.handler(sleep=0.01, fail=True)},
-                               max_workers=8)
+        backend = LocalBackend(handlers={"h": probe.handler(sleep=0.01, fail=True)}, max_workers=8)
         runner = TaskRunner(store, backend, scheduler=sched)
         report = runner.run_tasks([_task(f"t{i}") for i in range(5)])
         backend.close()
@@ -616,9 +634,18 @@ class TestBackwardCompatibility:
         store = TaskStore.memory()
         report = TaskRunner(store, LocalBackend(handlers={}, max_workers=1)).run_tasks([])
         payload = report.to_dict()
-        for key in ("total", "succeeded", "failed", "cancelled", "skipped",
-                    "blocked", "rejected", "max_parallel", "elapsed_seconds",
-                    "occupancy"):
+        for key in (
+            "total",
+            "succeeded",
+            "failed",
+            "cancelled",
+            "skipped",
+            "blocked",
+            "rejected",
+            "max_parallel",
+            "elapsed_seconds",
+            "occupancy",
+        ):
             assert key in payload, key
 
     def test_make_local_runner_accepts_scheduler(self) -> None:

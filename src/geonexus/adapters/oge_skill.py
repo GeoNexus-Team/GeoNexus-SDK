@@ -132,8 +132,11 @@ class OgeSkillAdapter:
         },
     }
 
-    def __init__(self, credential: OgeCredential | None = None,
-                 audit_callback: Callable[[dict], None] | None = None) -> None:
+    def __init__(
+        self,
+        credential: OgeCredential | None = None,
+        audit_callback: Callable[[dict], None] | None = None,
+    ) -> None:
         self.credential = credential or OgeCredential()
         self.audit_callback = audit_callback
         self._oge_client: OgeClient | None = None
@@ -165,9 +168,9 @@ class OgeSkillAdapter:
 
     # ── 内部 ──
 
-    def _build_skill(self, operator_name: str,
-                     config: dict[str, Any]) -> Skill:
+    def _build_skill(self, operator_name: str, config: dict[str, Any]) -> Skill:
         """构造 GeoSkill 实例。"""
+
         def handler(params: dict[str, Any], context: Any) -> dict[str, Any]:
             """Skill handler — 委托到 OGE 执行。"""
             return self._execute_operator(operator_name, params, context)
@@ -180,8 +183,9 @@ class OgeSkillAdapter:
             handler=handler,
         )
 
-    def _execute_operator(self, operator_name: str,
-                          params: dict[str, Any], context: Any) -> dict[str, Any]:
+    def _execute_operator(
+        self, operator_name: str, params: dict[str, Any], context: Any
+    ) -> dict[str, Any]:
         """执行 OGE 算子 — 被 Skill handler 调用。"""
         request_id = ""
         if context:
@@ -201,13 +205,11 @@ class OgeSkillAdapter:
 
         if result.status == "failed":
             raise RuntimeError(
-                f"OGE execution failed: {result.error_message} "
-                f"(process_id={result.process_id})"
+                f"OGE execution failed: {result.error_message} (process_id={result.process_id})"
             )
         if result.status == "timeout":
             raise TimeoutError(
-                f"OGE execution timed out: {result.operator_name} "
-                f"(process_id={result.process_id})"
+                f"OGE execution timed out: {result.operator_name} (process_id={result.process_id})"
             )
 
         # 构造返回结果
@@ -220,9 +222,13 @@ class OgeSkillAdapter:
         elif "aspect" in operator_name.lower():
             outputs["aspect_raster"] = f"/data/oge/{oge_params.get('outputName', 'aspect.tif')}"
         elif "hillshade" in operator_name.lower():
-            outputs["hillshade_raster"] = f"/data/oge/{oge_params.get('outputName', 'hillshade.tif')}"
+            outputs["hillshade_raster"] = (
+                f"/data/oge/{oge_params.get('outputName', 'hillshade.tif')}"
+            )
         elif "roughness" in operator_name.lower():
-            outputs["roughness_raster"] = f"/data/oge/{oge_params.get('outputName', 'roughness.tif')}"
+            outputs["roughness_raster"] = (
+                f"/data/oge/{oge_params.get('outputName', 'roughness.tif')}"
+            )
         elif "ndvi" in operator_name.lower():
             outputs["ndvi_raster"] = f"/data/oge/{oge_params.get('outputName', 'ndvi.tif')}"
         else:
@@ -252,24 +258,27 @@ class OgeSkillAdapter:
                 "description": f"OGE operator: {operator_name}",
                 "input_schema": {
                     "type": "object",
-                    "properties": {inp["name"]: {"type": inp.get("type", "string")}
-                                   for inp in info.inputs},
+                    "properties": {
+                        inp["name"]: {"type": inp.get("type", "string")} for inp in info.inputs
+                    },
                     "required": [inp["name"] for inp in info.inputs if inp.get("required")],
                 },
                 "output_schema": {
                     "type": "object",
-                    "properties": {out["name"]: {"type": out.get("type", "string")}
-                                   for out in info.outputs},
+                    "properties": {
+                        out["name"]: {"type": out.get("type", "string")} for out in info.outputs
+                    },
                 },
             }
         except Exception as exc:
-            logger.warning("Failed to fetch OGE operator config: %s. "
-                          "Add it to KNOWN_OPERATORS.", exc)
+            logger.warning(
+                "Failed to fetch OGE operator config: %s. Add it to KNOWN_OPERATORS.", exc
+            )
             raise ValueError(f"Unknown OGE operator: {operator_name}") from exc
 
 
-def discover_oge_skills(credential: OgeCredential | None = None,
-                        audit_callback: Callable[[dict], None] | None = None) -> list[Skill]:
+def discover_oge_skills(
+    credential: OgeCredential | None = None, audit_callback: Callable[[dict], None] | None = None
+) -> list[Skill]:
     """便捷函数：发现所有 OGE 算子 → GeoSkill。"""
-    return OgeSkillAdapter(credential=credential,
-                           audit_callback=audit_callback).discover_skills()
+    return OgeSkillAdapter(credential=credential, audit_callback=audit_callback).discover_skills()

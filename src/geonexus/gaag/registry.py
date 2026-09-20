@@ -56,6 +56,7 @@ class GAAGRegistry:
     def _init_pgvector(self) -> None:
         try:
             from .pgvector_store import PgVectorStore
+
             self._pgvector = PgVectorStore.from_env()
             if self._pgvector is None:
                 logger.warning("POSTGIS_DSN not set, falling back to memory store")
@@ -76,9 +77,12 @@ class GAAGRegistry:
         self._contracts[contract.contract_id] = contract
         if self._persist_path:
             self._persist_one(contract)
-        logger.info("GAAG registered %s (type=%s, emb=%s)",
-                    contract.contract_id, contract.asset_type,
-                    "yes" if contract.semantic_embedding else "no")
+        logger.info(
+            "GAAG registered %s (type=%s, emb=%s)",
+            contract.contract_id,
+            contract.asset_type,
+            "yes" if contract.semantic_embedding else "no",
+        )
         return contract
 
     def register_asset(
@@ -174,11 +178,15 @@ class GAAGRegistry:
         conn.commit()
 
     def _load_from_sqlite(self) -> None:
-        rows = _sqlite(self._persist_path).execute(
-            "SELECT contract_id, asset_type, card_json, scanned_meta_json, "
-            "embedding_json, provenance, registered_at FROM gaag_contracts"
-        ).fetchall()
-        for (cid, atype, card_json, meta_json, emb_json, prov, at) in rows:
+        rows = (
+            _sqlite(self._persist_path)
+            .execute(
+                "SELECT contract_id, asset_type, card_json, scanned_meta_json, "
+                "embedding_json, provenance, registered_at FROM gaag_contracts"
+            )
+            .fetchall()
+        )
+        for cid, atype, card_json, meta_json, emb_json, prov, at in rows:
             card = GeoCard.from_dict(json.loads(card_json))
             self._contracts[cid] = GAAGContract(
                 contract_id=cid,
@@ -245,11 +253,17 @@ class ContractGate:
         required_resolution: float | None = None,
         semantic_threshold: float | None = None,
     ) -> ContractGateResult:
-        threshold = semantic_threshold if semantic_threshold is not None else self.semantic_threshold
+        threshold = (
+            semantic_threshold if semantic_threshold is not None else self.semantic_threshold
+        )
 
         # 1. Semantic similarity
         qvec = _embed(query_text)
-        sim = cosine_similarity(qvec, contract.semantic_embedding) if contract.semantic_embedding else 0.0
+        sim = (
+            cosine_similarity(qvec, contract.semantic_embedding)
+            if contract.semantic_embedding
+            else 0.0
+        )
         semantic_ok = sim >= threshold
 
         # 2. Contract consistency (ContractValidator)

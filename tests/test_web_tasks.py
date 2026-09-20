@@ -206,7 +206,7 @@ class TestGeoTaskAdapter:
         with TaskManager() as tm:
             tid = tm.submit(lambda: "x")
             task = tm.store.require(tid)
-            json.dumps(task.to_dict())      # 抛异常即失败
+            json.dumps(task.to_dict())  # 抛异常即失败
             assert task.spec == {"handler": "__web_callable__"}
 
 

@@ -13,8 +13,12 @@ from __future__ import annotations
 from .model import TaskState
 
 __all__ = [
-    "INITIAL_STATE", "TERMINAL_STATES", "TRANSITIONS", "IllegalTransition",
-    "assert_transition", "can_transition",
+    "INITIAL_STATE",
+    "TERMINAL_STATES",
+    "TRANSITIONS",
+    "IllegalTransition",
+    "assert_transition",
+    "can_transition",
 ]
 
 
@@ -30,33 +34,37 @@ class IllegalTransition(Exception):
 INITIAL_STATE = TaskState.CREATED
 
 #: 终态必须吸收：没有任何出边。
-TERMINAL_STATES = frozenset({
-    TaskState.SUCCEEDED,
-    TaskState.FAILED,
-    TaskState.CANCELLED,
-    TaskState.SKIPPED,
-})
+TERMINAL_STATES = frozenset(
+    {
+        TaskState.SUCCEEDED,
+        TaskState.FAILED,
+        TaskState.CANCELLED,
+        TaskState.SKIPPED,
+    }
+)
 
 #: 允许的迁移。顺序与契约文档一致，便于人眼对照。
-TRANSITIONS = frozenset({
-    (TaskState.CREATED, TaskState.QUEUED),
-    (TaskState.CREATED, TaskState.CANCELLED),
-    (TaskState.QUEUED, TaskState.SCHEDULED),
-    (TaskState.QUEUED, TaskState.BLOCKED),
-    (TaskState.QUEUED, TaskState.CANCELLED),
-    (TaskState.BLOCKED, TaskState.QUEUED),
-    (TaskState.BLOCKED, TaskState.FAILED),
-    (TaskState.BLOCKED, TaskState.SKIPPED),
-    (TaskState.BLOCKED, TaskState.CANCELLED),
-    (TaskState.SCHEDULED, TaskState.RUNNING),
-    (TaskState.SCHEDULED, TaskState.QUEUED),
-    (TaskState.SCHEDULED, TaskState.FAILED),
-    (TaskState.SCHEDULED, TaskState.CANCELLED),
-    (TaskState.RUNNING, TaskState.SUCCEEDED),
-    (TaskState.RUNNING, TaskState.FAILED),
-    (TaskState.RUNNING, TaskState.CANCELLED),
-    (TaskState.RUNNING, TaskState.QUEUED),
-})
+TRANSITIONS = frozenset(
+    {
+        (TaskState.CREATED, TaskState.QUEUED),
+        (TaskState.CREATED, TaskState.CANCELLED),
+        (TaskState.QUEUED, TaskState.SCHEDULED),
+        (TaskState.QUEUED, TaskState.BLOCKED),
+        (TaskState.QUEUED, TaskState.CANCELLED),
+        (TaskState.BLOCKED, TaskState.QUEUED),
+        (TaskState.BLOCKED, TaskState.FAILED),
+        (TaskState.BLOCKED, TaskState.SKIPPED),
+        (TaskState.BLOCKED, TaskState.CANCELLED),
+        (TaskState.SCHEDULED, TaskState.RUNNING),
+        (TaskState.SCHEDULED, TaskState.QUEUED),
+        (TaskState.SCHEDULED, TaskState.FAILED),
+        (TaskState.SCHEDULED, TaskState.CANCELLED),
+        (TaskState.RUNNING, TaskState.SUCCEEDED),
+        (TaskState.RUNNING, TaskState.FAILED),
+        (TaskState.RUNNING, TaskState.CANCELLED),
+        (TaskState.RUNNING, TaskState.QUEUED),
+    }
+)
 
 
 def can_transition(src: TaskState, dst: TaskState) -> bool:

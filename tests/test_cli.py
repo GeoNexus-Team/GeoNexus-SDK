@@ -131,15 +131,23 @@ def _demo_store(path):
     )
 
     store = JsonTaskStore(path)
-    store.put(GeoTask(task_id="t-ok", kind=TaskKind.SKILL, spec={"handler": "x"},
-                      description="完成的"))
+    store.put(
+        GeoTask(task_id="t-ok", kind=TaskKind.SKILL, spec={"handler": "x"}, description="完成的")
+    )
     for state in (TaskState.QUEUED, TaskState.SCHEDULED, TaskState.RUNNING):
         store.transition("t-ok", state)
     store.report_progress("t-ok", 0.5, "一半")
     store.transition("t-ok", TaskState.SUCCEEDED, result=TaskResult(outputs={"result": 1}))
 
-    store.put(GeoTask(task_id="t-dead", kind=TaskKind.SKILL, spec={"handler": "x"},
-                      description="崩溃留下的", retry=RetryPolicy(max_attempts=1)))
+    store.put(
+        GeoTask(
+            task_id="t-dead",
+            kind=TaskKind.SKILL,
+            spec={"handler": "x"},
+            description="崩溃留下的",
+            retry=RetryPolicy(max_attempts=1),
+        )
+    )
     for state in (TaskState.QUEUED, TaskState.SCHEDULED, TaskState.RUNNING):
         store.transition("t-dead", state)
     store.set_lease("t-dead", expires_at=time.time() - 60, executor="dead")
@@ -162,7 +170,11 @@ class TestTaskCli:
         for action in parser._actions:
             if isinstance(action, argparse._SubParsersAction) and "task" in action.choices:
                 assert set(action.choices["task"]._subparsers._group_actions[0].choices) == {
-                    "list", "show", "events", "reconcile"}
+                    "list",
+                    "show",
+                    "events",
+                    "reconcile",
+                }
                 return
         raise AssertionError("找不到 task 子命令")
 
@@ -195,7 +207,7 @@ class TestTaskCli:
         assert main(["task", "show", "t-dead", "--state", str(path)]) == 0
         out = capsys.readouterr().out
         assert "executor_lost" in out
-        assert "可重试" in out          # executor_lost 是可重试的
+        assert "可重试" in out  # executor_lost 是可重试的
 
     def test_events_replay_respects_since(self, tmp_path, capsys) -> None:
         import json as _json
@@ -203,8 +215,7 @@ class TestTaskCli:
         from geonexus.cli import main
 
         path = _demo_store(tmp_path / "gt.json")
-        assert main(["task", "events", "t-ok", "--state", str(path),
-                     "--since", "2", "--json"]) == 0
+        assert main(["task", "events", "t-ok", "--state", str(path), "--since", "2", "--json"]) == 0
         payload = _json.loads(capsys.readouterr().out)
         assert [e["seq"] for e in payload["events"]] == [3, 4, 5, 6]
         assert payload["latest_seq"] == 6

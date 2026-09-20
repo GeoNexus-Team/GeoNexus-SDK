@@ -549,8 +549,10 @@ def cmd_task_list(args: argparse.Namespace) -> int:
     print(f"  {'task_id':34} {'state':10} {'kind':10} {'try':>3} {'progress':>8}  description")
     print(f"  {'-' * 34} {'-' * 10} {'-' * 10} {'-' * 3} {'-' * 8}  {'-' * 20}")
     for task in tasks:
-        print(f"  {task.task_id:34} {task.state.value:10} {task.kind.value:10} "
-              f"{task.attempt:>3} {task.progress:>8.2f}  {task.description}")
+        print(
+            f"  {task.task_id:34} {task.state.value:10} {task.kind.value:10} "
+            f"{task.attempt:>3} {task.progress:>8.2f}  {task.description}"
+        )
     return 0
 
 
@@ -565,20 +567,36 @@ def cmd_task_show(args: argparse.Namespace) -> int:
         return 1
     events, latest = store.events_since(args.task_id)
     if args.json:
-        print(json.dumps({"task": task.to_dict(), "events": events,
-                          "latest_seq": latest}, indent=2, ensure_ascii=False))
+        print(
+            json.dumps(
+                {"task": task.to_dict(), "events": events, "latest_seq": latest},
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
         return 0
     data = task.to_dict()
     print("=" * 78)
     print(f" 任务 {task.task_id}    {task.state.value}    {task.kind.value}")
     print("=" * 78)
     print()
-    for key in ("description", "attempt", "progress", "message", "scheduled_to",
-                "lease_expires_at", "created_at", "started_at", "finished_at"):
+    for key in (
+        "description",
+        "attempt",
+        "progress",
+        "message",
+        "scheduled_to",
+        "lease_expires_at",
+        "created_at",
+        "started_at",
+        "finished_at",
+    ):
         print(f"  {key:16}: {data.get(key)}")
     if task.error:
-        print(f"  {'error.code':16}: {task.error.code}"
-              f"{'（可重试）' if task.error.retryable else '（不可重试）'}")
+        print(
+            f"  {'error.code':16}: {task.error.code}"
+            f"{'（可重试）' if task.error.retryable else '（不可重试）'}"
+        )
         print(f"  {'error.message':16}: {task.error.message}")
     if task.depends_on:
         print(f"  {'depends_on':16}: {', '.join(task.depends_on)}")
@@ -605,8 +623,7 @@ def cmd_task_events(args: argparse.Namespace) -> int:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
     if args.json:
-        print(json.dumps({"events": events, "latest_seq": latest},
-                         indent=2, ensure_ascii=False))
+        print(json.dumps({"events": events, "latest_seq": latest}, indent=2, ensure_ascii=False))
         return 0
     if not events:
         print(f"没有 seq > {args.since} 的事件（最新 seq={latest}）")
@@ -617,7 +634,7 @@ def cmd_task_events(args: argparse.Namespace) -> int:
         data = event["data"]
         detail = data.get("to") or data.get("message") or data.get("code") or ""
         if event["event"] == "task.progress":
-            detail = f'{data.get("progress", 0):.2f} {data.get("message", "")}'.strip()
+            detail = f"{data.get('progress', 0):.2f} {data.get('message', '')}".strip()
         print(f"  #{event['seq']:<4} try={event['attempt']} {event['event']:20} {detail}")
     return 0
 
@@ -1177,9 +1194,7 @@ def _split_users(pairs: list[str] | None) -> list[tuple[str, str]]:
             raise SystemExit(f"ERROR: --user expects USERNAME=PASSWORD, got {pair!r}")
         username, password = pair.split("=", 1)
         if not username or not password:
-            raise SystemExit(
-                f"ERROR: --user needs a non-empty username and password, got {pair!r}"
-            )
+            raise SystemExit(f"ERROR: --user needs a non-empty username and password, got {pair!r}")
         result.append((username, password))
     return result
 
@@ -1575,9 +1590,7 @@ def build_parser() -> argparse.ArgumentParser:
         default="geonexus-dev-secret-change-me-0123456789abcdef",
         help="JWT HMAC secret (HS256); set a real secret in production",
     )
-    p_web_start.add_argument(
-        "--node", default=None, help="Default GeoNode URL for /api/execute"
-    )
+    p_web_start.add_argument("--node", default=None, help="Default GeoNode URL for /api/execute")
     p_web_start.add_argument(
         "--node-api-key",
         action="append",
@@ -1669,8 +1682,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     task_sub = task.add_subparsers(dest="task_command", required=True)
     p_task_list = task_sub.add_parser("list", help="列出任务")
-    p_task_list.add_argument("--state", default="geotask.json",
-                             help="状态文件（JsonTaskStore 写的那个）")
+    p_task_list.add_argument(
+        "--state", default="geotask.json", help="状态文件（JsonTaskStore 写的那个）"
+    )
     p_task_list.add_argument("--limit", type=int, default=50, help="最多列多少条")
     p_task_list.add_argument("--json", action="store_true", help="输出 JSON")
     p_task_list.set_defaults(func=cmd_task_list)
@@ -1681,20 +1695,22 @@ def build_parser() -> argparse.ArgumentParser:
     p_task_show.add_argument("--json", action="store_true", help="输出 JSON")
     p_task_show.set_defaults(func=cmd_task_show)
 
-    p_task_events = task_sub.add_parser(
-        "events", help="回放任务事件（seq > since，无重复无空洞）")
+    p_task_events = task_sub.add_parser("events", help="回放任务事件（seq > since，无重复无空洞）")
     p_task_events.add_argument("task_id")
     p_task_events.add_argument("--state", default="geotask.json")
-    p_task_events.add_argument("--since", type=int, default=0,
-                               help="只回放 seq 大于该值的事件（客户端重连时用）")
+    p_task_events.add_argument(
+        "--since", type=int, default=0, help="只回放 seq 大于该值的事件（客户端重连时用）"
+    )
     p_task_events.add_argument("--json", action="store_true", help="输出 JSON")
     p_task_events.set_defaults(func=cmd_task_events)
 
     p_task_reconcile = task_sub.add_parser(
-        "reconcile", help="重启对账：把无执行者的 running 任务判失败或退回队列")
+        "reconcile", help="重启对账：把无执行者的 running 任务判失败或退回队列"
+    )
     p_task_reconcile.add_argument("--state", default="geotask.json")
-    p_task_reconcile.add_argument("--now", type=float, default=None,
-                                  help="用这个时间戳（默认现在）判断租约是否过期")
+    p_task_reconcile.add_argument(
+        "--now", type=float, default=None, help="用这个时间戳（默认现在）判断租约是否过期"
+    )
     p_task_reconcile.add_argument("--json", action="store_true", help="输出 JSON")
     p_task_reconcile.set_defaults(func=cmd_task_reconcile)
 

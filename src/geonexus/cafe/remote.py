@@ -89,7 +89,7 @@ class RemoteWorker:
         return WorkerCapabilities(
             payload_kinds=frozenset({"skill"}),
             resource_dims=("cpu", "memory", "gpu"),
-            supports_cancel=False,   # GeoMCP 的 execute 是同步调用，没有取消入口
+            supports_cancel=False,  # GeoMCP 的 execute 是同步调用，没有取消入口
         )
 
     def register_asset(self, name: str, remote_ref: str | None = None) -> RemoteWorker:
@@ -108,7 +108,8 @@ class RemoteWorker:
         with self._lock:
             if self._client is None:
                 self._client = GeoMCPClient(
-                    self.node_url, timeout=self.timeout, api_key=self.api_key)
+                    self.node_url, timeout=self.timeout, api_key=self.api_key
+                )
             return self._client
 
     def heartbeat(self) -> bool:
@@ -135,10 +136,12 @@ class RemoteWorker:
         """
         start = time.time()
         if request.payload_kind != "skill":
-            return self._fail(request, start,
-                              f"远端 worker {self.worker_id} 只能执行技能调用，"
-                              f"收到的是代码下推（code payload）",
-                              retryable=False)
+            return self._fail(
+                request,
+                start,
+                f"远端 worker {self.worker_id} 只能执行技能调用，收到的是代码下推（code payload）",
+                retryable=False,
+            )
         try:
             result = self._connection().execute(
                 skill=request.skill or "",
@@ -152,8 +155,9 @@ class RemoteWorker:
             # 节点明确拒绝（业务错误码）与连不上（传输错误）都算"这个 worker 这次
             # 不行"——换一个节点是合理的；但输入缺失这种错换节点也没用，靠 code 区分。
             code = getattr(exc, "code", None)
-            return self._fail(request, start, str(exc), code=code,
-                              retryable=code is None or code >= 1000)
+            return self._fail(
+                request, start, str(exc), code=code, retryable=code is None or code >= 1000
+            )
         self._last_seen = time.time()
         outcome = PushdownResult(
             task_id=request.task_id,
@@ -165,8 +169,15 @@ class RemoteWorker:
         self._jobs[request.task_id] = outcome
         return outcome
 
-    def _fail(self, request: PushdownRequest, start: float, error: str,
-              *, code: int | None = None, retryable: bool) -> PushdownResult:
+    def _fail(
+        self,
+        request: PushdownRequest,
+        start: float,
+        error: str,
+        *,
+        code: int | None = None,
+        retryable: bool,
+    ) -> PushdownResult:
         outcome = PushdownResult(
             task_id=request.task_id,
             status=TaskStatus.FAILED,

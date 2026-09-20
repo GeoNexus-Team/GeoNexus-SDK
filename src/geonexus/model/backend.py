@@ -73,8 +73,7 @@ class ModelBackend:
         self._capabilities = capabilities
         self._registry_url = registry_url
         self._require_compute = require_compute
-        self._pool = ThreadPoolExecutor(max_workers=max_workers,
-                                        thread_name_prefix="geomodel")
+        self._pool = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="geomodel")
         self._futures: dict[str, Future[Any]] = {}
         self._last: dict[str, ModelOutcome] = {}
         self._lock = threading.RLock()
@@ -88,8 +87,8 @@ class ModelBackend:
         return BackendCapabilities(
             name=self.name,
             kinds=frozenset({"model", "batch"}),
-            supports_cancel=False,          # 请求已发出，远端计算撤不回来
-            supports_progress=False,        # 一次请求一次响应，没有中间进度
+            supports_cancel=False,  # 请求已发出，远端计算撤不回来
+            supports_progress=False,  # 一次请求一次响应，没有中间进度
             resource_dims=("cpu", "memory_mb", "gpu"),
         )
 
@@ -126,9 +125,14 @@ class ModelBackend:
             self._futures[task.task_id] = future
         return Handle(task_id=task.task_id, backend=self.name, token=future)
 
-    def invoke_card(self, card: Any, inputs: dict[str, Any] | None = None, *,
-                    params: dict[str, Any] | None = None,
-                    timeout: float = 300.0) -> ModelOutcome:
+    def invoke_card(
+        self,
+        card: Any,
+        inputs: dict[str, Any] | None = None,
+        *,
+        params: dict[str, Any] | None = None,
+        timeout: float = 300.0,
+    ) -> ModelOutcome:
         """直接（同步）调用一张模型卡片。
 
         ``geo.invoke`` 走的是这条路：JSON-RPC 调用方要的是**立即**拿到结果，
@@ -163,13 +167,13 @@ class ModelBackend:
         if card is None:
             return TaskOutcome.failure(
                 "invalid_spec",
-                f"找不到模型卡片：spec={task.spec!r}"
-                f"（已注册: {sorted(self._cards)}）")
+                f"找不到模型卡片：spec={task.spec!r}（已注册: {sorted(self._cards)}）",
+            )
 
         timeout = float(task.spec.get("timeout") or task.timeout_seconds or 300.0)
-        outcome = self.invoke_card(card, self.collect_inputs(task),
-                                   params=task.spec.get("params") or {},
-                                   timeout=timeout)
+        outcome = self.invoke_card(
+            card, self.collect_inputs(task), params=task.spec.get("params") or {}, timeout=timeout
+        )
         with self._lock:
             self._last[task.task_id] = outcome
 
@@ -177,9 +181,11 @@ class ModelBackend:
             return TaskOutcome.success(outcome.outputs)
         return TaskOutcome(
             state=TaskState.FAILED,
-            error=TaskError.of(outcome.error_code or "execution_error",
-                               outcome.error or "模型调用失败",
-                               retryable=outcome.retryable),
+            error=TaskError.of(
+                outcome.error_code or "execution_error",
+                outcome.error or "模型调用失败",
+                retryable=outcome.retryable,
+            ),
         )
 
     def poll(self, handle: Handle) -> TaskOutcome:

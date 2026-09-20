@@ -120,8 +120,9 @@ class CentralServer:
             :class:`~geonexus.cafe.remote.RemoteWorker`).
     """
 
-    def __init__(self, server_id: str = "central",
-                 *, unhealthy_ttl: float = DEFAULT_UNHEALTHY_TTL) -> None:
+    def __init__(
+        self, server_id: str = "central", *, unhealthy_ttl: float = DEFAULT_UNHEALTHY_TTL
+    ) -> None:
         self.server_id = server_id
         self.workers: dict[str, Any] = {}
         self.unhealthy_ttl = unhealthy_ttl
@@ -134,8 +135,11 @@ class CentralServer:
     def register_worker(self, worker: Any) -> CentralServer:
         """Register a worker (local or remote) so tasks can be routed to it."""
         self.workers[worker.worker_id] = worker
-        logger.info("Central registered worker %s (%d assets)",
-                    worker.worker_id, len(getattr(worker, "data_assets", {})))
+        logger.info(
+            "Central registered worker %s (%d assets)",
+            worker.worker_id,
+            len(getattr(worker, "data_assets", {})),
+        )
         return self
 
     def available_workers(self) -> list[Any]:
@@ -148,14 +152,15 @@ class CentralServer:
         而是把该节点短期降级、换一个候选。
         """
         self._unhealthy_until[worker_id] = time.time() + (
-            self.unhealthy_ttl if ttl is None else ttl)
+            self.unhealthy_ttl if ttl is None else ttl
+        )
 
     def is_healthy(self, worker_id: str, now: float | None = None) -> bool:
         until = self._unhealthy_until.get(worker_id)
         if until is None:
             return True
         if until <= (time.time() if now is None else now):
-            self._unhealthy_until.pop(worker_id, None)   # TTL 过期，恢复正常
+            self._unhealthy_until.pop(worker_id, None)  # TTL 过期，恢复正常
             return True
         return False
 
@@ -169,15 +174,15 @@ class CentralServer:
     # ------------------------------------------------------------------ #
     # Routing
     # ------------------------------------------------------------------ #
-    def _capacity_ok(self, worker: Any,
-                     request: PushdownRequest) -> tuple[bool, list[str]]:
+    def _capacity_ok(self, worker: Any, request: PushdownRequest) -> tuple[bool, list[str]]:
         need = request.metadata.get("resources")
         if not need:
             return True, ["未声明资源需求"]
         shim = _RequestShim(
             id=request.task_id,
-            runtime=_RuntimeShim(cpu=need.get("cpu"), memory=need.get("memory"),
-                                 gpu=need.get("gpu")),
+            runtime=_RuntimeShim(
+                cpu=need.get("cpu"), memory=need.get("memory"), gpu=need.get("gpu")
+            ),
         )
         match = match_resource(shim, [capacity_of(worker)])
         return match.matched, match.reasons
@@ -215,8 +220,9 @@ class CentralServer:
         # 数据本地性 + 算力
         scored: list[tuple[int, str, list[str]]] = []
         for worker in capable:
-            local = sum(1 for value in request.inputs.values()
-                        if worker.resolve_input(value) is not None)
+            local = sum(
+                1 for value in request.inputs.values() if worker.resolve_input(value) is not None
+            )
             ok, reasons = self._capacity_ok(worker, request)
             if not ok:
                 excluded[worker.worker_id] = "算力不足：" + "；".join(reasons[:2])
@@ -224,34 +230,36 @@ class CentralServer:
             scored.append((local, worker.worker_id, reasons))
 
         if not scored:
-            return RoutingDecision(
-                None, [], "没有满足算力需求的 worker", excluded)
+            return RoutingDecision(None, [], "没有满足算力需求的 worker", excluded)
 
         scored.sort(key=lambda item: item[0], reverse=True)
         if scored[0][0] > 0:
             candidates = [wid for _, wid, _ in scored]
             return RoutingDecision(
-                scored[0][1], candidates,
-                f"data locality ({scored[0][0]} inputs local)", excluded)
+                scored[0][1], candidates, f"data locality ({scored[0][0]} inputs local)", excluded
+            )
 
         # Region / compliance 标签兜底
-        region_workers = [wid for _, wid, _ in scored
-                          if (self.workers[wid].tags or {}).get("region") == region_hint]
+        region_workers = [
+            wid
+            for _, wid, _ in scored
+            if (self.workers[wid].tags or {}).get("region") == region_hint
+        ]
         if region_workers:
             others = [wid for _, wid, _ in scored if wid not in region_workers]
-            return RoutingDecision(region_workers[0], region_workers + others,
-                                   f"region tag {region_hint}", excluded)
+            return RoutingDecision(
+                region_workers[0], region_workers + others, f"region tag {region_hint}", excluded
+            )
 
         candidates = [wid for _, wid, _ in scored]
-        return RoutingDecision(candidates[0], candidates,
-                               "fallback (no locality hints)", excluded)
+        return RoutingDecision(candidates[0], candidates, "fallback (no locality hints)", excluded)
 
     # ------------------------------------------------------------------ #
     # Task dispatch
     # ------------------------------------------------------------------ #
-    def dispatch(self, request: PushdownRequest, *,
-                 retries: int | None = None,
-                 lease_seconds: float = 300.0) -> PushdownResult:
+    def dispatch(
+        self, request: PushdownRequest, *, retries: int | None = None, lease_seconds: float = 300.0
+    ) -> PushdownResult:
         """Route and execute a pushdown task, retrying on other candidates.
 
         ``retries=None`` 表示"试完所有候选"——这正是运维要的语义：一个 worker 挂了，
@@ -270,12 +278,18 @@ class CentralServer:
                 break
             worker = self.workers[decision.chosen_worker]
             attempted.add(worker.worker_id)
-            logger.info("Central dispatching %s -> %s (%s)",
-                        request.task_id, worker.worker_id, decision.reason)
+            logger.info(
+                "Central dispatching %s -> %s (%s)",
+                request.task_id,
+                worker.worker_id,
+                decision.reason,
+            )
             self._leases[request.task_id] = Lease(
-                task_id=request.task_id, worker_id=worker.worker_id,
+                task_id=request.task_id,
+                worker_id=worker.worker_id,
                 expires_at=time.time() + lease_seconds,
-                attempt=len(attempted) - 1)
+                attempt=len(attempted) - 1,
+            )
             result = worker.execute(request)
             self._leases.pop(request.task_id, None)
             if result.status is TaskStatus.SUCCEEDED:
@@ -284,8 +298,12 @@ class CentralServer:
             if not result.retryable:
                 return result
             self.mark_unhealthy(worker.worker_id)
-            logger.warning("Worker %s failed %s (%s) -> trying another candidate",
-                           worker.worker_id, request.task_id, result.error)
+            logger.warning(
+                "Worker %s failed %s (%s) -> trying another candidate",
+                worker.worker_id,
+                request.task_id,
+                result.error,
+            )
 
         if last is not None:
             # 所有候选都试过了：把"试过哪些"写进错误，便于定位
@@ -299,13 +317,11 @@ class CentralServer:
             retryable=False,
         )
 
-    def _route_excluding(self, request: PushdownRequest,
-                         attempted: set[str]) -> RoutingDecision:
+    def _route_excluding(self, request: PushdownRequest, attempted: set[str]) -> RoutingDecision:
         """路由，但跳过已经试过的 worker。"""
         if not attempted:
             return self.route(request)
-        saved = {wid: self.workers.pop(wid) for wid in list(attempted)
-                 if wid in self.workers}
+        saved = {wid: self.workers.pop(wid) for wid in list(attempted) if wid in self.workers}
         try:
             return self.route(request)
         finally:
@@ -337,8 +353,9 @@ class CentralServer:
         expired = [lease for lease in self._leases.values() if lease.expired(now)]
         for lease in expired:
             self._leases.pop(lease.task_id, None)
-            logger.warning("Reclaiming expired lease %s (worker %s)",
-                           lease.task_id, lease.worker_id)
+            logger.warning(
+                "Reclaiming expired lease %s (worker %s)", lease.task_id, lease.worker_id
+            )
         return expired
 
     # ------------------------------------------------------------------ #
@@ -356,6 +373,7 @@ class CentralServer:
                 }
                 for w in self.workers.values()
             ],
-            "leases": [{"task_id": ls.task_id, "worker_id": ls.worker_id}
-                       for ls in self._leases.values()],
+            "leases": [
+                {"task_id": ls.task_id, "worker_id": ls.worker_id} for ls in self._leases.values()
+            ],
         }

@@ -24,7 +24,8 @@ def _records_client(routes: dict[str, dict]) -> OgcApiClient:
 
     transport = httpx.MockTransport(handler)
     return OgcApiClient(
-        "https://records.test", client=httpx.Client(base_url="https://records.test", transport=transport)
+        "https://records.test",
+        client=httpx.Client(base_url="https://records.test", transport=transport),
     )
 
 
@@ -34,7 +35,10 @@ SAMPLE_COLLECTION = {
     "description": "A demo record collection",
     "links": [{"rel": "self", "href": "https://records.test/collections/demo-catalogue"}],
     "extent": {
-        "spatial": {"bbox": [[-10, -10, 10, 10]], "crs": "http://www.opengis.net/def/crs/EPSG/0/4326"},
+        "spatial": {
+            "bbox": [[-10, -10, 10, 10]],
+            "crs": "http://www.opengis.net/def/crs/EPSG/0/4326",
+        },
         "temporal": {"interval": [["2015-01-01", "2025-12-31"]]},
     },
 }
@@ -46,7 +50,10 @@ SAMPLE_RECORD = {
     "keywords": ["ndvi", "amazon", "vegetation"],
     "themes": [{"concepts": [{"id": "ndvi"}]}, "change-detection"],
     "extent": {
-        "spatial": {"bbox": [[-73.9, -15.0, -44.0, 5.0]], "crs": "http://www.opengis.net/def/crs/EPSG/0/4326"},
+        "spatial": {
+            "bbox": [[-73.9, -15.0, -44.0, 5.0]],
+            "crs": "http://www.opengis.net/def/crs/EPSG/0/4326",
+        },
         "temporal": {"interval": [["2015-01-01", "2025-12-31"]]},
     },
     "links": [
@@ -60,9 +67,7 @@ class TestRecordsClient:
     def test_list_collections(self) -> None:
         client = _records_client({"/": {"collections": [SAMPLE_COLLECTION]}})
         with client:
-            cols = list_ogc_record_collections(
-                "https://records.test", client=client
-            )
+            cols = list_ogc_record_collections("https://records.test", client=client)
         assert len(cols) == 1
         assert cols[0]["id"] == "demo-catalogue"
 
@@ -82,7 +87,9 @@ class TestRecordsClient:
 
         client = OgcApiClient(
             "https://records.test",
-            client=httpx.Client(base_url="https://records.test", transport=httpx.MockTransport(handler)),
+            client=httpx.Client(
+                base_url="https://records.test", transport=httpx.MockTransport(handler)
+            ),
         )
         with client:
             list_ogc_records(
@@ -98,9 +105,7 @@ class TestRecordsClient:
         assert captured[0]["q"] == "ndvi"
 
     def test_fetch_record_collection_path(self) -> None:
-        client = _records_client(
-            {"/collections/c1/items/rec-1": SAMPLE_RECORD}
-        )
+        client = _records_client({"/collections/c1/items/rec-1": SAMPLE_RECORD})
         with client:
             rec = fetch_ogc_record(
                 "https://records.test", "rec-1", collection_id="c1", client=client

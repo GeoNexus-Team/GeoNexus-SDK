@@ -72,9 +72,7 @@ def scan_vector(path: str | Path) -> dict[str, Any]:
             geom_types: set[str] = set()
             count = 0
             for feature in src:
-                geom_types.add(
-                    feature["geometry"]["type"] if feature["geometry"] else "None"
-                )
+                geom_types.add(feature["geometry"]["type"] if feature["geometry"] else "None")
                 count += 1
                 if count >= 100:
                     break
@@ -130,7 +128,11 @@ def _collect_coords(coord: Any, xs: list[float], ys: list[float]) -> None:
     """Recursively collect x/y values from a possibly nested coordinate list."""
     if not isinstance(coord, list):
         return
-    if len(coord) >= 2 and isinstance(coord[0], (int, float)) and isinstance(coord[1], (int, float)):
+    if (
+        len(coord) >= 2
+        and isinstance(coord[0], (int, float))
+        and isinstance(coord[1], (int, float))
+    ):
         xs.append(float(coord[0]))
         ys.append(float(coord[1]))
         return
@@ -203,7 +205,9 @@ def scan_asset_to_contract(
     if asset_type == "raster":
         for band in meta.get("bands", []):
             card.bands.append(
-                Band(name=band["name"], dtype=band.get("dtype"), description=f"Band {band['index']}")
+                Band(
+                    name=band["name"], dtype=band.get("dtype"), description=f"Band {band['index']}"
+                )
             )
     # 时序范围
     if asset_type == "temporal" and meta.get("time_start"):

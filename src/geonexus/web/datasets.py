@@ -55,9 +55,7 @@ def create_datasets_router(config: WebConfig) -> APIRouter:
         return base
 
     def _registry() -> RegistryClient:
-        return RegistryClient(
-            config.registry_url, api_key=config.registry_api_key
-        )
+        return RegistryClient(config.registry_url, api_key=config.registry_api_key)
 
     # ------------------------------------------------------------------ #
     @router.post("/upload")

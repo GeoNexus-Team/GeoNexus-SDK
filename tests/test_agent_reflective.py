@@ -230,9 +230,7 @@ class TestReflectiveExecutor:
 
 class TestEvaluatePlan:
     def test_evaluate_ok(self) -> None:
-        reflector, _ = _reflector(
-            json.dumps({"satisfied": True, "score": 92, "notes": "goal met"})
-        )
+        reflector, _ = _reflector(json.dumps({"satisfied": True, "score": 92, "notes": "goal met"}))
         plan = _plan(GoalStep(skill="ndvi"))
         plan.steps[0].status = "done"
         plan.steps[0].result = {"outputs": {"mean": 0.4}}

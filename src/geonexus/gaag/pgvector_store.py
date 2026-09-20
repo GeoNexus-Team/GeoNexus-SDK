@@ -15,6 +15,7 @@ import os
 try:
     import psycopg2
     import psycopg2.extras
+
     HAS_PSYCOPG2 = True
 except ImportError:
     psycopg2 = None  # type: ignore
@@ -69,7 +70,9 @@ class PgVectorStore:
         if not self.dsn:
             raise ValueError("POSTGIS_DSN environment variable or dsn argument required")
         if not HAS_PSYCOPG2:
-            raise ImportError("psycopg2 is required for pgvector backend. Install: pip install psycopg2-binary")
+            raise ImportError(
+                "psycopg2 is required for pgvector backend. Install: pip install psycopg2-binary"
+            )
         self.conn = psycopg2.connect(self.dsn)
         self.conn.autocommit = True
         psycopg2.extras.register_vector(self.conn)

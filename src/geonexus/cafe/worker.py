@@ -63,7 +63,7 @@ def _build_sandbox_script(request: PushdownRequest) -> str:
         f"    _result = {returns}\n"
         "except NameError:\n"
         "    _result = None\n"
-        'print(json.dumps(_result, default=str))\n'
+        "print(json.dumps(_result, default=str))\n"
     )
 
 
@@ -100,7 +100,7 @@ class WorkerNode:
         return WorkerCapabilities(
             payload_kinds=frozenset({"code"}),
             resource_dims=("cpu", "memory"),
-            supports_cancel=False,   # 子进程可以杀，但协议里没有取消入口
+            supports_cancel=False,  # 子进程可以杀，但协议里没有取消入口
         )
 
     def heartbeat(self) -> bool:

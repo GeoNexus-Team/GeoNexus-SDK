@@ -27,9 +27,7 @@ def _llm_client(content: str) -> httpx.Client:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json=_completion(content))
 
-    return httpx.Client(
-        base_url="https://example.test/v1", transport=httpx.MockTransport(handler)
-    )
+    return httpx.Client(base_url="https://example.test/v1", transport=httpx.MockTransport(handler))
 
 
 class _FakeRegistry:
@@ -76,7 +74,9 @@ def test_registry_grounded_planning_passes_real_skills(
     monkeypatch.setattr("geonexus.registry.RegistryClient", lambda *a, **k: fake)
     config = LLMConfig(base_url="https://example.test/v1", api_key="test-key")
 
-    goal = plan_from_text_with_registry("NDVI please", "http://registry:8790", config=config, client=client)
+    goal = plan_from_text_with_registry(
+        "NDVI please", "http://registry:8790", config=config, client=client
+    )
 
     assert isinstance(goal, Goal)
     assert goal.capability == "ndvi"

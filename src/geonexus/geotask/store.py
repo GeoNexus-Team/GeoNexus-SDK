@@ -49,8 +49,8 @@ class EventHistoryGone(Exception):
 
     def __init__(self, task_id: str, requested: int, oldest: int) -> None:
         super().__init__(
-            f"任务 {task_id} 的事件历史已过期：请求 since={requested}，"
-            f"最早可用 seq={oldest}")
+            f"任务 {task_id} 的事件历史已过期：请求 since={requested}，最早可用 seq={oldest}"
+        )
         self.task_id = task_id
         self.requested = requested
         self.oldest = oldest
@@ -100,13 +100,19 @@ class TaskStore:
             raise TaskNotFound(task_id)
         return task
 
-    def list(self, *, states: Iterable[TaskState] | None = None,
-             owner: str | None = None, tenant: str | None = None,
-             limit: int = 100) -> list[GeoTask]:
+    def list(
+        self,
+        *,
+        states: Iterable[TaskState] | None = None,
+        owner: str | None = None,
+        tenant: str | None = None,
+        limit: int = 100,
+    ) -> list[GeoTask]:
         wanted = set(states) if states is not None else None
         with self._lock:
             out = [
-                t for t in self._tasks.values()
+                t
+                for t in self._tasks.values()
                 if (wanted is None or t.state in wanted)
                 and (owner is None or t.owner == owner)
                 and (tenant is None or t.tenant == tenant)
@@ -123,9 +129,15 @@ class TaskStore:
     # ------------------------------------------------------------------ #
     # 状态迁移（唯一入口）
     # ------------------------------------------------------------------ #
-    def transition(self, task_id: str, to: TaskState, *, reason: str = "",
-                   error: TaskError | None = None,
-                   result: TaskResult | None = None) -> GeoTask:
+    def transition(
+        self,
+        task_id: str,
+        to: TaskState,
+        *,
+        reason: str = "",
+        error: TaskError | None = None,
+        result: TaskResult | None = None,
+    ) -> GeoTask:
         """把任务迁到 ``to``。非法迁移抛 :class:`IllegalTransition`。"""
         with self._lock:
             task = self.require(task_id)
@@ -152,19 +164,25 @@ class TaskStore:
                 data["reason"] = reason
             self.append_event(task_id, TASK_STATE_CHANGED, data)
             if to is TaskState.FAILED:
-                self.append_event(task_id, TASK_FAILED, {
-                    "code": task.error.code if task.error else "execution_error",
-                    "message": task.error.message if task.error else "",
-                    "retryable": task.error.retryable if task.error else True,
-                    "from": src.value,
-                })
+                self.append_event(
+                    task_id,
+                    TASK_FAILED,
+                    {
+                        "code": task.error.code if task.error else "execution_error",
+                        "message": task.error.message if task.error else "",
+                        "retryable": task.error.retryable if task.error else True,
+                        "from": src.value,
+                    },
+                )
             elif to is TaskState.CANCELLED:
-                self.append_event(task_id, TASK_CANCELLED, {
-                    "from": src.value, "reason": reason or "user_requested"})
+                self.append_event(
+                    task_id,
+                    TASK_CANCELLED,
+                    {"from": src.value, "reason": reason or "user_requested"},
+                )
             return task
 
-    def set_lease(self, task_id: str, *, expires_at: float,
-                  executor: str | None = None) -> GeoTask:
+    def set_lease(self, task_id: str, *, expires_at: float, executor: str | None = None) -> GeoTask:
         """写入/续租。``scheduled_to`` 与 ``lease_expires_at`` 一起构成"谁在执行"。"""
         with self._lock:
             task = self.require(task_id)
@@ -173,16 +191,18 @@ class TaskStore:
                 task.scheduled_to = executor
             return task
 
-    def report_progress(self, task_id: str, progress: float,
-                        message: str = "") -> None:
+    def report_progress(self, task_id: str, progress: float, message: str = "") -> None:
         with self._lock:
             task = self.require(task_id)
             task.progress = max(0.0, min(1.0, float(progress)))
             if message:
                 task.message = message
-            self.append_event(task_id, TASK_PROGRESS,
-                              {"progress": task.progress, "message": task.message},
-                              attempt=task.attempt)
+            self.append_event(
+                task_id,
+                TASK_PROGRESS,
+                {"progress": task.progress, "message": task.message},
+                attempt=task.attempt,
+            )
 
     def request_cancel(self, task_id: str) -> GeoTask:
         """请求取消。
@@ -220,30 +240,32 @@ class TaskStore:
                     continue
                 if task.retry.allows_another_attempt(task.attempt):
                     task.attempt += 1
-                    self.transition(task.task_id, TaskState.QUEUED,
-                                    reason="lease_expired")
+                    self.transition(task.task_id, TaskState.QUEUED, reason="lease_expired")
                     report["requeued"] += 1
                 else:
                     self.transition(
-                        task.task_id, TaskState.FAILED, reason="lease_expired",
+                        task.task_id,
+                        TaskState.FAILED,
+                        reason="lease_expired",
                         error=TaskError.of(
-                            "executor_lost",
-                            "执行者租约过期：重启后没有存活的执行者认领该任务"))
+                            "executor_lost", "执行者租约过期：重启后没有存活的执行者认领该任务"
+                        ),
+                    )
                     report["failed"] += 1
         return report
 
     # ------------------------------------------------------------------ #
     # 事件
     # ------------------------------------------------------------------ #
-    def append_event(self, task_id: str, event: str,
-                     data: dict[str, Any], attempt: int = 0) -> int:
+    def append_event(self, task_id: str, event: str, data: dict[str, Any], attempt: int = 0) -> int:
         """追加事件并返回它的 ``seq``（每任务内从 1 起严格递增）。"""
         with self._lock:
             seq = self._seq.get(task_id, 0) + 1
             self._seq[task_id] = seq
             task = self._tasks.get(task_id)
-            payload = build_event(task_id, seq, event, data,
-                                  attempt=attempt or (task.attempt if task else 0))
+            payload = build_event(
+                task_id, seq, event, data, attempt=attempt or (task.attempt if task else 0)
+            )
             history = self._events.setdefault(task_id, [])
             history.append(payload)
             if len(history) > self.event_retention:
@@ -255,8 +277,7 @@ class TaskStore:
     def _on_event(self, task_id: str, payload: dict[str, Any]) -> None:
         """持久化钩子（:class:`JsonTaskStore` 覆写）。"""
 
-    def events_since(self, task_id: str,
-                     since: int = 0) -> tuple[list[dict[str, Any]], int]:
+    def events_since(self, task_id: str, since: int = 0) -> tuple[list[dict[str, Any]], int]:
         """取 ``seq > since`` 的事件，返回 ``(events, latest_seq)``。
 
         历史被裁掉时抛 :class:`EventHistoryGone`——**不允许静默从头开始**。
@@ -282,8 +303,9 @@ class JsonTaskStore(TaskStore):
         store.reconcile()      # **载入后必须对账**，否则会把死任务报成 running
     """
 
-    def __init__(self, path: str | os.PathLike[str], *,
-                 event_retention: int = DEFAULT_EVENT_RETENTION) -> None:
+    def __init__(
+        self, path: str | os.PathLike[str], *, event_retention: int = DEFAULT_EVENT_RETENTION
+    ) -> None:
         super().__init__(event_retention=event_retention)
         self.path = Path(path)
         self._load()
@@ -311,8 +333,7 @@ class JsonTaskStore(TaskStore):
         }
         tmp = self.path.with_suffix(self.path.suffix + ".tmp")
         tmp.parent.mkdir(parents=True, exist_ok=True)
-        tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2),
-                       encoding="utf-8")
+        tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
         # 先写临时文件再原子替换：进程在写一半时被杀，不会留下半个 JSON
         os.replace(tmp, self.path)
 

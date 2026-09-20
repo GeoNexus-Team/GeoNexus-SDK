@@ -30,9 +30,15 @@ __all__ = ["InferenceProvider"]
 class InferenceProvider:
     """一次请求一次响应的推理服务。"""
 
-    def __init__(self, endpoint: str, *, timeout: float = 300.0,
-                 api_key: str | None = None, headers: dict[str, str] | None = None,
-                 client: httpx.Client | None = None) -> None:
+    def __init__(
+        self,
+        endpoint: str,
+        *,
+        timeout: float = 300.0,
+        api_key: str | None = None,
+        headers: dict[str, str] | None = None,
+        client: httpx.Client | None = None,
+    ) -> None:
         self.name = "inference"
         self.endpoint = endpoint.rstrip("/")
         self.timeout = timeout
@@ -42,8 +48,12 @@ class InferenceProvider:
         self._extra_headers = dict(headers or {})
 
     def capabilities(self) -> dict[str, Any]:
-        return {"name": self.name, "endpoint": self.endpoint, "transport": "http",
-                "modes": ["sync"]}
+        return {
+            "name": self.name,
+            "endpoint": self.endpoint,
+            "transport": "http",
+            "modes": ["sync"],
+        }
 
     def retarget(self, endpoint: str) -> InferenceProvider:
         """改指向另一台算力（算力门禁选中了别的节点时）。
@@ -51,8 +61,12 @@ class InferenceProvider:
         只换地址，复用同一个 httpx 客户端——门禁结论要能真的改变调用目标。
         """
         clone = InferenceProvider(
-            endpoint, timeout=self.timeout, api_key=self.api_key,
-            headers=self._extra_headers, client=self._client)
+            endpoint,
+            timeout=self.timeout,
+            api_key=self.api_key,
+            headers=self._extra_headers,
+            client=self._client,
+        )
         clone._owns_client = False
         return clone
 
@@ -71,40 +85,46 @@ class InferenceProvider:
             "request_id": invocation.request_id,
         }
         try:
-            response = self._client.post(self.endpoint, json=payload,
-                                         headers=self._headers(),
-                                         timeout=invocation.timeout)
+            response = self._client.post(
+                self.endpoint, json=payload, headers=self._headers(), timeout=invocation.timeout
+            )
         except httpx.TimeoutException as exc:
-            return ModelOutcome.failure("timeout", f"推理服务超时：{exc}",
-                                        retryable=True, reasons=[str(exc)])
+            return ModelOutcome.failure(
+                "timeout", f"推理服务超时：{exc}", retryable=True, reasons=[str(exc)]
+            )
         except httpx.HTTPError as exc:
-            return ModelOutcome.failure("executor_lost", f"连不上推理服务：{exc}",
-                                        retryable=True, reasons=[str(exc)])
+            return ModelOutcome.failure(
+                "executor_lost", f"连不上推理服务：{exc}", retryable=True, reasons=[str(exc)]
+            )
 
         if response.status_code >= 500:
             return ModelOutcome.failure(
                 "resource_unavailable",
                 f"推理服务 {response.status_code}：{response.text[:200]}",
-                retryable=True)
+                retryable=True,
+            )
         if response.status_code >= 400:
             # 4xx 是请求本身的问题，换一台机器也一样
             return ModelOutcome.failure(
                 "invalid_spec",
                 f"推理服务拒绝请求 {response.status_code}：{response.text[:200]}",
-                retryable=False)
+                retryable=False,
+            )
 
         try:
             body = response.json()
         except ValueError as exc:
             return ModelOutcome.failure(
-                "execution_error", f"推理服务返回的不是 JSON：{exc}", retryable=False)
+                "execution_error", f"推理服务返回的不是 JSON：{exc}", retryable=False
+            )
 
         outputs = body.get("outputs") if isinstance(body, dict) and "outputs" in body else body
         if not isinstance(outputs, dict):
             return ModelOutcome.failure(
                 "invalid_spec",
                 f"推理服务返回的产物不是对象：{type(outputs).__name__}",
-                retryable=False)
+                retryable=False,
+            )
         return ModelOutcome(status="succeeded", outputs=outputs, provider=self.name)
 
     def close(self) -> None:

@@ -19,6 +19,7 @@ from geonexus.kg import KGEntity, KnowledgeGraph
 # GeoKG
 # --------------------------------------------------------------------------- #
 
+
 class TestKnowledgeGraph:
     def test_seed_demo_creates_entities(self):
         kg = KnowledgeGraph("test").seed_demo()
@@ -66,9 +67,17 @@ class TestKnowledgeGraph:
         # Create a test raster and register in GAAG
         path = str(tmp_path / "r.tif")
         data = np.full((16, 16), 0.5, np.float32)
-        with rasterio.open(path, "w", driver="GTiff", dtype=np.float32, count=1,
-                           width=16, height=16, crs="EPSG:4326",
-                           transform=from_bounds(-10, -5, 10, 5, 16, 16)) as dst:
+        with rasterio.open(
+            path,
+            "w",
+            driver="GTiff",
+            dtype=np.float32,
+            count=1,
+            width=16,
+            height=16,
+            crs="EPSG:4326",
+            transform=from_bounds(-10, -5, 10, 5, 16, 16),
+        ) as dst:
             dst.write(data, 1)
 
         registry = GAAGRegistry()
@@ -85,6 +94,7 @@ class TestKnowledgeGraph:
 # --------------------------------------------------------------------------- #
 # OSM Adapter
 # --------------------------------------------------------------------------- #
+
 
 def _mock_osm_element(eid=123, tags=None):
     return {"id": eid, "type": "way", "tags": tags or {"building": "yes", "name": "Test Building"}}

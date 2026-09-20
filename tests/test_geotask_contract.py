@@ -29,8 +29,7 @@ DOC = Path(__file__).resolve().parent.parent / "docs" / "GEOTASK.md"
 def _state_machine_block() -> dict:
     """从 GEOTASK.md 里取出权威状态机定义。"""
     text = DOC.read_text(encoding="utf-8")
-    match = re.search(
-        r"```json geotask-state-machine\n(.*?)\n```", text, re.S)
+    match = re.search(r"```json geotask-state-machine\n(.*?)\n```", text, re.S)
     assert match, "GEOTASK.md 里找不到 geotask-state-machine 代码块"
     return json.loads(match.group(1))
 
@@ -51,9 +50,15 @@ class TestDocumentedContract:
     def test_doc_exists_and_has_core_sections(self) -> None:
         assert DOC.exists(), f"缺少契约文档: {DOC}"
         text = DOC.read_text(encoding="utf-8")
-        for section in ("## 二、数据模型", "## 三、状态机", "## 四、事件契约",
-                        "## 五、失败语义", "## 六、持久化与重启对账",
-                        "## 七、执行后端协议", "## 八、迁移映射"):
+        for section in (
+            "## 二、数据模型",
+            "## 三、状态机",
+            "## 四、事件契约",
+            "## 五、失败语义",
+            "## 六、持久化与重启对账",
+            "## 七、执行后端协议",
+            "## 八、迁移映射",
+        ):
             assert section in text, f"契约文档缺少章节: {section}"
 
     def test_state_machine_is_self_consistent(self) -> None:
@@ -121,7 +126,8 @@ class TestStateMachineContract:
         assert {s.value for s in geotask.TERMINAL_STATES} == set(m["terminal"])
         assert geotask.INITIAL_STATE.value == m["initial"]
         assert {(s.value, d.value) for s, d in geotask.TRANSITIONS} == {
-            tuple(t) for t in m["transitions"]}
+            tuple(t) for t in m["transitions"]
+        }
 
     def test_illegal_transition_is_rejected(self) -> None:
         """状态机必须是代码里的关卡，不是文档约定。"""
@@ -142,8 +148,9 @@ class TestStateMachineContract:
         """`transition()` 是唯一改状态的入口，非法迁移要被拒。"""
         geotask = _import_geotask()
         store = geotask.TaskStore.memory()
-        task = geotask.GeoTask(task_id="t1", kind=geotask.TaskKind.SKILL,
-                               spec={"skill": "ndvi-analysis"})
+        task = geotask.GeoTask(
+            task_id="t1", kind=geotask.TaskKind.SKILL, spec={"skill": "ndvi-analysis"}
+        )
         store.put(task)
         store.transition("t1", geotask.TaskState.QUEUED)
         with pytest.raises(geotask.IllegalTransition):
@@ -156,46 +163,72 @@ class TestDagContract:
     def test_ready_set_exposes_parallelism(self) -> None:
         """a → c, b → c：a 与 b 必须同时可跑，而不是排队。"""
         geotask = _import_geotask()
-        graph = geotask.TaskGraph.from_tasks([
-            geotask.GeoTask(task_id="a", kind=geotask.TaskKind.SKILL, spec={"skill": "x"}),
-            geotask.GeoTask(task_id="b", kind=geotask.TaskKind.SKILL, spec={"skill": "x"}),
-            geotask.GeoTask(task_id="c", kind=geotask.TaskKind.SKILL, spec={"skill": "x"},
-                            depends_on=["a", "b"]),
-        ])
+        graph = geotask.TaskGraph.from_tasks(
+            [
+                geotask.GeoTask(task_id="a", kind=geotask.TaskKind.SKILL, spec={"skill": "x"}),
+                geotask.GeoTask(task_id="b", kind=geotask.TaskKind.SKILL, spec={"skill": "x"}),
+                geotask.GeoTask(
+                    task_id="c",
+                    kind=geotask.TaskKind.SKILL,
+                    spec={"skill": "x"},
+                    depends_on=["a", "b"],
+                ),
+            ]
+        )
         assert set(graph.ready()) == {"a", "b"}
         graph.mark_done("a")
-        assert set(graph.ready()) == {"b"}          # c 还等 b，不能提前跑
+        assert set(graph.ready()) == {"b"}  # c 还等 b，不能提前跑
         graph.mark_done("b")
         assert set(graph.ready()) == {"c"}
 
     def test_cycle_is_rejected(self) -> None:
         geotask = _import_geotask()
         with pytest.raises(geotask.TaskGraphError):
-            geotask.TaskGraph.from_tasks([
-                geotask.GeoTask(task_id="a", kind=geotask.TaskKind.SKILL,
-                                spec={"skill": "x"}, depends_on=["b"]),
-                geotask.GeoTask(task_id="b", kind=geotask.TaskKind.SKILL,
-                                spec={"skill": "x"}, depends_on=["a"]),
-            ])
+            geotask.TaskGraph.from_tasks(
+                [
+                    geotask.GeoTask(
+                        task_id="a",
+                        kind=geotask.TaskKind.SKILL,
+                        spec={"skill": "x"},
+                        depends_on=["b"],
+                    ),
+                    geotask.GeoTask(
+                        task_id="b",
+                        kind=geotask.TaskKind.SKILL,
+                        spec={"skill": "x"},
+                        depends_on=["a"],
+                    ),
+                ]
+            )
 
     def test_missing_dependency_is_rejected(self) -> None:
         geotask = _import_geotask()
         with pytest.raises(geotask.TaskGraphError):
-            geotask.TaskGraph.from_tasks([
-                geotask.GeoTask(task_id="a", kind=geotask.TaskKind.SKILL,
-                                spec={"skill": "x"}, depends_on=["nope"]),
-            ])
+            geotask.TaskGraph.from_tasks(
+                [
+                    geotask.GeoTask(
+                        task_id="a",
+                        kind=geotask.TaskKind.SKILL,
+                        spec={"skill": "x"},
+                        depends_on=["nope"],
+                    ),
+                ]
+            )
 
     def test_upstream_failure_cascades_fail_fast(self) -> None:
         """契约 5.3：上游失败，下游 failed(upstream_failed)，且递归传播。"""
         geotask = _import_geotask()
-        graph = geotask.TaskGraph.from_tasks([
-            geotask.GeoTask(task_id="a", kind=geotask.TaskKind.SKILL, spec={"skill": "x"}),
-            geotask.GeoTask(task_id="b", kind=geotask.TaskKind.SKILL,
-                            spec={"skill": "x"}, depends_on=["a"]),
-            geotask.GeoTask(task_id="c", kind=geotask.TaskKind.SKILL,
-                            spec={"skill": "x"}, depends_on=["b"]),
-        ])
+        graph = geotask.TaskGraph.from_tasks(
+            [
+                geotask.GeoTask(task_id="a", kind=geotask.TaskKind.SKILL, spec={"skill": "x"}),
+                geotask.GeoTask(
+                    task_id="b", kind=geotask.TaskKind.SKILL, spec={"skill": "x"}, depends_on=["a"]
+                ),
+                geotask.GeoTask(
+                    task_id="c", kind=geotask.TaskKind.SKILL, spec={"skill": "x"}, depends_on=["b"]
+                ),
+            ]
+        )
         graph.mark_failed("a", code="execution_error")
         assert graph.state_of("b") is geotask.TaskState.FAILED
         assert graph.error_of("b").code == "upstream_failed"
@@ -204,11 +237,14 @@ class TestDagContract:
     def test_skipped_upstream_does_not_cascade_failure(self) -> None:
         """契约 5.3：跳过是策略决定，下游仍可跑。"""
         geotask = _import_geotask()
-        graph = geotask.TaskGraph.from_tasks([
-            geotask.GeoTask(task_id="a", kind=geotask.TaskKind.SKILL, spec={"skill": "x"}),
-            geotask.GeoTask(task_id="b", kind=geotask.TaskKind.SKILL,
-                            spec={"skill": "x"}, depends_on=["a"]),
-        ])
+        graph = geotask.TaskGraph.from_tasks(
+            [
+                geotask.GeoTask(task_id="a", kind=geotask.TaskKind.SKILL, spec={"skill": "x"}),
+                geotask.GeoTask(
+                    task_id="b", kind=geotask.TaskKind.SKILL, spec={"skill": "x"}, depends_on=["a"]
+                ),
+            ]
+        )
         graph.mark_skipped("a")
         assert graph.ready() == ["b"]
 
@@ -219,18 +255,25 @@ class TestRestartReconciliation:
     def test_expired_running_task_is_not_reported_running(self) -> None:
         geotask = _import_geotask()
         store = geotask.TaskStore.memory()
-        task = geotask.GeoTask(task_id="t1", kind=geotask.TaskKind.SKILL,
-                               spec={"skill": "x"},
-                               retry=geotask.RetryPolicy(max_attempts=1))
+        task = geotask.GeoTask(
+            task_id="t1",
+            kind=geotask.TaskKind.SKILL,
+            spec={"skill": "x"},
+            retry=geotask.RetryPolicy(max_attempts=1),
+        )
         store.put(task)
-        for target in (geotask.TaskState.QUEUED, geotask.TaskState.SCHEDULED,
-                       geotask.TaskState.RUNNING):
+        for target in (
+            geotask.TaskState.QUEUED,
+            geotask.TaskState.SCHEDULED,
+            geotask.TaskState.RUNNING,
+        ):
             store.transition("t1", target)
-        store.set_lease("t1", expires_at=0.0)        # 早已过期
+        store.set_lease("t1", expires_at=0.0)  # 早已过期
 
         report = store.reconcile(now=1_000.0)
-        assert store.get("t1").state is not geotask.TaskState.RUNNING, \
+        assert store.get("t1").state is not geotask.TaskState.RUNNING, (
             "重启后不得把无执行者的任务报成 running"
+        )
         assert store.get("t1").state is geotask.TaskState.FAILED
         assert store.get("t1").error.code == "executor_lost"
         assert report["requeued"] == 0 and report["failed"] == 1
@@ -238,11 +281,19 @@ class TestRestartReconciliation:
     def test_expired_task_with_retries_left_is_requeued(self) -> None:
         geotask = _import_geotask()
         store = geotask.TaskStore.memory()
-        store.put(geotask.GeoTask(task_id="t1", kind=geotask.TaskKind.SKILL,
-                                  spec={"skill": "x"},
-                                  retry=geotask.RetryPolicy(max_attempts=3)))
-        for target in (geotask.TaskState.QUEUED, geotask.TaskState.SCHEDULED,
-                       geotask.TaskState.RUNNING):
+        store.put(
+            geotask.GeoTask(
+                task_id="t1",
+                kind=geotask.TaskKind.SKILL,
+                spec={"skill": "x"},
+                retry=geotask.RetryPolicy(max_attempts=3),
+            )
+        )
+        for target in (
+            geotask.TaskState.QUEUED,
+            geotask.TaskState.SCHEDULED,
+            geotask.TaskState.RUNNING,
+        ):
             store.transition("t1", target)
         store.set_lease("t1", expires_at=0.0)
 
@@ -253,8 +304,7 @@ class TestRestartReconciliation:
     def test_terminal_tasks_are_untouched_by_reconcile(self) -> None:
         geotask = _import_geotask()
         store = geotask.TaskStore.memory()
-        store.put(geotask.GeoTask(task_id="t1", kind=geotask.TaskKind.SKILL,
-                                  spec={"skill": "x"}))
+        store.put(geotask.GeoTask(task_id="t1", kind=geotask.TaskKind.SKILL, spec={"skill": "x"}))
         store.transition("t1", geotask.TaskState.QUEUED)
         store.transition("t1", geotask.TaskState.CANCELLED)
         before = store.get("t1").state
@@ -288,12 +338,12 @@ class TestEventContract:
         """状态迁移必须自带事件，不能靠调用方记得发。"""
         geotask = _import_geotask()
         store = geotask.TaskStore.memory()
-        store.put(geotask.GeoTask(task_id="t1", kind=geotask.TaskKind.SKILL,
-                                  spec={"skill": "x"}))
+        store.put(geotask.GeoTask(task_id="t1", kind=geotask.TaskKind.SKILL, spec={"skill": "x"}))
         store.transition("t1", geotask.TaskState.QUEUED)
         events, _ = store.events_since("t1", since=0)
-        assert any(e["event"] == "task.state_changed" and e["data"]["to"] == "queued"
-                   for e in events)
+        assert any(
+            e["event"] == "task.state_changed" and e["data"]["to"] == "queued" for e in events
+        )
 
 
 class TestIdempotency:
@@ -301,14 +351,14 @@ class TestIdempotency:
         """契约 5.4：task_id 是幂等键——跨节点重投递不得重复执行。"""
         geotask = _import_geotask()
         store = geotask.TaskStore.memory()
-        original = geotask.GeoTask(task_id="t1", kind=geotask.TaskKind.SKILL,
-                                   spec={"skill": "x"})
+        original = geotask.GeoTask(task_id="t1", kind=geotask.TaskKind.SKILL, spec={"skill": "x"})
         store.put(original)
         store.transition("t1", geotask.TaskState.QUEUED)
         store.transition("t1", geotask.TaskState.SCHEDULED)
         store.transition("t1", geotask.TaskState.RUNNING)
 
-        again = store.put(geotask.GeoTask(task_id="t1", kind=geotask.TaskKind.SKILL,
-                                          spec={"skill": "x"}))
+        again = store.put(
+            geotask.GeoTask(task_id="t1", kind=geotask.TaskKind.SKILL, spec={"skill": "x"})
+        )
         assert again.state is geotask.TaskState.RUNNING, "重复提交不得重启任务"
         assert store.get("t1").created_at == original.created_at

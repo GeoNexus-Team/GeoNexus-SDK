@@ -13,9 +13,18 @@ from ..resource import ComputeCapability, match_resource, resolve_compute_capabi
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "ModelInvocation", "ModelOutcome", "ModelProvider", "ModelError",
-    "invoke_model", "choose_provider", "validate_inputs", "validate_outputs",
-    "NO_COMPUTE", "INPUT_MISSING", "OUTPUT_MISMATCH", "PROVIDER_ERROR",
+    "ModelInvocation",
+    "ModelOutcome",
+    "ModelProvider",
+    "ModelError",
+    "invoke_model",
+    "choose_provider",
+    "validate_inputs",
+    "validate_outputs",
+    "NO_COMPUTE",
+    "INPUT_MISSING",
+    "OUTPUT_MISMATCH",
+    "PROVIDER_ERROR",
 ]
 
 #: 错误码（与 GeoTask 契约 §5.1 的错误码表同名，便于跨层统计）
@@ -62,7 +71,7 @@ class ModelOutcome:
     执行者"和"整件事做不成"，而这个判断需要错误码与可重试性。
     """
 
-    status: str = "succeeded"          # succeeded | failed
+    status: str = "succeeded"  # succeeded | failed
     outputs: dict[str, Any] = field(default_factory=dict)
     error: str | None = None
     error_code: str | None = None
@@ -81,10 +90,16 @@ class ModelOutcome:
         return self.status == "succeeded"
 
     @classmethod
-    def failure(cls, code: str, message: str, *, retryable: bool = False,
-                reasons: list[str] | None = None) -> ModelOutcome:
-        return cls(status="failed", error=message, error_code=code,
-                   retryable=retryable, reasons=list(reasons or []))
+    def failure(
+        cls, code: str, message: str, *, retryable: bool = False, reasons: list[str] | None = None
+    ) -> ModelOutcome:
+        return cls(
+            status="failed",
+            error=message,
+            error_code=code,
+            retryable=retryable,
+            reasons=list(reasons or []),
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -169,8 +184,7 @@ _BATCH_PROTOCOLS = frozenset({"batch", "job", "oge-job", "https+batch"})
 _HTTP_PROTOCOLS = frozenset({"http", "https", "rest", "inference", ""})
 
 
-def choose_provider(card: Any, providers: dict[str, ModelProvider] | None = None
-                    ) -> ModelProvider:
+def choose_provider(card: Any, providers: dict[str, ModelProvider] | None = None) -> ModelProvider:
     """按 ``card.access.protocol`` 选 provider。
 
     未注册对应 provider 时抛 :class:`ModelError`——**明确失败**好过偷偷用默认值，
@@ -191,7 +205,8 @@ def choose_provider(card: Any, providers: dict[str, ModelProvider] | None = None
         if provider is None:
             raise ModelError(
                 f"没有为 protocol={protocol or 'inference'} 注册 provider"
-                f"（可用: {sorted(providers)}）")
+                f"（可用: {sorted(providers)}）"
+            )
         return provider
 
     if protocol in _BATCH_PROTOCOLS:
@@ -230,7 +245,9 @@ def invoke_model(
     inputs = dict(inputs or {})
     invocation = ModelInvocation(
         model_id=getattr(card, "id", "unknown"),
-        inputs=inputs, params=dict(params or {}), timeout=timeout,
+        inputs=inputs,
+        params=dict(params or {}),
+        timeout=timeout,
     )
 
     # ① 输入契约
@@ -245,8 +262,7 @@ def invoke_model(
             try:
                 caps = resolve_compute_capabilities(registry_url)
             except Exception as exc:  # noqa: BLE001 - 发现失败要变成可读的拒绝
-                return ModelOutcome.failure(
-                    NO_COMPUTE, f"无法发现算力：{exc}", reasons=[str(exc)])
+                return ModelOutcome.failure(NO_COMPUTE, f"无法发现算力：{exc}", reasons=[str(exc)])
         match = match_resource(card, list(caps or []))
         invocation.compute_node = match.compute_node
         invocation.match_reasons = list(match.reasons)
@@ -270,8 +286,7 @@ def invoke_model(
     except ModelError as exc:
         return ModelOutcome.failure(PROVIDER_ERROR, str(exc), retryable=True)
     except Exception as exc:  # noqa: BLE001 - provider 的任何异常都变成失败的调用
-        return ModelOutcome.failure(
-            PROVIDER_ERROR, f"{type(exc).__name__}: {exc}", retryable=True)
+        return ModelOutcome.failure(PROVIDER_ERROR, f"{type(exc).__name__}: {exc}", retryable=True)
 
     outcome.model_id = invocation.model_id
     outcome.compute_node = invocation.compute_node
@@ -284,9 +299,12 @@ def invoke_model(
         mismatch = validate_outputs(card, outcome.outputs)
         if mismatch:
             return ModelOutcome(
-                status="failed", outputs=outcome.outputs,
-                error="；".join(mismatch), error_code=OUTPUT_MISMATCH,
-                provider=outcome.provider, model_id=invocation.model_id,
+                status="failed",
+                outputs=outcome.outputs,
+                error="；".join(mismatch),
+                error_code=OUTPUT_MISMATCH,
+                provider=outcome.provider,
+                model_id=invocation.model_id,
                 compute_node=invocation.compute_node,
                 request_id=invocation.request_id,
                 elapsed_seconds=outcome.elapsed_seconds,

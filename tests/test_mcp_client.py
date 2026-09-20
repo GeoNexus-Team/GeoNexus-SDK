@@ -138,7 +138,11 @@ class TestListTools:
         client = _client(
             monkeypatch,
             [
-                FakeTool("echo", "Echo input", {"type": "object", "properties": {"msg": {"type": "string"}}}),
+                FakeTool(
+                    "echo",
+                    "Echo input",
+                    {"type": "object", "properties": {"msg": {"type": "string"}}},
+                ),
                 FakeTool("add", "Add two numbers"),
             ],
         )
@@ -201,7 +205,9 @@ class TestToSkills:
         client = _client(
             monkeypatch,
             [
-                FakeTool("echo", "Echo", {"type": "object", "properties": {"m": {"type": "string"}}}),
+                FakeTool(
+                    "echo", "Echo", {"type": "object", "properties": {"m": {"type": "string"}}}
+                ),
             ],
         )
         skills = client.to_skills(prefix="ext-")

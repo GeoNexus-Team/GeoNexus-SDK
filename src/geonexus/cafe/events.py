@@ -94,13 +94,18 @@ def latest_seq(request_id: str) -> int:
 
 # ── Convenience: emit progress during geo.execute ──
 
+
 def notify_checkpoint(request_id: str, checkpoint_id: str, status: str, message: str = "") -> None:
     """在技能执行过程中发送进度事件。"""
-    push_event(request_id, "checkpoint", {
-        "id": checkpoint_id,
-        "status": status,
-        "message": message or f"Checkpoint {checkpoint_id}: {status}",
-    })
+    push_event(
+        request_id,
+        "checkpoint",
+        {
+            "id": checkpoint_id,
+            "status": status,
+            "message": message or f"Checkpoint {checkpoint_id}: {status}",
+        },
+    )
 
 
 def notify_completion(request_id: str, outputs: dict[str, Any]) -> None:

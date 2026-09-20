@@ -58,7 +58,9 @@ class TestStoreStatus:
 
         store.register(RegistryEntry(card=_card("a"), node_url="http://n:1"))
         store.register(RegistryEntry(card=_card("b"), node_url="http://n:1", status=STATUS_PENDING))
-        store.register(RegistryEntry(card=_card("c"), node_url="http://n:1", status=STATUS_REJECTED))
+        store.register(
+            RegistryEntry(card=_card("c"), node_url="http://n:1", status=STATUS_REJECTED)
+        )
 
         assert [e.card.id for e in store.list_entries(status=STATUS_APPROVED)] == ["a"]
         assert [e.card.id for e in store.list_entries(status=STATUS_PENDING)] == ["b"]
@@ -97,7 +99,9 @@ class TestStoreStatus:
         from geonexus.registry.models import RegistryEntry
 
         store.register(RegistryEntry(card=_card("ok"), node_url="http://n:1"))
-        store.register(RegistryEntry(card=_card("pending"), node_url="http://n:1", status=STATUS_PENDING))
+        store.register(
+            RegistryEntry(card=_card("pending"), node_url="http://n:1", status=STATUS_PENDING)
+        )
         # Default search returns only approved.
         assert [r.entry.card.id for r in store.search()] == ["ok"]
         # Explicit pending filter sees the review queue.

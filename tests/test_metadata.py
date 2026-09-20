@@ -58,7 +58,9 @@ class TestRasterStats:
 
 class TestRasterToGeoCard:
     def test_card_generated(self, demo_raster: str) -> None:
-        card = raster_to_geocard(demo_raster, name="My dataset", tags=["amazon"], capabilities=["ndvi"])
+        card = raster_to_geocard(
+            demo_raster, name="My dataset", tags=["amazon"], capabilities=["ndvi"]
+        )
         assert card.type == "data"
         assert card.name == "My dataset"
         assert "uploaded" in card.tags

@@ -20,6 +20,7 @@ from geonexus.security import (
 # 覆盖率
 # --------------------------------------------------------------------------- #
 
+
 class TestCoverage:
     def test_at_least_ten_jurisdictions(self):
         """考核要求 ≥10 国。"""
@@ -52,6 +53,7 @@ class TestCoverage:
 # 查询接口
 # --------------------------------------------------------------------------- #
 
+
 class TestQueries:
     def test_list_jurisdictions_sorted(self):
         codes = list_jurisdictions()
@@ -75,11 +77,13 @@ class TestQueries:
 # 合规核验
 # --------------------------------------------------------------------------- #
 
+
 class TestComplianceCheck:
     def test_china_export_sensitive_data_blocked(self):
         """中国：导出高精度地形数据应被拒绝。"""
         finding = check_compliance(
-            "CHN", action="export",
+            "CHN",
+            action="export",
             data_category="高精度地形数据",
         )
         assert not finding.compliant
@@ -88,7 +92,9 @@ class TestComplianceCheck:
     def test_china_resolution_ceiling(self):
         """中国：请求精度优于 10m 上限应被拒绝。"""
         finding = check_compliance(
-            "CHN", action="export", resolution_m=1.0,
+            "CHN",
+            action="export",
+            resolution_m=1.0,
         )
         assert not finding.compliant
         assert any("精度" in v for v in finding.violations)
@@ -96,36 +102,46 @@ class TestComplianceCheck:
     def test_china_within_resolution_allowed(self):
         """中国：精度在限制内可通过。"""
         finding = check_compliance(
-            "CHN", action="read", resolution_m=30.0,
+            "CHN",
+            action="read",
+            resolution_m=30.0,
         )
         assert finding.compliant
 
     def test_china_license_required(self):
         """中国：无资质导出应被拒绝。"""
         finding = check_compliance(
-            "CHN", action="export", is_licensed=False,
+            "CHN",
+            action="export",
+            is_licensed=False,
         )
         assert not finding.compliant
         assert any("资质" in v for v in finding.violations)
 
     def test_china_licensed_passes(self):
         finding = check_compliance(
-            "CHN", action="export", is_licensed=True,
+            "CHN",
+            action="export",
+            is_licensed=True,
         )
         assert finding.compliant
 
     def test_usa_open_transfer(self):
         """美国：一般不限制跨境。"""
         finding = check_compliance(
-            "USA", action="export", requester_region="EU",
+            "USA",
+            action="export",
+            requester_region="EU",
         )
         assert finding.compliant
 
     def test_indonesia_sovereignty(self):
         """印尼：跨境写入需数据本地化。"""
         finding = check_compliance(
-            "IDN", action="write",
-            requester_region="USA", is_licensed=True,
+            "IDN",
+            action="write",
+            requester_region="USA",
+            is_licensed=True,
         )
         assert finding.compliant
         assert any("本地化" in c for c in finding.conditions)
@@ -133,7 +149,8 @@ class TestComplianceCheck:
     def test_kenya_notification(self):
         """肯尼亚：跨境需备案。"""
         finding = check_compliance(
-            "KEN", action="read",
+            "KEN",
+            action="read",
             requester_region="USA",
         )
         assert finding.compliant
@@ -154,6 +171,7 @@ class TestComplianceCheck:
 # SecurityGateway 集成
 # --------------------------------------------------------------------------- #
 
+
 class TestGatewayIntegration:
     def test_check_legal_compliance_pass(self):
         gw = SecurityGateway()
@@ -164,7 +182,9 @@ class TestGatewayIntegration:
     def test_check_legal_compliance_block(self):
         gw = SecurityGateway()
         decision = gw.check_legal_compliance(
-            "CHN", action="export", data_category="高精度地形数据",
+            "CHN",
+            action="export",
+            data_category="高精度地形数据",
         )
         assert not decision.allowed
         assert decision.rule_name == "legal_CHN"

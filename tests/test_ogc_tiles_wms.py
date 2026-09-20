@@ -113,9 +113,9 @@ class TestVisualizationBundle:
         with client:
             tilesets = list_ogc_tilesets("https://ogc.test", client=client)
             styles = list_ogc_styles("https://ogc.test", client=client)
-        cards = [
-            ogc_tileset_to_geocard(t, "https://ogc.test") for t in tilesets
-        ] + [ogc_style_to_geocard(st, "https://ogc.test") for st in styles]
+        cards = [ogc_tileset_to_geocard(t, "https://ogc.test") for t in tilesets] + [
+            ogc_style_to_geocard(st, "https://ogc.test") for st in styles
+        ]
         assert len(cards) == 2
         assert {c.id for c in cards} == {"amazon-ndvi", "ndvi-colormap"}
 
@@ -156,9 +156,7 @@ def _xml_client(xml: str) -> httpx.Client:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, text=xml, request=request)
 
-    return httpx.Client(
-        base_url="https://legacy.test", transport=httpx.MockTransport(handler)
-    )
+    return httpx.Client(base_url="https://legacy.test", transport=httpx.MockTransport(handler))
 
 
 class TestWMS:

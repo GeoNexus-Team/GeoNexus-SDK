@@ -92,10 +92,14 @@ def _parse_capabilities_light(
     layers: list[dict[str, Any]] = []
     # Match each <Layer> block that directly contains a <Name> (leaf layers),
     # handling nesting by scanning for Name-first blocks.
-    for block in re.findall(r"<Layer>(?:(?!</Layer>).)*?<Name>.*?</Name>(?:(?!</Layer>).)*?</Layer>", text, re.S):
+    for block in re.findall(
+        r"<Layer>(?:(?!</Layer>).)*?<Name>.*?</Name>(?:(?!</Layer>).)*?</Layer>", text, re.S
+    ):
         name = re.search(r"<Name>(.*?)</Name>", block, re.S)
         title = re.search(r"<Title>(.*?)</Title>", block, re.S)
-        bbox_m = re.search(r"<BoundingBox[^>]*CRS=\"([^\"]+)\"[^>]*>(.*?)</BoundingBox>", block, re.S)
+        bbox_m = re.search(
+            r"<BoundingBox[^>]*CRS=\"([^\"]+)\"[^>]*>(.*?)</BoundingBox>", block, re.S
+        )
         if name:
             layers.append(
                 {
@@ -107,7 +111,11 @@ def _parse_capabilities_light(
             )
     # WMTS uses <Identifier> instead of <Name>; scan separately.
     if not layers:
-        for block in re.findall(r"<Layer>(?:(?!</Layer>).)*?<Identifier>.*?</Identifier>(?:(?!</Layer>).)*?</Layer>", text, re.S):
+        for block in re.findall(
+            r"<Layer>(?:(?!</Layer>).)*?<Identifier>.*?</Identifier>(?:(?!</Layer>).)*?</Layer>",
+            text,
+            re.S,
+        ):
             ident = re.search(r"<Identifier>(.*?)</Identifier>", block, re.S)
             title = re.search(r"<Title>(.*?)</Title>", block, re.S)
             if ident:
@@ -141,11 +149,16 @@ def _extract_layers(caps: dict[str, Any]) -> list[dict[str, Any]]:
             }
             if layer.get("bbox_raw") or layer.get("bbox_crs"):
                 standard["BoundingBox"] = {
-                    "lowerCorner": " ".join(str(x) for x in (layer.get("bbox_raw") or "").split()[:2]),
-                    "upperCorner": " ".join(str(x) for x in (layer.get("bbox_raw") or "").split()[2:]),
+                    "lowerCorner": " ".join(
+                        str(x) for x in (layer.get("bbox_raw") or "").split()[:2]
+                    ),
+                    "upperCorner": " ".join(
+                        str(x) for x in (layer.get("bbox_raw") or "").split()[2:]
+                    ),
                 }
             out.append(standard)
         return out
+
     # Nested Layer trees (WMS): Layer / Layer / Layer …
     def walk(node: Any) -> None:
         if not isinstance(node, dict):
@@ -288,8 +301,12 @@ def _layer_bbox(layer: dict[str, Any]) -> list[float] | None:
         try:
             lower = [float(x) for x in str(raw["lowerCorner"]).split()]
             upper = [float(x) for x in str(raw["upperCorner"]).split()]
-            return [min(lower[0], upper[0]), min(lower[1], upper[1]),
-                    max(lower[0], upper[0]), max(lower[1], upper[1])]
+            return [
+                min(lower[0], upper[0]),
+                min(lower[1], upper[1]),
+                max(lower[0], upper[0]),
+                max(lower[1], upper[1]),
+            ]
         except (TypeError, ValueError, IndexError):
             pass
     if isinstance(raw, str) and crs:

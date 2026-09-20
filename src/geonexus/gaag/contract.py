@@ -79,15 +79,12 @@ def contract_to_card(spec_or_contract: GAAGContractSpec | dict[str, Any]) -> Geo
     """Build a GeoCard from a spec or raw dict."""
     if isinstance(spec_or_contract, GAAGContractSpec):
         spec = spec_or_contract
-        builder = (
-            GeoCardBuilder(
-                id=spec.id,
-                type=spec.type,
-                name=spec.name,
-                description=spec.description,
-            )
-            .tag("gaag")
-        )
+        builder = GeoCardBuilder(
+            id=spec.id,
+            type=spec.type,
+            name=spec.name,
+            description=spec.description,
+        ).tag("gaag")
         return builder.build()
     # raw dict
     return GeoCard.from_dict(spec_or_contract)

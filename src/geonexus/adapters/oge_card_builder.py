@@ -44,9 +44,13 @@ class OgeCardBuilder:
     def __init__(self, oge_endpoint: str = "http://openge.org.cn/api") -> None:
         self.oge_endpoint = oge_endpoint
 
-    def build_operator_card(self, operator_name: str, description: str = "",
-                            inputs: list[dict[str, Any]] | None = None,
-                            outputs: list[dict[str, Any]] | None = None) -> Any:
+    def build_operator_card(
+        self,
+        operator_name: str,
+        description: str = "",
+        inputs: list[dict[str, Any]] | None = None,
+        outputs: list[dict[str, Any]] | None = None,
+    ) -> Any:
         """从 OGE 算子定义构建 operator_card。
 
         Args:
@@ -74,7 +78,7 @@ class OgeCardBuilder:
             builder.capability(cap)
 
         # 输入
-        for inp in (inputs or []):
+        for inp in inputs or []:
             builder.input(
                 name=inp.get("name", "arg"),
                 type=inp.get("type", "string"),
@@ -82,7 +86,7 @@ class OgeCardBuilder:
             )
 
         # 输出
-        for out in (outputs or []):
+        for out in outputs or []:
             builder.output(
                 name=out.get("name", "result"),
                 type=out.get("type", "raster"),
@@ -103,8 +107,9 @@ class OgeCardBuilder:
 
         return builder.build()
 
-    def build_model_card(self, operator_name: str, description: str = "",
-                         runtime: dict[str, Any] | None = None) -> Any:
+    def build_model_card(
+        self, operator_name: str, description: str = "", runtime: dict[str, Any] | None = None
+    ) -> Any:
         """构建 OGE 算子的 model_card（用于需要 GPU 等资源的场景）。"""
         card_id = f"oge-model-{operator_name.replace('.', '-').lower()}"
         capabilities = self.OPERATOR_CAPABILITY_MAP.get(operator_name, [operator_name.lower()])
@@ -138,7 +143,8 @@ class OgeCardBuilder:
         op_name = parts[-1] if len(parts) > 1 else parts[0]
         # 简单分词
         import re
-        words = re.findall(r'[A-Z][a-z]*', op_name)
+
+        words = re.findall(r"[A-Z][a-z]*", op_name)
         if not words:
             words = [op_name]
 

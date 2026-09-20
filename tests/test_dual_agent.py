@@ -15,11 +15,20 @@ from geonexus.gaag import ContractGate, GAAGRegistry, embed_text
 # Fixtures
 # --------------------------------------------------------------------------- #
 
+
 def _make_raster(path, val=0.5, w=16, h=16):
     data = np.full((h, w), val, dtype=np.float32)
-    with rasterio.open(path, "w", driver="GTiff", dtype=rasterio.float32, count=1,
-                       width=w, height=h, crs="EPSG:4326",
-                       transform=from_bounds(-10, -5, 10, 5, w, h)) as dst:
+    with rasterio.open(
+        path,
+        "w",
+        driver="GTiff",
+        dtype=rasterio.float32,
+        count=1,
+        width=w,
+        height=h,
+        crs="EPSG:4326",
+        transform=from_bounds(-10, -5, 10, 5, w, h),
+    ) as dst:
         dst.write(data, 1)
     return str(path)
 
@@ -44,6 +53,7 @@ def _registry_with_flood(tmp_path):
 # --------------------------------------------------------------------------- #
 # Data Agent
 # --------------------------------------------------------------------------- #
+
 
 class TestDataAgent:
     def test_discover_semantic(self, tmp_path):
@@ -84,6 +94,7 @@ class TestDataAgent:
 # --------------------------------------------------------------------------- #
 # Code Agent
 # --------------------------------------------------------------------------- #
+
 
 class TestCodeAgent:
     def test_contract_aware_codegen(self, tmp_path):
@@ -138,13 +149,13 @@ result = {"mean": float(data.mean())}
 # 双智能体协同（Data Agent 发现数据 → Code Agent 计算）完整流程
 # --------------------------------------------------------------------------- #
 
+
 class TestDualAgentPipeline:
     def test_discover_then_compute(self, tmp_path):
         reg, flood = _registry_with_flood(tmp_path)
         agent = DataAgent(reg, gate=ContractGate(semantic_threshold=0.1), node_id="local")
 
-        decision = agent.bind("mekong flood water extent",
-                              bbox=[-5, -2, 5, 2], crs="EPSG:4326")
+        decision = agent.bind("mekong flood water extent", bbox=[-5, -2, 5, 2], crs="EPSG:4326")
         assert decision.gate_passed
 
         # Code Agent 执行栅格统计（使用绑定的本地数据）

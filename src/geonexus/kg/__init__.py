@@ -27,14 +27,25 @@ logger = logging.getLogger(__name__)
 
 # 实体类型
 ENTITY_TYPES = {
-    "DataProduct", "Skill", "GeoNode", "Region",
-    "SDG_Indicator", "Concept", "Organization",
+    "DataProduct",
+    "Skill",
+    "GeoNode",
+    "Region",
+    "SDG_Indicator",
+    "Concept",
+    "Organization",
 }
 
 # 关系类型
 RELATION_TYPES = {
-    "DEPENDS_ON", "PRODUCES", "LOCATED_IN", "COVERS",
-    "RELATES_TO", "MEASURES", "OWNS", "IMPLEMENTS",
+    "DEPENDS_ON",
+    "PRODUCES",
+    "LOCATED_IN",
+    "COVERS",
+    "RELATES_TO",
+    "MEASURES",
+    "OWNS",
+    "IMPLEMENTS",
 }
 
 
@@ -113,7 +124,9 @@ class KnowledgeGraph:
         return self._entities.get(entity_id)
 
     # -- Query ------------------------------------------------------------- #
-    def neighbors(self, entity_id: str, relation: str | None = None) -> list[tuple[KGEntity, KGRelation]]:
+    def neighbors(
+        self, entity_id: str, relation: str | None = None
+    ) -> list[tuple[KGEntity, KGRelation]]:
         """查询所有邻居（出边）。"""
         results: list[tuple[KGEntity, KGRelation]] = []
         for rel in self._outgoing.get(entity_id, []):
@@ -124,7 +137,9 @@ class KnowledgeGraph:
                 results.append((target, rel))
         return results
 
-    def incoming(self, entity_id: str, relation: str | None = None) -> list[tuple[KGEntity, KGRelation]]:
+    def incoming(
+        self, entity_id: str, relation: str | None = None
+    ) -> list[tuple[KGEntity, KGRelation]]:
         """查询所有入边邻居：**谁指向** ``entity_id``。
 
         与 :meth:`neighbors`（只走出边）相对。领域图里大量边是指向宿主的，例如
@@ -173,7 +188,8 @@ class KnowledgeGraph:
     def search(self, keyword: str) -> list[KGEntity]:
         kw = keyword.lower()
         return [
-            e for e in self._entities.values()
+            e
+            for e in self._entities.values()
             if kw in e.id.lower()
             or kw in str(e.properties).lower()
             or kw in " ".join(e.labels).lower()
@@ -252,14 +268,16 @@ class KnowledgeGraph:
         name, entities, relations = load_graph(path)
         kg = cls(name)
         for e in entities:
-            kg.add_entity(KGEntity(
-                id=e["id"], type=e["type"],
-                properties=e.get("properties", {}),
-                labels=e.get("labels", []),
-            ))
+            kg.add_entity(
+                KGEntity(
+                    id=e["id"],
+                    type=e["type"],
+                    properties=e.get("properties", {}),
+                    labels=e.get("labels", []),
+                )
+            )
         for r in relations:
-            kg.add_relation(r["source"], r["target"], r["relation"],
-                            **r.get("properties", {}))
+            kg.add_relation(r["source"], r["target"], r["relation"], **r.get("properties", {}))
         kg._synced_entities = len(kg._entities)
         kg._synced_relations = len(kg._relations)
         logger.info("KG loaded: %d entities ← %s", kg.entity_count(), path)
@@ -293,7 +311,9 @@ class KnowledgeGraph:
                 for dep_id in contract.scanned_meta["dependencies"]:
                     if dep_id in self._entities:
                         self.add_relation(
-                            contract.contract_id, dep_id, "DEPENDS_ON",
+                            contract.contract_id,
+                            dep_id,
+                            "DEPENDS_ON",
                         )
         logger.info("KG imported %d entities from GAAG", count)
         return count
@@ -306,7 +326,14 @@ class KnowledgeGraph:
             ("region.amazon", "Amazon Basin"),
             ("region.nairobi", "Nairobi"),
         ]:
-            self.add_entity(KGEntity(rid, "Region", {"name": name}, ["southeast-asia" if "mekong" in rid else "global"]))
+            self.add_entity(
+                KGEntity(
+                    rid,
+                    "Region",
+                    {"name": name},
+                    ["southeast-asia" if "mekong" in rid else "global"],
+                )
+            )
 
         # SDG Indicators
         sdgs = [

@@ -20,22 +20,25 @@ from dataclasses import dataclass
 
 # ── 引用类型 ──
 
+
 class OgeReferenceType:
     """OGE 引用协议类型常量。"""
-    MY_DATA = "Personal:MyData"       # 用户上传数据
-    ASSET = "Personal:Asset"          # 资产
-    PROCESS = "Personal:Process"      # 中间结果
-    COVERAGE = "Platform:Coverage"    # 平台影像
-    PRODUCT = "Platform:Product"      # 平台产品
-    TMS = "Tms"                       # 瓦片
+
+    MY_DATA = "Personal:MyData"  # 用户上传数据
+    ASSET = "Personal:Asset"  # 资产
+    PROCESS = "Personal:Process"  # 中间结果
+    COVERAGE = "Platform:Coverage"  # 平台影像
+    PRODUCT = "Platform:Product"  # 平台产品
+    TMS = "Tms"  # 瓦片
 
 
 @dataclass
 class OgeReference:
     """OGE 引用解析结果。"""
-    ref_type: str          # 如 Personal:MyData
-    raw: str               # 原始引用字符串
-    parts: list[str]       # 拆分后的各部分
+
+    ref_type: str  # 如 Personal:MyData
+    raw: str  # 原始引用字符串
+    parts: list[str]  # 拆分后的各部分
 
     # 便捷属性
     @property
@@ -60,6 +63,7 @@ class OgeReference:
 
 
 # ── 映射器 ──
+
 
 class OgeProtocolMapper:
     """OGE 引用协议 ↔ GeoCard 引用映射。
@@ -95,9 +99,7 @@ class OgeProtocolMapper:
     )
 
     # GeoCard ID 正则（oge-xxx:xxx）
-    _CARD_ID_PATTERN = re.compile(
-        r"^(oge-(?:user-data|asset|process|coverage|product|tms)):(.+)$"
-    )
+    _CARD_ID_PATTERN = re.compile(r"^(oge-(?:user-data|asset|process|coverage|product|tms)):(.+)$")
 
     def parse(self, oge_reference: str) -> OgeReference:
         """解析 OGE 引用字符串。"""
@@ -156,6 +158,7 @@ class OgeProtocolMapper:
 
 
 # ── 便捷函数 ──
+
 
 def parse_oge_reference(ref: str) -> OgeReference:
     return OgeProtocolMapper().parse(ref)

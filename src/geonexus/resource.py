@@ -126,7 +126,11 @@ def _gpu_satisfies(required: Any, provided: Any) -> bool:
     if provided_norm in _GPU_NONE:
         return False  # model needs a GPU, node has none
     # Same family (cuda/cuda, mps/mps) or a concrete device name matches.
-    return required_norm == provided_norm or required_norm.startswith(provided_norm) or provided_norm.startswith(required_norm)
+    return (
+        required_norm == provided_norm
+        or required_norm.startswith(provided_norm)
+        or provided_norm.startswith(required_norm)
+    )
 
 
 def match_resource(
@@ -154,7 +158,9 @@ def match_resource(
         # No declared runtime: any node can host it.
         node = capabilities[0].node_url if capabilities else None
         reasons.append("model declares no runtime requirements -> any node")
-        return ResourceMatch(matched=node is not None, model_id=model_id, compute_node=node, reasons=reasons)
+        return ResourceMatch(
+            matched=node is not None, model_id=model_id, compute_node=node, reasons=reasons
+        )
 
     req_cpu = _to_int(runtime.cpu)
     req_mem = parse_memory(runtime.memory)
@@ -166,30 +172,43 @@ def match_resource(
 
         if req_cpu is not None:
             if cap.cpu is None:
-                node_reasons.append(f"cpu: model needs {req_cpu}, node capacity unknown (assumed ok)")
+                node_reasons.append(
+                    f"cpu: model needs {req_cpu}, node capacity unknown (assumed ok)"
+                )
             elif req_cpu > cap.cpu:
                 node_reasons.append(f"cpu: model needs {req_cpu}, node has {cap.cpu}")
                 ok = False
         if req_mem is not None:
             if cap.memory_gb is None:
-                node_reasons.append(f"memory: model needs {req_mem:.1f}Gi, node capacity unknown (assumed ok)")
+                node_reasons.append(
+                    f"memory: model needs {req_mem:.1f}Gi, node capacity unknown (assumed ok)"
+                )
             elif req_mem > cap.memory_gb:
-                node_reasons.append(f"memory: model needs {req_mem:.1f}Gi, node has {cap.memory_gb:.1f}Gi")
+                node_reasons.append(
+                    f"memory: model needs {req_mem:.1f}Gi, node has {cap.memory_gb:.1f}Gi"
+                )
                 ok = False
         if req_gpu and req_gpu not in _GPU_NONE:
             if not _gpu_satisfies(req_gpu, cap.gpu):
                 node_reasons.append(f"gpu: model needs '{req_gpu}', node has '{cap.gpu or 'none'}'")
                 ok = False
             else:
-                node_reasons.append(f"gpu: model needs '{req_gpu}', node provides '{cap.gpu or 'none'}'")
+                node_reasons.append(
+                    f"gpu: model needs '{req_gpu}', node provides '{cap.gpu or 'none'}'"
+                )
         else:
             node_reasons.append(f"gpu: model needs none, node provides '{cap.gpu or 'none'}'")
 
         if ok:
             reasons.extend(node_reasons)
             reasons.append(f"selected compute node {cap.node_url}")
-            return ResourceMatch(matched=True, model_id=model_id, compute_node=cap.node_url, reasons=reasons)
-        reasons.append(f"{cap.node_url}: " + "; ".join(r for r in node_reasons if "unknown" not in r) or "insufficient")
+            return ResourceMatch(
+                matched=True, model_id=model_id, compute_node=cap.node_url, reasons=reasons
+            )
+        reasons.append(
+            f"{cap.node_url}: " + "; ".join(r for r in node_reasons if "unknown" not in r)
+            or "insufficient"
+        )
 
     reasons.append(f"no compute node satisfies model '{model_id}' runtime requirements")
     return ResourceMatch(matched=False, model_id=model_id, compute_node=None, reasons=reasons)

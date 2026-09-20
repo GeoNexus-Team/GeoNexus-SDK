@@ -70,9 +70,7 @@ class WebConfig:
 
     registry_url: str = "http://127.0.0.1:8790"
     jwt: JWTConfig = field(
-        default_factory=lambda: JWTConfig(
-            secret="geonexus-dev-secret-change-me-0123456789abcdef"
-        )
+        default_factory=lambda: JWTConfig(secret="geonexus-dev-secret-change-me-0123456789abcdef")
     )
     node_api_keys: dict[str, str] = field(default_factory=dict)
     users: dict[str, str] = field(default_factory=dict)

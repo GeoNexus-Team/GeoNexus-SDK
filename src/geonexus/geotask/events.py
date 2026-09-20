@@ -11,8 +11,14 @@ import time
 from typing import Any
 
 __all__ = [
-    "EVENT_TYPES", "TASK_CREATED", "TASK_STATE_CHANGED", "TASK_PROGRESS",
-    "TASK_OUTPUT", "TASK_FAILED", "TASK_CANCELLED", "build_event",
+    "EVENT_TYPES",
+    "TASK_CREATED",
+    "TASK_STATE_CHANGED",
+    "TASK_PROGRESS",
+    "TASK_OUTPUT",
+    "TASK_FAILED",
+    "TASK_CANCELLED",
+    "build_event",
 ]
 
 TASK_CREATED = "task.created"
@@ -22,14 +28,27 @@ TASK_OUTPUT = "task.output"
 TASK_FAILED = "task.failed"
 TASK_CANCELLED = "task.cancelled"
 
-EVENT_TYPES = frozenset({
-    TASK_CREATED, TASK_STATE_CHANGED, TASK_PROGRESS,
-    TASK_OUTPUT, TASK_FAILED, TASK_CANCELLED,
-})
+EVENT_TYPES = frozenset(
+    {
+        TASK_CREATED,
+        TASK_STATE_CHANGED,
+        TASK_PROGRESS,
+        TASK_OUTPUT,
+        TASK_FAILED,
+        TASK_CANCELLED,
+    }
+)
 
 
-def build_event(task_id: str, seq: int, event: str, data: dict[str, Any],
-                attempt: int = 0, *, timestamp: float | None = None) -> dict[str, Any]:
+def build_event(
+    task_id: str,
+    seq: int,
+    event: str,
+    data: dict[str, Any],
+    attempt: int = 0,
+    *,
+    timestamp: float | None = None,
+) -> dict[str, Any]:
     """构造一个事件。
 
     ``seq`` 是**每个任务内**从 1 开始严格递增的序号：同一任务内不得乱序、不得跳号；

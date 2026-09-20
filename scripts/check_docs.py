@@ -36,8 +36,7 @@ LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
 #: 反引号里的仓库内路径引用，例如 `docs/GEOTASK.md`、`scripts/check_docs.py`。
 #: 只认**带已知扩展名**的：否则 `` `queued/running/done` `` 这类状态列表、
 #: `` `application/json` `` 这类 MIME 都会被误判成路径。
-PATH_REF = re.compile(
-    r"`([A-Za-z0-9_./-]+\.(?:md|py|json|ya?ml|toml|sh|mjs|txt))`")
+PATH_REF = re.compile(r"`([A-Za-z0-9_./-]+\.(?:md|py|json|ya?ml|toml|sh|mjs|txt))`")
 TABLE_MODULE = re.compile(r"^\|\s*`(geonexus\.[A-Za-z_.]+)`\s*\|(.+)\|\s*$")
 
 
@@ -104,8 +103,7 @@ def check_api_table(problems: Problems) -> int:
             if not IDENT.match(token):
                 continue
             if resolve(f"{module}.{token}") is not None:
-                problems.add(f"API_STABILITY.md:{lineno}",
-                             f"{module} 没有公开名 {token}")
+                problems.add(f"API_STABILITY.md:{lineno}", f"{module} 没有公开名 {token}")
             checked += 1
     return checked
 
@@ -148,8 +146,9 @@ def check_geo_methods(problems: Problems) -> int:
             for token in GEO_METHOD.findall(line):
                 checked += 1
                 if token not in METHODS:
-                    problems.add(f"{path.name}:{lineno}",
-                                 f"协议方法 {token} 未注册（可用: {list(METHODS)}）")
+                    problems.add(
+                        f"{path.name}:{lineno}", f"协议方法 {token} 未注册（可用: {list(METHODS)}）"
+                    )
     return checked
 
 
@@ -177,7 +176,8 @@ def _repo_files() -> list[str]:
     if _REPO_FILES is None:
         skip = {"__pycache__", "node_modules", ".git", ".venv-py39", "target", "dist"}
         _REPO_FILES = [
-            str(p) for p in CORE.rglob("*")
+            str(p)
+            for p in CORE.rglob("*")
             if p.is_file() and not any(part in skip for part in p.parts)
         ]
     return _REPO_FILES
@@ -207,7 +207,7 @@ def check_path_refs(problems: Problems) -> int:
         for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             for ref in PATH_REF.findall(line):
                 if "/" not in ref and not ref.endswith(".md"):
-                    continue          # 裸的 .py 名字太容易误判，只认带目录的
+                    continue  # 裸的 .py 名字太容易误判，只认带目录的
                 checked += 1
                 if _resolve_ref(ref, path.parent):
                     continue
@@ -224,8 +224,10 @@ def main() -> int:
     paths = check_path_refs(problems)
     code = problems.report()
     if code == 0:
-        print(f"✅ 文档一致性检查通过：公开名 {names} 个、点号名 {dotted} 处、"
-              f"协议方法 {methods} 处、相对链接 {links} 条、路径引用 {paths} 处")
+        print(
+            f"✅ 文档一致性检查通过：公开名 {names} 个、点号名 {dotted} 处、"
+            f"协议方法 {methods} 处、相对链接 {links} 条、路径引用 {paths} 处"
+        )
     return code
 
 

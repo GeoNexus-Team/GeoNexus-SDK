@@ -53,9 +53,13 @@ class RunReport:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "total": self.total, "succeeded": self.succeeded, "failed": self.failed,
-            "cancelled": self.cancelled, "skipped": self.skipped,
-            "blocked": self.blocked, "rejected": self.rejected,
+            "total": self.total,
+            "succeeded": self.succeeded,
+            "failed": self.failed,
+            "cancelled": self.cancelled,
+            "skipped": self.skipped,
+            "blocked": self.blocked,
+            "rejected": self.rejected,
             "max_parallel": self.max_parallel,
             "elapsed_seconds": round(self.elapsed_seconds, 4),
             "occupancy": self.occupancy,
@@ -65,10 +69,15 @@ class RunReport:
 class TaskRunner:
     """驱动一个 :class:`TaskGraph` 直到它全部进入终态。"""
 
-    def __init__(self, store: TaskStore, backend: ExecutionBackend,
-                 *, executor_id: str = "local",
-                 lease_seconds: float = DEFAULT_LEASE_SECONDS,
-                 scheduler: Scheduler | None = None) -> None:
+    def __init__(
+        self,
+        store: TaskStore,
+        backend: ExecutionBackend,
+        *,
+        executor_id: str = "local",
+        lease_seconds: float = DEFAULT_LEASE_SECONDS,
+        scheduler: Scheduler | None = None,
+    ) -> None:
         self.store = store
         self.backend = backend
         self.executor_id = executor_id
@@ -77,8 +86,7 @@ class TaskRunner:
         self.scheduler = scheduler
 
     # ------------------------------------------------------------------ #
-    def run(self, graph: TaskGraph, *,
-            should_stop: Callable[[], bool] | None = None) -> RunReport:
+    def run(self, graph: TaskGraph, *, should_stop: Callable[[], bool] | None = None) -> RunReport:
         # 状态只有一份：把图节点换成 store 里的对象（store 里缺的会被登记）
         graph.bind(self.store)
 
@@ -99,18 +107,22 @@ class TaskRunner:
                     self._release(task_id)
                     continue
                 self.store.set_lease(
-                    task_id, expires_at=time.time() + self.lease_seconds,
-                    executor=self.executor_id)
+                    task_id, expires_at=time.time() + self.lease_seconds, executor=self.executor_id
+                )
                 ctx = self._context(task_id)
                 try:
                     handles[task_id] = self.backend.submit(task, ctx)
                 except Exception as exc:  # noqa: BLE001 - 故障隔离：一个任务炸掉不拖垮整张图
                     self._release(task_id)
-                    self._apply(graph, task_id, TaskOutcome.failure(
-                        "execution_error",
-                        f"提交失败: {type(exc).__name__}: {exc}"))
+                    self._apply(
+                        graph,
+                        task_id,
+                        TaskOutcome.failure(
+                            "execution_error", f"提交失败: {type(exc).__name__}: {exc}"
+                        ),
+                    )
                     continue
-                graph.mark_running(task_id)   # 立刻标 RUNNING，否则会被重复提交
+                graph.mark_running(task_id)  # 立刻标 RUNNING，否则会被重复提交
                 in_flight.add(task_id)
 
             report.max_parallel = max(report.max_parallel, len(in_flight))
@@ -160,8 +172,9 @@ class TaskRunner:
             self.scheduler.forget(task_id)
             report.rejected += 1
         for task_id, reasons in result.blocked.items():
-            graph.mark_blocked(task_id, reasons,
-                               code=result.reasons.get(task_id, "resource_unavailable"))
+            graph.mark_blocked(
+                task_id, reasons, code=result.reasons.get(task_id, "resource_unavailable")
+            )
         return result.admitted
 
     def _release(self, task_id: str) -> None:
@@ -183,8 +196,7 @@ class TaskRunner:
         return ExecutionContext(
             task=self.store.require(task_id),
             _on_progress=lambda p, m: self.store.report_progress(task_id, p, m),
-            _should_cancel=lambda: bool(
-                (t := self.store.get(task_id)) and t.cancel_requested),
+            _should_cancel=lambda: bool((t := self.store.get(task_id)) and t.cancel_requested),
         )
 
     def _poll(self, handle: Any) -> TaskOutcome:
@@ -197,11 +209,11 @@ class TaskRunner:
         try:
             return self.backend.poll(handle)
         except Exception as exc:  # noqa: BLE001 - 见 docstring
-            return TaskOutcome.failure(
-                "executor_lost", f"轮询失败: {type(exc).__name__}: {exc}")
+            return TaskOutcome.failure("executor_lost", f"轮询失败: {type(exc).__name__}: {exc}")
 
-    def _wait_any(self, handles: dict[str, Any], in_flight: set[str],
-                  poll_interval: float = 0.005) -> str | None:
+    def _wait_any(
+        self, handles: dict[str, Any], in_flight: set[str], poll_interval: float = 0.005
+    ) -> str | None:
         """等到**任意一个**在跑的任务完成，返回它的 id。
 
         逐个轮询而不是 ``concurrent.futures.wait``，是为了保持 ``ExecutionBackend``
@@ -217,8 +229,10 @@ class TaskRunner:
 
     def _apply(self, graph: TaskGraph, task_id: str, outcome: TaskOutcome) -> None:
         if outcome.state is TaskState.SUCCEEDED:
-            graph.mark_done(task_id, result=TaskResult(
-                outputs=dict(outcome.outputs), meta={"message": outcome.message}))
+            graph.mark_done(
+                task_id,
+                result=TaskResult(outputs=dict(outcome.outputs), meta={"message": outcome.message}),
+            )
             return
         if outcome.state is TaskState.CANCELLED:
             graph.mark_cancelled(task_id)
@@ -226,18 +240,23 @@ class TaskRunner:
 
         error = outcome.error
         task = graph.task(task_id)
-        if error is not None and error.retryable and \
-                task.retry.allows_another_attempt(task.attempt):
+        if (
+            error is not None
+            and error.retryable
+            and task.retry.allows_another_attempt(task.attempt)
+        ):
             task.attempt += 1
-            graph.mark_retry(task_id)          # running → queued，重新进就绪集
-            self.store.set_lease(task_id, expires_at=0.0)   # 交回调度器
+            graph.mark_retry(task_id)  # running → queued，重新进就绪集
+            self.store.set_lease(task_id, expires_at=0.0)  # 交回调度器
             if self.scheduler is not None:
                 # 退避：不是"立刻再抢一次"，那会把一次瞬时故障放大成忙等
                 self.scheduler.defer(task_id, task.retry.backoff_for(task.attempt - 1))
             return
-        graph.mark_failed(task_id,
-                          code=error.code if error else "execution_error",
-                          message=error.message if error else "")
+        graph.mark_failed(
+            task_id,
+            code=error.code if error else "execution_error",
+            message=error.message if error else "",
+        )
         if self.scheduler is not None:
             self.scheduler.forget(task_id)
 
@@ -264,11 +283,12 @@ class TaskRunner:
         return self.scheduler.stats() if self.scheduler is not None else {}
 
 
-def make_local_runner(store: TaskStore | None = None,
-                      handlers: dict[str, Any] | None = None,
-                      max_workers: int = 4,
-                      scheduler: Scheduler | None = None
-                      ) -> tuple[TaskRunner, LocalBackend]:
+def make_local_runner(
+    store: TaskStore | None = None,
+    handlers: dict[str, Any] | None = None,
+    max_workers: int = 4,
+    scheduler: Scheduler | None = None,
+) -> tuple[TaskRunner, LocalBackend]:
     """默认装配：内存 store + 本地线程池后端（+ 可选调度器）。"""
     store = store or TaskStore.memory()
     backend = LocalBackend(handlers=handlers, max_workers=max_workers)

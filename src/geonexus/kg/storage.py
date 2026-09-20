@@ -86,10 +86,13 @@ def save_graph(
 
     if fmt == "ndjson":
         with _open_write(p, compressed) as fh:
-            fh.write(json.dumps(
-                {"_type": "header", "name": name, "version": FORMAT_VERSION},
-                ensure_ascii=False,
-            ) + "\n")
+            fh.write(
+                json.dumps(
+                    {"_type": "header", "name": name, "version": FORMAT_VERSION},
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
             for e in entities:
                 fh.write(json.dumps({"_type": "entity", **e}, ensure_ascii=False) + "\n")
                 n_ent += 1
@@ -100,14 +103,19 @@ def save_graph(
         ent_list = list(entities)
         rel_list = list(relations)
         n_ent, n_rel = len(ent_list), len(rel_list)
-        payload = {"name": name, "version": FORMAT_VERSION,
-                   "entities": ent_list, "relations": rel_list}
+        payload = {
+            "name": name,
+            "version": FORMAT_VERSION,
+            "entities": ent_list,
+            "relations": rel_list,
+        }
         with _open_write(p, compressed) as fh:
             json.dump(payload, fh, ensure_ascii=False)
 
     size = p.stat().st_size
-    logger.info("KG saved: %d entities, %d relations → %s (%.2f MB)",
-                n_ent, n_rel, path, size / 1024 / 1024)
+    logger.info(
+        "KG saved: %d entities, %d relations → %s (%.2f MB)", n_ent, n_rel, path, size / 1024 / 1024
+    )
     return {
         "path": str(p),
         "format": fmt,
@@ -130,9 +138,7 @@ def append_graph(
     p = Path(path)
     fmt, compressed = detect_format(p)
     if fmt != "ndjson":
-        raise ValueError(
-            f"增量追加仅支持 NDJSON 格式（.ndjson/.ndjson.gz），当前: {path}"
-        )
+        raise ValueError(f"增量追加仅支持 NDJSON 格式（.ndjson/.ndjson.gz），当前: {path}")
 
     existed = p.exists() and p.stat().st_size > 0
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -141,10 +147,13 @@ def append_graph(
     mode = _open_append(p, compressed) if existed else _open_write(p, compressed)
     with mode as fh:
         if not existed:
-            fh.write(json.dumps(
-                {"_type": "header", "name": p.stem.split(".")[0], "version": FORMAT_VERSION},
-                ensure_ascii=False,
-            ) + "\n")
+            fh.write(
+                json.dumps(
+                    {"_type": "header", "name": p.stem.split(".")[0], "version": FORMAT_VERSION},
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
         for e in entities:
             fh.write(json.dumps({"_type": "entity", **e}, ensure_ascii=False) + "\n")
             n_ent += 1
@@ -153,8 +162,7 @@ def append_graph(
             n_rel += 1
 
     logger.info("KG appended: +%d entities, +%d relations → %s", n_ent, n_rel, path)
-    return {"appended_entities": n_ent, "appended_relations": n_rel,
-            "bytes": p.stat().st_size}
+    return {"appended_entities": n_ent, "appended_relations": n_rel, "bytes": p.stat().st_size}
 
 
 # --------------------------------------------------------------------------- #

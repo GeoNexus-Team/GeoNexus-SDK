@@ -184,10 +184,13 @@ class FederatedGeoMCPClient:
         result = self._dispatch(
             node_url,
             PushdownRequest(
-                skill=skill, params=dict(params or {}),
-                spatial=spatial, temporal=temporal,
+                skill=skill,
+                params=dict(params or {}),
+                spatial=spatial,
+                temporal=temporal,
                 # request_id 落到任务的 id 上：远端用它关联自己的事件流
-                task_id=request_id or PushdownRequest.__dataclass_fields__["task_id"].default_factory(),
+                task_id=request_id
+                or PushdownRequest.__dataclass_fields__["task_id"].default_factory(),
             ),
         )
         return result
@@ -228,10 +231,13 @@ class FederatedGeoMCPClient:
             result = self._dispatch(
                 node_url,
                 PushdownRequest(
-                    skill=skill, params=dict(params or {}),
+                    skill=skill,
+                    params=dict(params or {}),
                     geocards=list(node_cards),
-                    spatial=spatial, temporal=temporal,
-                    task_id=request_id or PushdownRequest.__dataclass_fields__["task_id"].default_factory(),
+                    spatial=spatial,
+                    temporal=temporal,
+                    task_id=request_id
+                    or PushdownRequest.__dataclass_fields__["task_id"].default_factory(),
                 ),
             )
             results.append({"node": node_url, "cards": node_cards, "result": result})
@@ -255,8 +261,12 @@ class FederatedGeoMCPClient:
             return result.result
         raise FederatedExecutionError(
             f"Node {node_url} refused execution: {result.error}",
-            {"node": node_url, "skill": request.skill,
-             "cards": list(request.geocards), "code": result.error_code},
+            {
+                "node": node_url,
+                "skill": request.skill,
+                "cards": list(request.geocards),
+                "code": result.error_code,
+            },
         )
 
     # ------------------------------------------------------------------ #
@@ -299,7 +309,7 @@ class FederatedGeoMCPClient:
 
     def close(self) -> None:
         self._registry.close()
-        self._central.close()   # 关闭所有远端 worker 的连接池
+        self._central.close()  # 关闭所有远端 worker 的连接池
 
     def __enter__(self) -> FederatedGeoMCPClient:
         return self

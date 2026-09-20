@@ -47,11 +47,10 @@ class Neo4jStore:
         if self._driver is None:
             try:
                 from neo4j import GraphDatabase
+
                 self._driver = GraphDatabase.driver(self.uri, auth=(self.user, self.password))
             except ImportError:
-                raise ImportError(
-                    "neo4j package required: pip install neo4j"
-                ) from None
+                raise ImportError("neo4j package required: pip install neo4j") from None
             except Exception as exc:
                 logger.warning("Neo4j connection failed: %s", exc)
                 self._driver = None
@@ -69,7 +68,9 @@ class Neo4jStore:
             logger.info("Neo4j schema ensured")
 
     def add_entity(
-        self, entity_id: str, entity_type: str,
+        self,
+        entity_id: str,
+        entity_type: str,
         properties: dict[str, Any] | None = None,
         labels: list[str] | None = None,
     ) -> None:
@@ -79,14 +80,17 @@ class Neo4jStore:
         extra_labels = ":".join(labels or []) + ":" if labels else ""
         with driver.session() as session:
             session.run(
-                f"MERGE (e:{extra_labels}Entity {{id: $id}}) "
-                "SET e.type = $type, e += $props",
-                id=entity_id, type=entity_type,
+                f"MERGE (e:{extra_labels}Entity {{id: $id}}) SET e.type = $type, e += $props",
+                id=entity_id,
+                type=entity_type,
                 props=properties or {},
             )
 
     def add_relation(
-        self, source_id: str, target_id: str, relation: str,
+        self,
+        source_id: str,
+        target_id: str,
+        relation: str,
         properties: dict[str, Any] | None = None,
     ) -> None:
         driver = self._get_driver()
@@ -96,7 +100,9 @@ class Neo4jStore:
             session.run(
                 f"MATCH (a:Entity {{id: $source}}), (b:Entity {{id: $target}}) "
                 f"MERGE (a)-[r:{relation}]->(b) SET r += $props",
-                source=source_id, target=target_id, props=properties or {},
+                source=source_id,
+                target=target_id,
+                props=properties or {},
             )
 
     def search(self, keyword: str, limit: int = 20) -> list[dict[str, Any]]:
@@ -110,7 +116,8 @@ class Neo4jStore:
             result = session.run(
                 "MATCH (e:Entity) WHERE e.id CONTAINS $kw OR e.type CONTAINS $kw "
                 "RETURN e.id, e.type, e LIMIT $limit",
-                kw=keyword, limit=limit,
+                kw=keyword,
+                limit=limit,
             )
             return [{"id": r["e.id"], "type": r["e.type"], **r["e"]} for r in result]
 

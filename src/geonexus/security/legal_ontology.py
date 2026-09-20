@@ -63,8 +63,11 @@ JURISDICTIONS: dict[str, JurisdictionRule] = {
         legal_basis=["《中华人民共和国测绘法》", "《地图管理条例》", "《地理信息安全管理办法》"],
         cross_border_transfer="conditional",
         sensitive_categories=[
-            "高精度地形数据", "军事设施周边矢量", "重要地理信息数据",
-            "卫星导航定位基准站数据", "大于等于一定精度的DEM",
+            "高精度地形数据",
+            "军事设施周边矢量",
+            "重要地理信息数据",
+            "卫星导航定位基准站数据",
+            "大于等于一定精度的DEM",
         ],
         requires_license=True,
         resolution_ceiling_m=10.0,
@@ -78,7 +81,11 @@ JURISDICTIONS: dict[str, JurisdictionRule] = {
     "EU": JurisdictionRule(
         code="EU",
         name="欧洲联盟",
-        legal_basis=["INSPIRE Directive 2007/2/EC", "GDPR (EU) 2016/679", "Open Data Directive (EU) 2019/1024"],
+        legal_basis=[
+            "INSPIRE Directive 2007/2/EC",
+            "GDPR (EU) 2016/679",
+            "Open Data Directive (EU) 2019/1024",
+        ],
         cross_border_transfer="conditional",
         sensitive_categories=["个人位置数据", "关键基础设施位置", "环境敏感区精确坐标"],
         requires_license=False,
@@ -108,7 +115,11 @@ JURISDICTIONS: dict[str, JurisdictionRule] = {
     "BRA": JurisdictionRule(
         code="BRA",
         name="巴西",
-        legal_basis=["Lei 12.651/2012 (Código Florestal)", "Lei 13.709/2018 (LGPD)", "Decreto 6.666/2008 (SINDE)"],
+        legal_basis=[
+            "Lei 12.651/2012 (Código Florestal)",
+            "Lei 13.709/2018 (LGPD)",
+            "Decreto 6.666/2008 (SINDE)",
+        ],
         cross_border_transfer="conditional",
         sensitive_categories=["亚马逊雨林原始数据", "原住民领地边界", "国防区域数据"],
         requires_license=False,
@@ -123,7 +134,10 @@ JURISDICTIONS: dict[str, JurisdictionRule] = {
     "IND": JurisdictionRule(
         code="IND",
         name="印度",
-        legal_basis=["Geospatial Information Regulation Bill", "National Data Sharing and Accessibility Policy"],
+        legal_basis=[
+            "Geospatial Information Regulation Bill",
+            "National Data Sharing and Accessibility Policy",
+        ],
         cross_border_transfer="conditional",
         sensitive_categories=["高精度地形", "边境地区数据", "沿海敏感设施"],
         requires_license=True,
@@ -152,7 +166,11 @@ JURISDICTIONS: dict[str, JurisdictionRule] = {
     "KEN": JurisdictionRule(
         code="KEN",
         name="肯尼亚",
-        legal_basis=["Survey Act (Cap 299)", "Data Protection Act 2019", "Physical and Land Use Planning Act 2019"],
+        legal_basis=[
+            "Survey Act (Cap 299)",
+            "Data Protection Act 2019",
+            "Physical and Land Use Planning Act 2019",
+        ],
         cross_border_transfer="notification",
         sensitive_categories=["地籍数据", "个人位置数据", "边境区域测绘"],
         requires_license=True,
@@ -167,7 +185,11 @@ JURISDICTIONS: dict[str, JurisdictionRule] = {
     "NGA": JurisdictionRule(
         code="NGA",
         name="尼日利亚",
-        legal_basis=["Survey Co-ordination Act", "Nigeria Data Protection Act 2023", "NOSDRA 相关条例"],
+        legal_basis=[
+            "Survey Co-ordination Act",
+            "Nigeria Data Protection Act 2023",
+            "NOSDRA 相关条例",
+        ],
         cross_border_transfer="notification",
         sensitive_categories=["油气设施位置", "边境测绘数据", "个人位置数据"],
         requires_license=True,
@@ -182,7 +204,11 @@ JURISDICTIONS: dict[str, JurisdictionRule] = {
     "IDN": JurisdictionRule(
         code="IDN",
         name="印度尼西亚",
-        legal_basis=["UU No. 4/2011 Geospatial Information", "UU No. 27/2022 Personal Data Protection", "Perpres 9/2016"],
+        legal_basis=[
+            "UU No. 4/2011 Geospatial Information",
+            "UU No. 27/2022 Personal Data Protection",
+            "Perpres 9/2016",
+        ],
         cross_border_transfer="conditional",
         sensitive_categories=["高精度地形", "海底地形", "边境岛屿数据", "关键基础设施"],
         requires_license=True,
@@ -197,7 +223,11 @@ JURISDICTIONS: dict[str, JurisdictionRule] = {
     "VNM": JurisdictionRule(
         code="VNM",
         name="越南",
-        legal_basis=["Luật Đo đạc và bản đồ 2018", "Nghị định 27/2019/NĐ-CP", "Decree 13/2023 on Personal Data"],
+        legal_basis=[
+            "Luật Đo đạc và bản đồ 2018",
+            "Nghị định 27/2019/NĐ-CP",
+            "Decree 13/2023 on Personal Data",
+        ],
         cross_border_transfer="conditional",
         sensitive_categories=["国家边界数据", "高精度地形", "军事区域", "重要工程设施"],
         requires_license=True,
@@ -285,9 +315,7 @@ def check_compliance(
     cross_border = bool(requester_region) and requester_region.upper() != jurisdiction.upper()
 
     # 1. 敏感类别导出
-    is_sensitive = data_category and any(
-        cat in data_category for cat in rule.sensitive_categories
-    )
+    is_sensitive = data_category and any(cat in data_category for cat in rule.sensitive_categories)
     if is_sensitive and action in ("export", "write"):
         if rule.cross_border_transfer in ("prohibited", "conditional"):
             violations.append(
@@ -341,34 +369,43 @@ def to_policy_rules() -> list[dict[str, Any]]:
     """
     rules: list[dict[str, Any]] = []
     for code, rule in JURISDICTIONS.items():
-        rules.append({
-            "name": f"{code}_cross_border",
-            "jurisdiction": code,
-            "deny_if": {
-                "cross_border": True,
-                "transfer_policy": rule.cross_border_transfer,
-            },
-            "action": "deny" if rule.cross_border_transfer == "prohibited" else "require_approval"
-            if rule.cross_border_transfer == "conditional" else "notify",
-            "legal_basis": rule.legal_basis,
-        })
-        if rule.resolution_ceiling_m is not None:
-            rules.append({
-                "name": f"{code}_resolution_ceiling",
+        rules.append(
+            {
+                "name": f"{code}_cross_border",
                 "jurisdiction": code,
                 "deny_if": {
-                    "resolution_m_lt": rule.resolution_ceiling_m,
-                    "action": "export",
+                    "cross_border": True,
+                    "transfer_policy": rule.cross_border_transfer,
                 },
-                "action": "deny",
+                "action": "deny"
+                if rule.cross_border_transfer == "prohibited"
+                else "require_approval"
+                if rule.cross_border_transfer == "conditional"
+                else "notify",
                 "legal_basis": rule.legal_basis,
-            })
+            }
+        )
+        if rule.resolution_ceiling_m is not None:
+            rules.append(
+                {
+                    "name": f"{code}_resolution_ceiling",
+                    "jurisdiction": code,
+                    "deny_if": {
+                        "resolution_m_lt": rule.resolution_ceiling_m,
+                        "action": "export",
+                    },
+                    "action": "deny",
+                    "legal_basis": rule.legal_basis,
+                }
+            )
         if rule.requires_license:
-            rules.append({
-                "name": f"{code}_license_required",
-                "jurisdiction": code,
-                "deny_if": {"is_licensed": False, "action_in": ["write", "export"]},
-                "action": "deny",
-                "legal_basis": rule.legal_basis,
-            })
+            rules.append(
+                {
+                    "name": f"{code}_license_required",
+                    "jurisdiction": code,
+                    "deny_if": {"is_licensed": False, "action_in": ["write", "export"]},
+                    "action": "deny",
+                    "legal_basis": rule.legal_basis,
+                }
+            )
     return rules

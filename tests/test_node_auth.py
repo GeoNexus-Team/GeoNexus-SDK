@@ -128,10 +128,9 @@ class _FakeResponse:
 
 
 class TestDelegationForwardsKey:
-    def test_delegate_sends_key(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_delegate_sends_key(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """A node with api_keys delegates to an authenticated owner with its key."""
+
         def owner_echo(params: dict[str, Any]) -> dict[str, Any]:
             return {"delegated": True, **params}
 

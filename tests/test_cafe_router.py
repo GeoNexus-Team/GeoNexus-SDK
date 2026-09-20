@@ -33,16 +33,21 @@ from geonexus.geonode import GeoNode
 
 
 def _card(card_id: str):
-    return (GeoCardBuilder(id=card_id, type="data", name=card_id, description="t")
-            .spatial(bbox=[-73.9, -15.0, -44.0, 5.0], crs="EPSG:4326", resolution=10)
-            .temporal(start="2015-01-01", end="2025-12-31")
-            .capability("echo")
-            .build())
+    return (
+        GeoCardBuilder(id=card_id, type="data", name=card_id, description="t")
+        .spatial(bbox=[-73.9, -15.0, -44.0, 5.0], crs="EPSG:4326", resolution=10)
+        .temporal(start="2015-01-01", end="2025-12-31")
+        .capability("echo")
+        .build()
+    )
 
 
 def _echo_handler(params, context):
-    return {"echo": params, "cards": [c.id for c in context.geocards],
-            "ran_on": context.node_name if hasattr(context, "node_name") else "node"}
+    return {
+        "echo": params,
+        "cards": [c.id for c in context.geocards],
+        "ran_on": context.node_name if hasattr(context, "node_name") else "node",
+    }
 
 
 def _live_node(name: str, *, cards: list[str] | None = None):
@@ -105,8 +110,7 @@ class TestHardFilters:
         central.register_worker(WorkerNode("cpu-only", tags={"region": "x"}))
         central.register_worker(WorkerNode("gpu-node", tags={"gpu": "cuda"}))
 
-        request = PushdownRequest(code="result = 1",
-                                 metadata={"resources": {"gpu": "cuda"}})
+        request = PushdownRequest(code="result = 1", metadata={"resources": {"gpu": "cuda"}})
         decision = central.route(request)
         assert decision.chosen_worker == "gpu-node"
         assert "算力不足" in decision.excluded["cpu-only"]
@@ -123,7 +127,7 @@ class TestHardFilters:
         cap = capacity_of(WorkerNode("w", tags={"cpu": "8", "memory": "16Gi", "gpu": "cuda"}))
         assert cap.node_url == "w"
         assert cap.cpu == "8"
-        assert cap.memory_gb == 16.0        # parse_memory 返回 GiB
+        assert cap.memory_gb == 16.0  # parse_memory 返回 GiB
         assert cap.gpu == "cuda"
 
 
@@ -141,14 +145,14 @@ class TestFailoverToHealthyWorker:
         url, handle, _node = _live_node("alive-node")
         try:
             central = CentralServer()
-            dead = RemoteWorker(_dead_url(), data_assets={"dataset-x": "remote-x"},
-                                timeout=3.0)
+            dead = RemoteWorker(_dead_url(), data_assets={"dataset-x": "remote-x"}, timeout=3.0)
             alive = RemoteWorker(url, timeout=10.0)
             central.register_worker(dead)
             central.register_worker(alive)
 
-            request = PushdownRequest(skill="echo", params={"hello": "failover"},
-                                      inputs={"data": "dataset-x"})
+            request = PushdownRequest(
+                skill="echo", params={"hello": "failover"}, inputs={"data": "dataset-x"}
+            )
 
             # 先确认路由**确实**选中了那个死节点（否则这条测试什么都没验证）
             assert central.route(request).chosen_worker == dead.worker_id
@@ -166,10 +170,13 @@ class TestFailoverToHealthyWorker:
     def test_non_retryable_failure_does_not_change_worker(self) -> None:
         """输入缺失换节点也没用：不该白试一轮，也不该把节点标记为不健康。"""
         central = CentralServer()
-        bad = WorkerNode("code-only")            # 本地 worker 只认 code
+        bad = WorkerNode("code-only")  # 本地 worker 只认 code
         bad.execute = lambda req: __import__("geonexus.cafe", fromlist=["x"]).PushdownResult(  # type: ignore[assignment]
-            task_id=req.task_id, status=TaskStatus.FAILED,
-            error="cannot resolve inputs", retryable=False)
+            task_id=req.task_id,
+            status=TaskStatus.FAILED,
+            error="cannot resolve inputs",
+            retryable=False,
+        )
         central.register_worker(bad)
 
         result = central.dispatch(PushdownRequest(code="result = 1"))
@@ -182,8 +189,12 @@ class TestFailoverToHealthyWorker:
             worker = WorkerNode(wid)
             worker.execute = (  # type: ignore[assignment]
                 lambda req, _w=wid: __import__("geonexus.cafe", fromlist=["x"]).PushdownResult(
-                    task_id=req.task_id, status=TaskStatus.FAILED,
-                    error=f"{_w} down", retryable=True))
+                    task_id=req.task_id,
+                    status=TaskStatus.FAILED,
+                    error=f"{_w} down",
+                    retryable=True,
+                )
+            )
             central.register_worker(worker)
 
         result = central.dispatch(PushdownRequest(code="result = 1"))
@@ -200,10 +211,15 @@ class TestLeases:
         gate = threading.Event()
         central = CentralServer()
         worker = WorkerNode("slow")
-        def blocking_execute(req):        # noqa: ANN001, ANN202
-            gate.wait(10)                 # 注意：wait() 返回 True，不能用 `or` 串起来
-            return PushdownResult(task_id=req.task_id, status=TaskStatus.SUCCEEDED,
-                                  result={"ok": True}, worker_id="slow")
+
+        def blocking_execute(req):  # noqa: ANN001, ANN202
+            gate.wait(10)  # 注意：wait() 返回 True，不能用 `or` 串起来
+            return PushdownResult(
+                task_id=req.task_id,
+                status=TaskStatus.SUCCEEDED,
+                result={"ok": True},
+                worker_id="slow",
+            )
 
         worker.execute = blocking_execute  # type: ignore[assignment]
         central.register_worker(worker)
@@ -211,8 +227,11 @@ class TestLeases:
         done: list[object] = []
         thread = threading.Thread(
             target=lambda: done.append(
-                central.dispatch(PushdownRequest(code="result = 1", task_id="t-lease"),
-                                 lease_seconds=30.0)))
+                central.dispatch(
+                    PushdownRequest(code="result = 1", task_id="t-lease"), lease_seconds=30.0
+                )
+            )
+        )
         thread.start()
         try:
             deadline = time.time() + 5
@@ -236,12 +255,13 @@ class TestLeases:
         # 直接构造一个过期租约（模拟"派下去但进程崩了"）
         from geonexus.cafe import Lease
 
-        central._leases["t-lost"] = Lease(task_id="t-lost", worker_id="w",
-                                          expires_at=time.time() - 1)
+        central._leases["t-lost"] = Lease(
+            task_id="t-lost", worker_id="w", expires_at=time.time() - 1
+        )
         reclaimed = central.reclaim_expired()
         assert [ls.task_id for ls in reclaimed] == ["t-lost"]
         assert central.active_leases() == []
-        assert central.reclaim_expired() == []      # 幂等
+        assert central.reclaim_expired() == []  # 幂等
 
 
 # --------------------------------------------------------------------------- #
@@ -263,10 +283,16 @@ class TestSinglePushdownImplementation:
 
         names = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
         attrs = {node.attr for node in ast.walk(tree) if isinstance(node, ast.Attribute)}
-        bases = {node.value.id for node in ast.walk(tree)
-                 if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)}
-        funcs = {node.name for node in ast.walk(tree)
-                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+        bases = {
+            node.value.id
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)
+        }
+        funcs = {
+            node.name
+            for node in ast.walk(tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
 
         assert "GeoMCPClient" not in names, "federation 又自己持有了 GeoMCP 客户端"
         assert "httpx" not in names and "httpx" not in bases, "federation 又直接用了 httpx"
@@ -293,16 +319,22 @@ class TestSinglePushdownImplementation:
 
         allowed = {
             "cafe/remote.py",
-            "geomcp/__init__.py", "geomcp/server.py", "geomcp/client.py",
-            "web/router.py", "cli.py",
+            "geomcp/__init__.py",
+            "geomcp/server.py",
+            "geomcp/client.py",
+            "web/router.py",
+            "cli.py",
         }
         holders: set[str] = set()
         for path in pathlib.Path("src/geonexus").rglob("*.py"):
             rel = str(path.relative_to("src/geonexus"))
             for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
-                if isinstance(node, ast.ImportFrom) and \
-                        any(a.name == "GeoMCPClient" for a in node.names) or isinstance(node, ast.Import) and \
-                        any(a.name.endswith("GeoMCPClient") for a in node.names):
+                if (
+                    isinstance(node, ast.ImportFrom)
+                    and any(a.name == "GeoMCPClient" for a in node.names)
+                    or isinstance(node, ast.Import)
+                    and any(a.name.endswith("GeoMCPClient") for a in node.names)
+                ):
                     holders.add(rel)
 
         unexpected = holders - allowed
@@ -323,19 +355,18 @@ class TestSinglePushdownImplementation:
             b = RemoteWorker(url_b, timeout=10.0)
             central.register_worker(a)
             central.register_worker(b)
-            request = PushdownRequest(skill="echo", params={"run": 1},
-                                      inputs={"data": "dataset-x"})
+            request = PushdownRequest(skill="echo", params={"run": 1}, inputs={"data": "dataset-x"})
 
             first = central.dispatch(request)
             assert first.status is TaskStatus.SUCCEEDED
             assert first.worker_id == url_a, "第一次应落在持有数据的 node-a"
 
-            handle_a.stop()                      # ← 杀掉它
+            handle_a.stop()  # ← 杀掉它
             time.sleep(0.2)
 
             second = central.dispatch(
-                PushdownRequest(skill="echo", params={"run": 2},
-                                inputs={"data": "dataset-x"}))
+                PushdownRequest(skill="echo", params={"run": 2}, inputs={"data": "dataset-x"})
+            )
             assert second.status is TaskStatus.SUCCEEDED, second.error
             assert second.worker_id == url_b, "第二次应换到还活着的 node-b"
             assert second.result["outputs"]["echo"] == {"run": 2}

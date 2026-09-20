@@ -38,7 +38,11 @@ from typing import Any
 from .model import GeoTask, ResourceRequirement
 
 __all__ = [
-    "Reservation", "Capacity", "Occupancy", "AdmissionResult", "Scheduler",
+    "Reservation",
+    "Capacity",
+    "Occupancy",
+    "AdmissionResult",
+    "Scheduler",
 ]
 
 logger = logging.getLogger(__name__)
@@ -83,8 +87,9 @@ class Reservation:
         try:
             total_mb = int(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / (1024 * 1024))
         except (ValueError, OSError, AttributeError):  # pragma: no cover - 平台差异
-            logger.warning("无法读取物理内存，容量按 0 处理（宁少放行，不多放行）；"
-                           "请显式传入 capacity")
+            logger.warning(
+                "无法读取物理内存，容量按 0 处理（宁少放行，不多放行）；请显式传入 capacity"
+            )
         # gpu_count 保持 0：不能凭猜测把 GPU 任务放行到一台可能没有 GPU 的机器上
         return cls(cpu_cores=cpus, memory_mb=total_mb, gpu_count=0, gpu_kind=None)
 
@@ -100,12 +105,16 @@ class Reservation:
         if self.cpu_cores > other.cpu_cores:
             reasons.append(f"cpu: 需要 {self.cpu_cores:g} 核，可用 {other.cpu_cores:g} 核")
         if self.memory_mb > other.memory_mb:
-            reasons.append(
-                f"memory: 需要 {self.memory_mb}MB，可用 {other.memory_mb}MB")
+            reasons.append(f"memory: 需要 {self.memory_mb}MB，可用 {other.memory_mb}MB")
         if self.gpu_count > other.gpu_count:
             reasons.append(f"gpu: 需要 {self.gpu_count} 张，可用 {other.gpu_count} 张")
-        elif self.gpu_count and other.gpu_count and self.gpu_kind and other.gpu_kind \
-                and self.gpu_kind != other.gpu_kind:
+        elif (
+            self.gpu_count
+            and other.gpu_count
+            and self.gpu_kind
+            and other.gpu_kind
+            and self.gpu_kind != other.gpu_kind
+        ):
             reasons.append(f"gpu: 需要 {self.gpu_kind}，可用的是 {other.gpu_kind}")
         return reasons
 
@@ -119,8 +128,12 @@ class Reservation:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {"cpu_cores": self.cpu_cores, "memory_mb": self.memory_mb,
-                "gpu_count": self.gpu_count, "gpu_kind": self.gpu_kind}
+        return {
+            "cpu_cores": self.cpu_cores,
+            "memory_mb": self.memory_mb,
+            "gpu_count": self.gpu_count,
+            "gpu_kind": self.gpu_kind,
+        }
 
 
 #: 语义别名：容量与预约是同一个数据结构。
@@ -149,8 +162,12 @@ class Occupancy:
         mem = sum(r.memory_mb for r in self._held.values())
         gpu = sum(r.gpu_count for r in self._held.values())
         kinds = {r.gpu_kind for r in self._held.values() if r.gpu_count and r.gpu_kind}
-        return Reservation(cpu_cores=cpu, memory_mb=mem, gpu_count=gpu,
-                           gpu_kind=(sorted(kinds)[0] if len(kinds) == 1 else None))
+        return Reservation(
+            cpu_cores=cpu,
+            memory_mb=mem,
+            gpu_count=gpu,
+            gpu_kind=(sorted(kinds)[0] if len(kinds) == 1 else None),
+        )
 
     def available(self) -> Reservation:
         return self.capacity.after_using(self.held())
@@ -324,8 +341,7 @@ class Scheduler:
         running = self.occupancy.active
         for task in self._fair_order(candidates):
             if limit is not None and running >= limit:
-                result.blocked[task.task_id] = [
-                    f"并发上限 {limit} 已达到（当前 {running}）"]
+                result.blocked[task.task_id] = [f"并发上限 {limit} 已达到（当前 {running}）"]
                 result.reasons[task.task_id] = REASON_CONCURRENCY
                 continue
             need = Reservation.of(task.resources)
@@ -353,9 +369,11 @@ class Scheduler:
         self.peak_parallel = max(self.peak_parallel, self.occupancy.active)
         held = self.occupancy.held()
         # 峰值占用按"任一维度创了新高"记整份预约快照——这样断言时能直接比对
-        if (held.cpu_cores > self.peak_held.cpu_cores
-                or held.memory_mb > self.peak_held.memory_mb
-                or held.gpu_count > self.peak_held.gpu_count):
+        if (
+            held.cpu_cores > self.peak_held.cpu_cores
+            or held.memory_mb > self.peak_held.memory_mb
+            or held.gpu_count > self.peak_held.gpu_count
+        ):
             self.peak_held = held
 
     # ------------------------------------------------------------------ #
@@ -374,6 +392,8 @@ class Scheduler:
 
     def __repr__(self) -> str:  # pragma: no cover - 诊断用
         held = self.occupancy.held()
-        return (f"<Scheduler active={self.occupancy.active} "
-                f"cpu={held.cpu_cores:g}/{self.occupancy.capacity.cpu_cores:g} "
-                f"mem={held.memory_mb}/{self.occupancy.capacity.memory_mb}MB>")
+        return (
+            f"<Scheduler active={self.occupancy.active} "
+            f"cpu={held.cpu_cores:g}/{self.occupancy.capacity.cpu_cores:g} "
+            f"mem={held.memory_mb}/{self.occupancy.capacity.memory_mb}MB>"
+        )

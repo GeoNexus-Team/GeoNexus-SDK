@@ -29,8 +29,7 @@ def _require_rasterio() -> Any:
         import rasterio
     except ImportError as exc:  # pragma: no cover - env dependent
         raise ImportError(
-            "Raster metadata extraction requires rasterio. "
-            "Install it with `pip install rasterio`."
+            "Raster metadata extraction requires rasterio. Install it with `pip install rasterio`."
         ) from exc
     return rasterio
 
@@ -151,7 +150,8 @@ def raster_to_geocard(
             id=card_id or _safe_id(stem),
             type="data",
             name=name or stem,
-            description=description or (
+            description=description
+            or (
                 f"Uploaded raster ({meta['driver']}, {meta['width']}x{meta['height']}, "
                 f"{meta['count']} band(s), dtype {meta['dtype']})"
             ),

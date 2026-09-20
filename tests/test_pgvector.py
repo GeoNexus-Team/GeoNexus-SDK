@@ -15,9 +15,17 @@ from geonexus.gaag.pgvector_store import SCHEMA_SQL, PgVectorStore
 
 def _make_raster(path, val=0.5, w=16, h=16):
     data = np.full((h, w), val, dtype=np.float32)
-    with rasterio.open(path, "w", driver="GTiff", dtype=rasterio.float32, count=1,
-                       width=w, height=h, crs="EPSG:4326",
-                       transform=from_bounds(-10, -5, 10, 5, w, h)) as dst:
+    with rasterio.open(
+        path,
+        "w",
+        driver="GTiff",
+        dtype=rasterio.float32,
+        count=1,
+        width=w,
+        height=h,
+        crs="EPSG:4326",
+        transform=from_bounds(-10, -5, 10, 5, w, h),
+    ) as dst:
         dst.write(data, 1)
     return str(path)
 
@@ -28,15 +36,21 @@ def _make_contract(contract_id, desc, bbox=None):
     b = bbox or [-10, -5, 10, 5]
     card = (
         GeoCardBuilder(
-            id=contract_id, type="data", name=contract_id, description=desc,
+            id=contract_id,
+            type="data",
+            name=contract_id,
+            description=desc,
         )
         .spatial(bbox=b, crs="EPSG:4326")
         .tag("test")
         .build()
     )
     return GAAGContract(
-        contract_id=contract_id, asset_type="raster", card=card,
-        scanned_meta={"bbox": b}, semantic_embedding=embed_text(desc),
+        contract_id=contract_id,
+        asset_type="raster",
+        card=card,
+        scanned_meta={"bbox": b},
+        semantic_embedding=embed_text(desc),
         provenance="test",
     )
 
@@ -44,6 +58,7 @@ def _make_contract(contract_id, desc, bbox=None):
 # --------------------------------------------------------------------------- #
 # PgVectorStore with Mock
 # --------------------------------------------------------------------------- #
+
 
 class TestPgVectorStore:
     def test_schema_sql_contains_extensions(self):
@@ -89,6 +104,7 @@ class TestPgVectorStore:
 # GAAGRegistry Backend Switching
 # --------------------------------------------------------------------------- #
 
+
 class TestRegistryBackend:
     def test_default_backend_is_memory(self, tmp_path):
         registry = GAAGRegistry()
@@ -105,6 +121,7 @@ class TestRegistryBackend:
     def test_pgvector_backend_initializes(self, mock_psycopg2):
         """With POSTGIS_DSN set → pgvector backend active."""
         import os
+
         os.environ["POSTGIS_DSN"] = "postgresql://mock/mock"
         mock_conn = MagicMock()
         mock_psycopg2.connect.return_value = mock_conn
@@ -132,6 +149,7 @@ class TestRegistryBackend:
 # --------------------------------------------------------------------------- #
 # Contract serialization round-trip
 # --------------------------------------------------------------------------- #
+
 
 class TestContractRoundTrip:
     def test_contract_to_json_roundtrip(self, tmp_path):

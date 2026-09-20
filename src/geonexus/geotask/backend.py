@@ -18,8 +18,13 @@ from typing import Any, Protocol, runtime_checkable
 from .model import GeoTask, TaskError, TaskResult, TaskState
 
 __all__ = [
-    "BackendCapabilities", "ExecutionContext", "TaskOutcome", "Handle",
-    "ExecutionBackend", "LocalBackend", "Handler",
+    "BackendCapabilities",
+    "ExecutionContext",
+    "TaskOutcome",
+    "Handle",
+    "ExecutionBackend",
+    "LocalBackend",
+    "Handler",
 ]
 
 #: 执行体签名：``handler(task, ctx) -> dict[str, Any]``（返回值即产物）。
@@ -46,10 +51,8 @@ class TaskOutcome:
     error: TaskError | None = None
 
     @classmethod
-    def success(cls, outputs: dict[str, Any] | None = None,
-                message: str = "") -> TaskOutcome:
-        return cls(state=TaskState.SUCCEEDED, progress=1.0, message=message,
-                   outputs=outputs or {})
+    def success(cls, outputs: dict[str, Any] | None = None, message: str = "") -> TaskOutcome:
+        return cls(state=TaskState.SUCCEEDED, progress=1.0, message=message, outputs=outputs or {})
 
     @classmethod
     def failure(cls, code: str, message: str = "") -> TaskOutcome:
@@ -104,11 +107,9 @@ class LocalBackend:
 
     name = "local"
 
-    def __init__(self, handlers: dict[str, Handler] | None = None,
-                 max_workers: int = 4) -> None:
+    def __init__(self, handlers: dict[str, Handler] | None = None, max_workers: int = 4) -> None:
         self._handlers: dict[str, Handler] = dict(handlers or {})
-        self._pool = ThreadPoolExecutor(max_workers=max_workers,
-                                        thread_name_prefix="geotask")
+        self._pool = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="geotask")
         self._futures: dict[str, Future[Any]] = {}
         self._lock = threading.RLock()
 
@@ -121,7 +122,7 @@ class LocalBackend:
         return BackendCapabilities(
             name=self.name,
             kinds=frozenset({"skill", "composite"}),
-            supports_cancel=False,      # 线程不可中断：取消只能协作式，见 ctx
+            supports_cancel=False,  # 线程不可中断：取消只能协作式，见 ctx
             supports_progress=True,
             resource_dims=("cpu", "memory_mb"),
         )
@@ -134,8 +135,7 @@ class LocalBackend:
         "用哪个处理器执行"和"执行哪个技能"两件事，放在同一个键上会撞——第一版正是
         这么写的，症状是"没有为 ... 注册执行体"。
         """
-        for key in (task.spec.get("handler"), task.spec.get("skill"),
-                    task.spec.get("key")):
+        for key in (task.spec.get("handler"), task.spec.get("skill"), task.spec.get("key")):
             if key and key in self._handlers:
                 return self._handlers[key]
         return None
@@ -144,9 +144,12 @@ class LocalBackend:
         handler = self._handler_for(task)
         if handler is None:
             future = Future()
-            future.set_result(TaskOutcome.failure(
-                "invalid_spec",
-                f"没有为 {task.spec!r} 注册执行体（可用: {sorted(self._handlers)}）"))
+            future.set_result(
+                TaskOutcome.failure(
+                    "invalid_spec",
+                    f"没有为 {task.spec!r} 注册执行体（可用: {sorted(self._handlers)}）",
+                )
+            )
             with self._lock:
                 self._futures[task.task_id] = future
             return Handle(task_id=task.task_id, backend=self.name, token=future)
@@ -156,8 +159,7 @@ class LocalBackend:
             self._futures[task.task_id] = future
         return Handle(task_id=task.task_id, backend=self.name, token=future)
 
-    def _run(self, handler: Handler, task: GeoTask,
-             ctx: ExecutionContext) -> TaskOutcome:
+    def _run(self, handler: Handler, task: GeoTask, ctx: ExecutionContext) -> TaskOutcome:
         try:
             outputs = handler(task, ctx) or {}
         except Exception as exc:  # noqa: BLE001 - 任何执行体异常都变成任务失败

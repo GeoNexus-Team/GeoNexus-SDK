@@ -23,7 +23,7 @@ class AccessRequest:
 
     subject: str = "anonymous"
     action: str = "read"  # read | write | execute
-    resource: str = ""    # contract_id / node_id
+    resource: str = ""  # contract_id / node_id
     resource_type: str = "GeoCard"
     region: str = "global"
     sensitivity: str = "public"  # public | restricted | sensitive | secret
@@ -57,29 +57,42 @@ class SecurityGateway:
     def _register_defaults(self) -> None:
         """注册默认安全规则。"""
         # 1. 匿名用户不可写
-        self.add_rule("deny_anonymous_write", lambda req: (
-            PolicyDecision(False, "匿名用户不可执行写操作", "deny_anonymous_write")
-            if req.subject == "anonymous" and req.action in ("write", "execute")
-            else None
-        ))
+        self.add_rule(
+            "deny_anonymous_write",
+            lambda req: (
+                PolicyDecision(False, "匿名用户不可执行写操作", "deny_anonymous_write")
+                if req.subject == "anonymous" and req.action in ("write", "execute")
+                else None
+            ),
+        )
         # 2. 跨区域敏感数据拒绝
-        self.add_rule("deny_cross_region_secret", lambda req: (
-            PolicyDecision(False, "跨区域敏感数据访问被拒绝", "deny_cross_region_secret")
-            if req.sensitivity == "secret" and req.region not in ("admin", req.metadata.get("user_region", ""))
-            else None
-        ))
+        self.add_rule(
+            "deny_cross_region_secret",
+            lambda req: (
+                PolicyDecision(False, "跨区域敏感数据访问被拒绝", "deny_cross_region_secret")
+                if req.sensitivity == "secret"
+                and req.region not in ("admin", req.metadata.get("user_region", ""))
+                else None
+            ),
+        )
         # 3. 公开数据允许读
-        self.add_rule("allow_public_read", lambda req: (
-            PolicyDecision(True, "公开数据读允许", "allow_public_read")
-            if req.action == "read" and req.sensitivity == "public"
-            else None
-        ))
+        self.add_rule(
+            "allow_public_read",
+            lambda req: (
+                PolicyDecision(True, "公开数据读允许", "allow_public_read")
+                if req.action == "read" and req.sensitivity == "public"
+                else None
+            ),
+        )
         # 4. 内部区域允许操作
-        self.add_rule("allow_internal_region", lambda req: (
-            PolicyDecision(True, "内部区域操作允许", "allow_internal_region")
-            if req.metadata.get("user_region") == req.region == "admin"
-            else None
-        ))
+        self.add_rule(
+            "allow_internal_region",
+            lambda req: (
+                PolicyDecision(True, "内部区域操作允许", "allow_internal_region")
+                if req.metadata.get("user_region") == req.region == "admin"
+                else None
+            ),
+        )
 
     def add_rule(
         self,
@@ -111,9 +124,14 @@ class SecurityGateway:
         subject: str = "anonymous",
         **kwargs,
     ) -> PolicyDecision:
-        return self.evaluate(AccessRequest(
-            subject=subject, action=action, resource=resource, **kwargs,
-        ))
+        return self.evaluate(
+            AccessRequest(
+                subject=subject,
+                action=action,
+                resource=resource,
+                **kwargs,
+            )
+        )
 
     # ------------------------------------------------------------------ #
     # 空间法规合规核验

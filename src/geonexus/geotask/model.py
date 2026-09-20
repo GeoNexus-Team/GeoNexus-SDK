@@ -16,18 +16,25 @@ from enum import Enum
 from typing import Any
 
 __all__ = [
-    "TaskKind", "TaskState", "TaskError", "ERROR_RETRYABLE",
-    "RetryPolicy", "TaskIO", "GpuRequirement", "ResourceRequirement",
-    "TaskResult", "GeoTask",
+    "TaskKind",
+    "TaskState",
+    "TaskError",
+    "ERROR_RETRYABLE",
+    "RetryPolicy",
+    "TaskIO",
+    "GpuRequirement",
+    "ResourceRequirement",
+    "TaskResult",
+    "GeoTask",
 ]
 
 
 class TaskKind(str, Enum):
     """任务种类 —— 决定用哪个执行后端。"""
 
-    SKILL = "skill"      # 本地/下推执行一个技能
-    MODEL = "model"      # 调用模型（独立推理服务或批作业）
-    BATCH = "batch"      # 批/云作业：提交 → 轮询 → 回收
+    SKILL = "skill"  # 本地/下推执行一个技能
+    MODEL = "model"  # 调用模型（独立推理服务或批作业）
+    BATCH = "batch"  # 批/云作业：提交 → 轮询 → 回收
     COMPOSITE = "composite"  # 本身不执行，只组织子任务
 
 
@@ -75,8 +82,7 @@ class TaskError:
     retryable: bool = False
 
     @classmethod
-    def of(cls, code: str, message: str = "", *,
-           retryable: bool | None = None) -> TaskError:
+    def of(cls, code: str, message: str = "", *, retryable: bool | None = None) -> TaskError:
         if retryable is None:
             retryable = ERROR_RETRYABLE.get(code, True)
         return cls(code=code, message=message, retryable=retryable)
@@ -127,18 +133,22 @@ class TaskIO:
     """
 
     ref: str
-    kind: str = "asset"          # asset | literal | task_output
+    kind: str = "asset"  # asset | literal | task_output
     from_task: str | None = None
     field: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {"ref": self.ref, "kind": self.kind,
-                "from_task": self.from_task, "field": self.field}
+        return {
+            "ref": self.ref,
+            "kind": self.kind,
+            "from_task": self.from_task,
+            "field": self.field,
+        }
 
 
 @dataclass
 class GpuRequirement:
-    kind: str = "cuda"           # 与 GeoCard runtime.gpu 同一套取值
+    kind: str = "cuda"  # 与 GeoCard runtime.gpu 同一套取值
     count: int = 1
     memory_mb: int | None = None
 
@@ -183,8 +193,11 @@ class ResourceRequirement:
         return cls(cpu=cpu, memory_mb=memory_mb, gpu=gpu)
 
     def to_dict(self) -> dict[str, Any]:
-        return {"cpu": self.cpu, "memory_mb": self.memory_mb,
-                "gpu": self.gpu.to_dict() if self.gpu else None}
+        return {
+            "cpu": self.cpu,
+            "memory_mb": self.memory_mb,
+            "gpu": self.gpu.to_dict() if self.gpu else None,
+        }
 
 
 @dataclass
@@ -196,8 +209,7 @@ class TaskResult:
     meta: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        return {"outputs": self.outputs, "elapsed_seconds": self.elapsed_seconds,
-                "meta": self.meta}
+        return {"outputs": self.outputs, "elapsed_seconds": self.elapsed_seconds, "meta": self.meta}
 
 
 @dataclass
@@ -293,8 +305,11 @@ class GeoTask:
         task.resources = ResourceRequirement(
             cpu=(data.get("resources") or {}).get("cpu", 0.0),
             memory_mb=(data.get("resources") or {}).get("memory_mb", 0),
-            gpu=(GpuRequirement(**(data["resources"]["gpu"]))
-                 if (data.get("resources") or {}).get("gpu") else None),
+            gpu=(
+                GpuRequirement(**(data["resources"]["gpu"]))
+                if (data.get("resources") or {}).get("gpu")
+                else None
+            ),
         )
         task.retry = RetryPolicy(**(data.get("retry") or {}))
         task.state = TaskState(data.get("state", TaskState.CREATED.value))

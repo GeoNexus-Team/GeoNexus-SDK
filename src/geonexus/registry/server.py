@@ -326,13 +326,21 @@ class RegistryServer:
         @app.post("/cards/{card_id}/approve")
         async def approve_card(request: Request, card_id: str) -> dict[str, Any]:
             self._require_key(request)
-            body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+            body = (
+                await request.json()
+                if request.headers.get("content-type", "").startswith("application/json")
+                else {}
+            )
             return self.approve(card_id, note=(body or {}).get("note"), by=(body or {}).get("by"))
 
         @app.post("/cards/{card_id}/reject")
         async def reject_card(request: Request, card_id: str) -> dict[str, Any]:
             self._require_key(request)
-            body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+            body = (
+                await request.json()
+                if request.headers.get("content-type", "").startswith("application/json")
+                else {}
+            )
             return self.reject(card_id, note=(body or {}).get("note"), by=(body or {}).get("by"))
 
         @app.get("/cards/{card_id}")

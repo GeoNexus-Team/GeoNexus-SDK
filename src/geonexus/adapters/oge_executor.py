@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class OgeExecutionResult:
     """OGE 完整执行结果。"""
+
     process_id: str
     operator_name: str
     status: str  # "succeeded" | "failed" | "timeout"
@@ -62,8 +63,9 @@ class OgeTaskPoller:
         self.client = client
         self.poll_interval = poll_interval
 
-    def poll_until_done(self, process_id: str, tk: str | None = None,
-                        timeout: float = 300.0) -> OgeProcessStatus:
+    def poll_until_done(
+        self, process_id: str, tk: str | None = None, timeout: float = 300.0
+    ) -> OgeProcessStatus:
         """轮询直到任务结束或超时。"""
         start = time.time()
         poll_count = 0
@@ -86,8 +88,12 @@ class OgeTaskPoller:
 
             # resultStatus: 0=等待, 1=运行中, 2=成功, 3=失败
             if status.result_status == 2:
-                logger.info("OGE task %s succeeded (polled %d times, %.1fs)",
-                            process_id, poll_count, elapsed)
+                logger.info(
+                    "OGE task %s succeeded (polled %d times, %.1fs)",
+                    process_id,
+                    poll_count,
+                    elapsed,
+                )
                 return status
             if status.result_status == 3:
                 raise OgeExecutionError(
@@ -109,9 +115,13 @@ class OgeExecutor:
         )
     """
 
-    def __init__(self, credential: OgeCredential | None = None,
-                 poll_interval: float = 5.0, poll_timeout: float = 300.0,
-                 audit_callback: Callable[[dict[str, Any]], None] | None = None) -> None:
+    def __init__(
+        self,
+        credential: OgeCredential | None = None,
+        poll_interval: float = 5.0,
+        poll_timeout: float = 300.0,
+        audit_callback: Callable[[dict[str, Any]], None] | None = None,
+    ) -> None:
         self.credential = credential or OgeCredential()
         self.poll_interval = poll_interval
         self.poll_timeout = poll_timeout
@@ -122,8 +132,9 @@ class OgeExecutor:
         self._client: OgeClient | None = None
         self._poller: OgeTaskPoller | None = None
 
-    def execute(self, operator: str, params: dict[str, Any] | None = None,
-                request_id: str = "") -> OgeExecutionResult:
+    def execute(
+        self, operator: str, params: dict[str, Any] | None = None, request_id: str = ""
+    ) -> OgeExecutionResult:
         """执行 OGE 算子（同步，含身份验证 + 状态轮询）。"""
         start = time.time()
         operator_name = operator
@@ -136,7 +147,9 @@ class OgeExecutor:
         logger.info("OGE execute: %s params=%s request_id=%s", operator_name, params, request_id)
         try:
             resp: OgeExecuteResponse = self._get_client().execute_operator(
-                operator_name, tk=tk, params=params,
+                operator_name,
+                tk=tk,
+                params=params,
             )
         except OgeAuthError:
             # 凭证可能过期，刷新后重试一次
@@ -150,7 +163,9 @@ class OgeExecutor:
         # 3. 轮询状态
         try:
             self._get_poller().poll_until_done(
-                process_id, tk=tk, timeout=self.poll_timeout,
+                process_id,
+                tk=tk,
+                timeout=self.poll_timeout,
             )
         except TimeoutError as exc:
             result = OgeExecutionResult(
@@ -217,14 +232,16 @@ class OgeExecutor:
     def _audit(self, result: OgeExecutionResult, request_id: str) -> None:
         """回写审计日志。"""
         if self.audit_callback:
-            self.audit_callback({
-                "request_id": request_id,
-                "operator": result.operator_name,
-                "process_id": result.process_id,
-                "status": result.status,
-                "elapsed_seconds": result.elapsed_seconds,
-                "error": result.error_message or None,
-            })
+            self.audit_callback(
+                {
+                    "request_id": request_id,
+                    "operator": result.operator_name,
+                    "process_id": result.process_id,
+                    "status": result.status,
+                    "elapsed_seconds": result.elapsed_seconds,
+                    "error": result.error_message or None,
+                }
+            )
 
     def close(self) -> None:
         if self._client:

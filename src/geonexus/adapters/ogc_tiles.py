@@ -78,9 +78,7 @@ def ogc_tileset_to_geocard(
             id=tid,
             type="data",
             name=str(tileset.get("title") or tid),
-            description=str(
-                tileset.get("description") or f"OGC API - Tiles tileset '{tid}'"
-            ),
+            description=str(tileset.get("description") or f"OGC API - Tiles tileset '{tid}'"),
             geocard_version=geocard_version,
         )
         .tag("ogcapi", "ogcapi-tiles", "tiles")
@@ -173,9 +171,7 @@ def ogc_style_to_geocard(
             id=sid,
             type="skill",
             name=str(style.get("title") or sid),
-            description=str(
-                style.get("description") or f"OGC API - Styles style '{sid}'"
-            ),
+            description=str(style.get("description") or f"OGC API - Styles style '{sid}'"),
             geocard_version=geocard_version,
         )
         .tag("ogcapi", "ogcapi-styles", "style")

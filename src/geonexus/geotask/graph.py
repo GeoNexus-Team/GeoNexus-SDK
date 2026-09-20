@@ -72,7 +72,7 @@ class TaskGraph:
                 if dep == task.task_id:
                     raise TaskGraphError(f"任务 {task.task_id} 依赖自己")
 
-        self._topo = self._topological_order()   # 顺便检环
+        self._topo = self._topological_order()  # 顺便检环
 
     # ------------------------------------------------------------------ #
     @classmethod
@@ -155,9 +155,11 @@ class TaskGraph:
         return out
 
     def in_flight(self) -> list[str]:
-        return [tid for tid in self._order
-                if self._tasks[tid].state in (TaskState.QUEUED, TaskState.SCHEDULED,
-                                              TaskState.RUNNING)]
+        return [
+            tid
+            for tid in self._order
+            if self._tasks[tid].state in (TaskState.QUEUED, TaskState.SCHEDULED, TaskState.RUNNING)
+        ]
 
     def pending(self) -> list[str]:
         return [tid for tid in self._order if not self._tasks[tid].is_terminal()]
@@ -166,8 +168,7 @@ class TaskGraph:
         return all(self._tasks[tid].is_terminal() for tid in self._order)
 
     def dependents_of(self, task_id: str) -> list[str]:
-        return [tid for tid in self._order
-                if task_id in self._tasks[tid].depends_on]
+        return [tid for tid in self._order if task_id in self._tasks[tid].depends_on]
 
     # ------------------------------------------------------------------ #
     # 迁移
@@ -194,8 +195,7 @@ class TaskGraph:
             self._move(task_id, TaskState.RUNNING)
         self._move(task_id, TaskState.SUCCEEDED, result=result)
 
-    def mark_failed(self, task_id: str, code: str = "execution_error",
-                    message: str = "") -> None:
+    def mark_failed(self, task_id: str, code: str = "execution_error", message: str = "") -> None:
         if self._task(task_id).state is not TaskState.RUNNING:
             # 没跑过的任务不该被"补跑"成 RUNNING（那是假的）。按状态机允许的路径
             # 走到能失败的位置：created/queued → blocked → failed。
@@ -204,8 +204,9 @@ class TaskGraph:
         self._move(task_id, TaskState.FAILED, error=self._errors[task_id])
         self._cascade(task_id)
 
-    def mark_blocked(self, task_id: str, reasons: list[str] | str = "",
-                     code: str = "resource_unavailable") -> None:
+    def mark_blocked(
+        self, task_id: str, reasons: list[str] | str = "", code: str = "resource_unavailable"
+    ) -> None:
         """把任务标成"被调度器卡住"，并把理由落到事件流与 ``message``。
 
         理由**必须**可读：``blocked`` 不带理由是运维最讨厌的状态——看得见卡住，
@@ -263,22 +264,26 @@ class TaskGraph:
         （依赖失败）才走到那一步的，``blocked`` 正是这个语义的落点。
         """
         if self._task(task_id).state is TaskState.BLOCKED:
-            return                      # 已经在 blocked，别做 queued→blocked 的往返
+            return  # 已经在 blocked，别做 queued→blocked 的往返
         self._ensure_queued(task_id)
         if self._task(task_id).state is TaskState.QUEUED:
             self._move(task_id, TaskState.BLOCKED)
 
-    def _move(self, task_id: str, to: TaskState,
-              error: TaskError | None = None, result: Any = None,
-              reason: str = "") -> None:
+    def _move(
+        self,
+        task_id: str,
+        to: TaskState,
+        error: TaskError | None = None,
+        result: Any = None,
+        reason: str = "",
+    ) -> None:
         task = self._task(task_id)
         if task.state is to:
             return
         if self._store is not None:
             # 绑定了 store：迁移（校验 + 事件）统一由 store 负责
             try:
-                self._store.transition(task_id, to, reason=reason,
-                                       error=error, result=result)
+                self._store.transition(task_id, to, reason=reason, error=error, result=result)
             except IllegalTransition:
                 if task.is_terminal():
                     return
@@ -312,8 +317,7 @@ class TaskGraph:
                 continue
             if not task.is_terminal():
                 self._ensure_blocked(tid)
-                self._errors[tid] = TaskError.of(
-                    "upstream_failed", f"上游 {source_id} 失败/取消")
+                self._errors[tid] = TaskError.of("upstream_failed", f"上游 {source_id} 失败/取消")
                 self._move(tid, TaskState.FAILED, error=self._errors[tid])
             queue.extend(self.dependents_of(tid))
 
@@ -322,12 +326,13 @@ class TaskGraph:
             "order": self.topological_order(),
             "ready": self.ready(),
             "nodes": [
-                {"task_id": tid,
-                 "state": self._tasks[tid].state.value,
-                 "depends_on": list(self._tasks[tid].depends_on),
-                 "kind": self._tasks[tid].kind.value,
-                 "error": (self.error_of(tid).to_dict()
-                           if self.error_of(tid) else None)}
+                {
+                    "task_id": tid,
+                    "state": self._tasks[tid].state.value,
+                    "depends_on": list(self._tasks[tid].depends_on),
+                    "kind": self._tasks[tid].kind.value,
+                    "error": (self.error_of(tid).to_dict() if self.error_of(tid) else None),
+                }
                 for tid in self._order
             ],
         }

@@ -23,10 +23,13 @@ logger = logging.getLogger(__name__)
 
 # ── 错误类型 ──
 
+
 class OgeClientError(Exception):
     """OGE API 调用异常。"""
-    def __init__(self, message: str, status_code: int | None = None,
-                 response_body: str | None = None) -> None:
+
+    def __init__(
+        self, message: str, status_code: int | None = None, response_body: str | None = None
+    ) -> None:
         self.status_code = status_code
         self.response_body = response_body
         super().__init__(message)
@@ -34,22 +37,27 @@ class OgeClientError(Exception):
 
 class OgeAuthError(OgeClientError):
     """OGE 鉴权异常（JWT 过期、tk 无效等）。"""
+
     pass
 
 
 class OgeExecutionError(OgeClientError):
     """OGE 执行异常。"""
-    def __init__(self, message: str, process_id: str | None = None,
-                 status_code: int | None = None) -> None:
+
+    def __init__(
+        self, message: str, process_id: str | None = None, status_code: int | None = None
+    ) -> None:
         self.process_id = process_id
         super().__init__(message, status_code)
 
 
 # ── 响应模型 ──
 
+
 @dataclass
 class OgeTokenResponse:
     """OGE 登录响应。"""
+
     token: str
     expires_in: int = 3600
 
@@ -57,12 +65,14 @@ class OgeTokenResponse:
 @dataclass
 class OgeAppKeyResponse:
     """OGE 应用凭证响应。"""
+
     app_key: str  # 格式 apk.xxx
 
 
 @dataclass
 class OgeUploadResponse:
     """OGE 文件上传响应。"""
+
     asset_uuid: str
     reference: str  # 如 Personal:MyData:myData/文件名
 
@@ -70,12 +80,14 @@ class OgeUploadResponse:
 @dataclass
 class OgeExecuteResponse:
     """OGE 算子执行响应。"""
+
     process_id: str  # 格式 job-xxx
 
 
 @dataclass
 class OgeProcessStatus:
     """OGE 任务状态。"""
+
     process_id: str
     result_status: int  # 0=等待, 1=运行中, 2=成功, 3=失败
     status_message: str = ""
@@ -84,12 +96,14 @@ class OgeProcessStatus:
 @dataclass
 class OgeProcessInfo:
     """OGE 算子定义。"""
+
     process_name: str  # 如 Coverage.terrSlope
     inputs: list[dict[str, Any]]
     outputs: list[dict[str, Any]]
 
 
 # ── 客户端 ──
+
 
 class OgeClient:
     """OGE OpenAPI HTTP 客户端。
@@ -105,18 +119,19 @@ class OgeClient:
         )
     """
 
-    def __init__(self, endpoint: str = "http://openge.org.cn/api",
-                 timeout: float = 30.0) -> None:
+    def __init__(self, endpoint: str = "http://openge.org.cn/api", timeout: float = 30.0) -> None:
         self.endpoint = endpoint.rstrip("/")
         self.timeout = timeout
         self._http = httpx.Client(timeout=timeout)
 
     # ── 1. 鉴权 ──
 
-    def login(self, username: str, password: str,
-              client_id: str = "test", client_secret: str = "123456") -> OgeTokenResponse:
+    def login(
+        self, username: str, password: str, client_id: str = "test", client_secret: str = "123456"
+    ) -> OgeTokenResponse:
         """登录获取 JWT（password 需为 MD5 值）。"""
         import hashlib
+
         md5_pwd = hashlib.md5(password.encode()).hexdigest()
 
         resp = self._http.post(
@@ -147,14 +162,16 @@ class OgeClient:
         data = resp.json().get("data", {})
         app_key = data.get("appKey", "")
         if not app_key:
-            raise OgeAuthError("Apply app key failed: no appKey in response",
-                               resp.status_code, resp.text)
+            raise OgeAuthError(
+                "Apply app key failed: no appKey in response", resp.status_code, resp.text
+            )
         return OgeAppKeyResponse(app_key=app_key)
 
     # ── 2. 数据上传 ──
 
-    def upload_file(self, file_path: str, asset_name: str,
-                    data_type: str = "grid", jwt_token: str | None = None) -> OgeUploadResponse:
+    def upload_file(
+        self, file_path: str, asset_name: str, data_type: str = "grid", jwt_token: str | None = None
+    ) -> OgeUploadResponse:
         """上传文件到 OGE 平台。
 
         Args:
@@ -186,8 +203,9 @@ class OgeClient:
 
     # ── 3. 算子执行 ──
 
-    def execute_operator(self, operator_name: str, tk: str,
-                         params: dict[str, Any] | None = None) -> OgeExecuteResponse:
+    def execute_operator(
+        self, operator_name: str, tk: str, params: dict[str, Any] | None = None
+    ) -> OgeExecuteResponse:
         """执行 OGE 算子。
 
         Args:
@@ -210,8 +228,9 @@ class OgeClient:
         data = resp.json().get("data", {})
         process_id = data.get("processId", "")
         if not process_id:
-            raise OgeExecutionError("Execute operator failed: no processId in response",
-                                    resp.status_code)
+            raise OgeExecutionError(
+                "Execute operator failed: no processId in response", resp.status_code
+            )
         return OgeExecuteResponse(process_id=process_id)
 
     # ── 4. 状态查询 ──
@@ -292,18 +311,21 @@ class OgeClient:
         if resp.status_code == 401:
             raise OgeAuthError(
                 f"OGE auth failed (401): {resp.text[:200]}",
-                resp.status_code, resp.text,
+                resp.status_code,
+                resp.text,
             )
         if resp.status_code == 403:
             # 管理后台未发布的服务
             raise OgeClientError(
                 f"OGE service not published (403): {resp.text[:200]}",
-                resp.status_code, resp.text,
+                resp.status_code,
+                resp.text,
             )
         if resp.status_code >= 400:
             raise OgeClientError(
                 f"OGE API error ({resp.status_code}): {resp.text[:300]}",
-                resp.status_code, resp.text,
+                resp.status_code,
+                resp.text,
             )
 
         # 检查业务响应码
@@ -313,7 +335,8 @@ class OgeClient:
             if code != 200 and code != 0:
                 raise OgeClientError(
                     f"OGE biz error (code={code}): {body.get('msg', body.get('message', 'unknown'))}",
-                    resp.status_code, resp.text,
+                    resp.status_code,
+                    resp.text,
                 )
         except (ValueError, KeyError):
             pass  # 非 JSON 或非标准格式，留给上层处理

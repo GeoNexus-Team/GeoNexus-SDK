@@ -175,7 +175,8 @@ class TaskManager:
         workers = max_workers or min(8, max(2, (threading.active_count() + 2)))
         self.store = TaskStore.memory()
         self._backend = LocalBackend(
-            handlers={_CALLABLE_HANDLER: self._worker}, max_workers=workers)
+            handlers={_CALLABLE_HANDLER: self._worker}, max_workers=workers
+        )
         self._callables: dict[str, tuple[Callable[..., Any], tuple, dict]] = {}
         self._persist = persist
         self._lock = threading.RLock()
@@ -258,8 +259,8 @@ class TaskManager:
         except Exception as exc:  # noqa: BLE001 - surface any failure to the API
             with self._lock:
                 self.store.transition(
-                    task_id, TaskState.FAILED,
-                    error=TaskError.of("execution_error", str(exc)))
+                    task_id, TaskState.FAILED, error=TaskError.of("execution_error", str(exc))
+                )
                 self._persist_view(task_id)
             return {}
         finally:
@@ -309,8 +310,7 @@ class TaskManager:
             raise TaskNotFoundError(f"Unknown task: {task_id}") from exc
         except IllegalTransition as exc:
             current = STATE_TO_WEB[self.store.require(task_id).state]
-            raise TaskNotCancellableError(
-                f"Task {task_id} already {current}") from exc
+            raise TaskNotCancellableError(f"Task {task_id} already {current}") from exc
         self._persist_view(task_id)
         return self.get(task_id, include_result=False)
 
@@ -372,8 +372,16 @@ class TaskManager:
 
 
 __all__ = [
-    "QUEUED", "RUNNING", "DONE", "FAILED", "CANCELLED",
-    "WEB_TO_STATE", "STATE_TO_WEB",
-    "Task", "TaskManager", "TaskNotFoundError", "TaskNotCancellableError",
+    "QUEUED",
+    "RUNNING",
+    "DONE",
+    "FAILED",
+    "CANCELLED",
+    "WEB_TO_STATE",
+    "STATE_TO_WEB",
+    "Task",
+    "TaskManager",
+    "TaskNotFoundError",
+    "TaskNotCancellableError",
     "project",
 ]

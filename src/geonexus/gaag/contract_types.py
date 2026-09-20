@@ -138,8 +138,10 @@ def scan_temporal(path: str | Path) -> dict[str, Any]:
             lon = next((c for c in ("lon", "longitude", "x") if c in coords), None)
             if lat and lon:
                 meta["bbox"] = [
-                    float(ds[lon].min()), float(ds[lat].min()),
-                    float(ds[lon].max()), float(ds[lat].max()),
+                    float(ds[lon].min()),
+                    float(ds[lat].min()),
+                    float(ds[lon].max()),
+                    float(ds[lat].max()),
                 ]
             meta["crs"] = str(ds.attrs.get("crs", "EPSG:4326"))
             meta["variables"] = list(ds.data_vars)
@@ -180,7 +182,9 @@ def scan_volume3d(path: str | Path) -> dict[str, Any]:
                 meta["z_min"] = cz - z_half
                 meta["z_max"] = cz + z_half
                 meta["dimensions"] = [
-                    abs(float(box[3])) * 2, abs(float(box[7])) * 2, z_half * 2,
+                    abs(float(box[3])) * 2,
+                    abs(float(box[7])) * 2,
+                    z_half * 2,
                 ]
         except (OSError, json.JSONDecodeError, ValueError):
             logger.debug("3D Tiles boundingVolume not readable: %s", path)
@@ -273,7 +277,9 @@ def scan_text(path: str | Path) -> dict[str, Any]:
             if cjk > len(text) * 0.05:
                 meta["language"] = "zh"
             # 主题标签：取标题行
-            meta["topics"] = [ln.lstrip("# ").strip() for ln in text.splitlines() if ln.startswith("#")][:5]
+            meta["topics"] = [
+                ln.lstrip("# ").strip() for ln in text.splitlines() if ln.startswith("#")
+            ][:5]
         except OSError:
             meta["word_count"] = 0
             meta["topics"] = []
@@ -337,10 +343,7 @@ def validate_contract(
             reasons=[f"未知合约类型: {asset_type}"],
         )
 
-    missing = [
-        f for f in schema.required_fields
-        if metadata.get(f) in (None, "", [], {})
-    ]
+    missing = [f for f in schema.required_fields if metadata.get(f) in (None, "", [], {})]
     reasons = []
     if missing:
         reasons.append(f"缺少必填字段: {', '.join(missing)}")

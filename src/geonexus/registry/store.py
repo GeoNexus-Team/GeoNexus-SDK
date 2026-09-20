@@ -190,9 +190,7 @@ class RegistryStore:
         """Approve a pending card (makes it discoverable)."""
         return self.set_status(card_id, STATUS_APPROVED, note, by=by)
 
-    def reject(
-        self, card_id: str, note: str | None = None, by: str | None = None
-    ) -> RegistryEntry:
+    def reject(self, card_id: str, note: str | None = None, by: str | None = None) -> RegistryEntry:
         """Reject a pending card (removes it from discovery)."""
         return self.set_status(card_id, STATUS_REJECTED, note, by=by)
 

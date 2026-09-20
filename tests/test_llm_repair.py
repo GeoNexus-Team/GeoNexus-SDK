@@ -14,9 +14,17 @@ from geonexus.agent.llm_repair import LLMRepair
 
 def _make_raster(path, val=0.5, w=16, h=16):
     data = np.full((h, w), val, dtype=np.float32)
-    with rasterio.open(path, "w", driver="GTiff", dtype=rasterio.float32, count=1,
-                       width=w, height=h, crs="EPSG:4326",
-                       transform=from_bounds(-10, -5, 10, 5, w, h)) as dst:
+    with rasterio.open(
+        path,
+        "w",
+        driver="GTiff",
+        dtype=rasterio.float32,
+        count=1,
+        width=w,
+        height=h,
+        crs="EPSG:4326",
+        transform=from_bounds(-10, -5, 10, 5, w, h),
+    ) as dst:
         dst.write(data, 1)
     return str(path)
 
@@ -24,6 +32,7 @@ def _make_raster(path, val=0.5, w=16, h=16):
 # --------------------------------------------------------------------------- #
 # LLM Repair unit tests
 # --------------------------------------------------------------------------- #
+
 
 class TestLLMRepair:
     def test_no_config_still_creates(self):
@@ -87,6 +96,7 @@ class TestLLMRepair:
 # CodeAgent with LLM repair integration tests
 # --------------------------------------------------------------------------- #
 
+
 def _mock_llm_repair():
     """Create a mock LLMRepair that returns fixed code with numpy import."""
     mock_client = MagicMock()
@@ -142,7 +152,9 @@ result = {"mean": float(np_arr.mean())}
         assert result.attempts <= 3
 
     def test_result_to_dict_with_llm_flag(self):
-        result = CodeAgentResult(task_id="t1", code="x=1", outputs={"v": 1}, succeeded=True, llm_repair_used=True)
+        result = CodeAgentResult(
+            task_id="t1", code="x=1", outputs={"v": 1}, succeeded=True, llm_repair_used=True
+        )
         d = result.to_dict()
         assert d["llm_repair_used"] is True
 

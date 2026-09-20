@@ -25,7 +25,7 @@ def _small_graph(name: str = "test", n: int = 50) -> KnowledgeGraph:
     for i in range(n):
         kg.add_entity(KGEntity(f"e.{i}", "Thing", {"i": i}, ["test"]))
     for i in range(n - 1):
-        kg.add_relation(f"e.{i}", f"e.{i+1}", "NEXT")
+        kg.add_relation(f"e.{i}", f"e.{i + 1}", "NEXT")
     return kg
 
 
@@ -33,15 +33,19 @@ def _small_graph(name: str = "test", n: int = 50) -> KnowledgeGraph:
 # 格式探测
 # --------------------------------------------------------------------------- #
 
+
 class TestDetectFormat:
-    @pytest.mark.parametrize("path,expected", [
-        ("a.json", ("json", False)),
-        ("a.json.gz", ("json", True)),
-        ("a.ndjson", ("ndjson", False)),
-        ("a.ndjson.gz", ("ndjson", True)),
-        ("dir/b.nn.json", ("json", False)),
-        ("DIR/B.NDJSON.GZ", ("ndjson", True)),
-    ])
+    @pytest.mark.parametrize(
+        "path,expected",
+        [
+            ("a.json", ("json", False)),
+            ("a.json.gz", ("json", True)),
+            ("a.ndjson", ("ndjson", False)),
+            ("a.ndjson.gz", ("ndjson", True)),
+            ("dir/b.nn.json", ("json", False)),
+            ("DIR/B.NDJSON.GZ", ("ndjson", True)),
+        ],
+    )
     def test_detection(self, path, expected):
         assert detect_format(path) == expected
 
@@ -50,10 +54,17 @@ class TestDetectFormat:
 # 全量保存 / 加载
 # --------------------------------------------------------------------------- #
 
+
 class TestRoundTrip:
-    @pytest.mark.parametrize("filename", [
-        "g.json", "g.json.gz", "g.ndjson", "g.ndjson.gz",
-    ])
+    @pytest.mark.parametrize(
+        "filename",
+        [
+            "g.json",
+            "g.json.gz",
+            "g.ndjson",
+            "g.ndjson.gz",
+        ],
+    )
     def test_roundtrip_all_formats(self, tmp_path, filename):
         kg = _small_graph()
         p = str(tmp_path / filename)
@@ -90,6 +101,7 @@ class TestRoundTrip:
 # 压缩效果
 # --------------------------------------------------------------------------- #
 
+
 class TestCompression:
     def test_gzip_smaller_than_plain(self, tmp_path):
         kg = _small_graph(n=300)
@@ -121,6 +133,7 @@ class TestCompression:
 # --------------------------------------------------------------------------- #
 # 增量追加
 # --------------------------------------------------------------------------- #
+
 
 class TestIncrementalAppend:
     def test_append_only_new_entities(self, tmp_path):
@@ -196,6 +209,7 @@ class TestIncrementalAppend:
 # 流式与统计
 # --------------------------------------------------------------------------- #
 
+
 class TestStreamingAndStats:
     def test_iter_entities_streams(self, tmp_path):
         kg = _small_graph(n=20)
@@ -239,11 +253,13 @@ class TestStreamingAndStats:
 # 低层 API
 # --------------------------------------------------------------------------- #
 
+
 class TestLowLevelApi:
     def test_save_graph_and_load_graph(self, tmp_path):
         p = str(tmp_path / "g.ndjson.gz")
         info = save_graph(
-            p, name="low",
+            p,
+            name="low",
             entities=[{"id": "a", "type": "T", "properties": {}, "labels": []}],
             relations=[{"source": "a", "target": "a", "relation": "SELF", "properties": {}}],
         )
@@ -255,8 +271,7 @@ class TestLowLevelApi:
 
     def test_append_graph_creates_header(self, tmp_path):
         p = str(tmp_path / "h.ndjson")
-        info = append_graph(p, entities=[{"id": "a", "type": "T",
-                                          "properties": {}, "labels": []}])
+        info = append_graph(p, entities=[{"id": "a", "type": "T", "properties": {}, "labels": []}])
         assert info["appended_entities"] == 1
         with open(p, encoding="utf-8") as fh:
             first = json.loads(fh.readline())
@@ -274,15 +289,21 @@ class TestLowLevelApi:
         kg.save(p)
         with open(p, "a", encoding="utf-8") as fh:
             fh.write("this is not json\n")
-            fh.write(json.dumps({"_type": "entity", "id": "ok", "type": "T",
-                                 "properties": {}, "labels": []}) + "\n")
+            fh.write(
+                json.dumps(
+                    {"_type": "entity", "id": "ok", "type": "T", "properties": {}, "labels": []}
+                )
+                + "\n"
+            )
         kg2 = KnowledgeGraph.load(p)
         assert kg2.entity_count() == 4
         assert kg2.get_entity("ok") is not None
 
+
 # --------------------------------------------------------------------------- #
 # 反向遍历
 # --------------------------------------------------------------------------- #
+
 
 class TestIncoming:
     """`neighbors()` 只走出边；`incoming()` 是补上的另一半。
@@ -320,7 +341,7 @@ class TestIncoming:
 
     def test_incoming_on_leaf_is_empty_and_missing_id_is_safe(self):
         kg = self._dag()
-        assert kg.incoming("a") != []          # `hub --OWNS--> a`
+        assert kg.incoming("a") != []  # `hub --OWNS--> a`
         assert kg.incoming("no-such-id") == []
 
     def test_incoming_survives_save_load(self, tmp_path):
@@ -352,8 +373,7 @@ class TestEnumeration:
     def test_search_by_type_delegates_to_entities(self):
         kg = KnowledgeGraph("e")
         kg.add_entity(KGEntity("a", "Alpha", {}, []))
-        assert [e.id for e in kg.search_by_type("Alpha")] == \
-               [e.id for e in kg.entities("Alpha")]
+        assert [e.id for e in kg.search_by_type("Alpha")] == [e.id for e in kg.entities("Alpha")]
 
     def test_entities_returns_a_copy_not_the_live_dict(self):
         """调用方拿到的是列表副本，改它不能影响图。"""

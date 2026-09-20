@@ -94,7 +94,9 @@ class TestAuth:
 
 
 class TestDiscovery:
-    def test_cards_list(self, client: TestClient, token: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_cards_list(
+        self, client: TestClient, token: str, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         fake = _FakeRegistryClient([{"id": "c1"}])
         monkeypatch.setattr("geonexus.web.router.RegistryClient", lambda *a, **k: fake)
         resp = client.get("/api/cards", headers=_auth(token))
@@ -176,7 +178,9 @@ class TestExecute:
             default_node_url=None,
         )
         c = TestClient(create_web_app(cfg))
-        tok = c.post("/api/auth/login", json={"username": "alice", "password": "pw123"}).json()["token"]
+        tok = c.post("/api/auth/login", json={"username": "alice", "password": "pw123"}).json()[
+            "token"
+        ]
         resp = c.post("/api/execute", headers=_auth(tok), json={"skill": "ndvi"})
         assert resp.status_code == 400
 
@@ -222,9 +226,7 @@ class TestExecute:
 
 class TestGoals:
     def test_goals_returns_task(self, client: TestClient, token: str) -> None:
-        resp = client.post(
-            "/api/goals", headers=_auth(token), json={"text": "分析植被变化"}
-        )
+        resp = client.post("/api/goals", headers=_auth(token), json={"text": "分析植被变化"})
         assert resp.status_code == 202
         assert resp.json()["status"] == "queued"
 
@@ -274,7 +276,12 @@ class TestGoals:
                 return None
 
             def list_skills(self) -> list[dict]:
-                return [{"skill": {"name": "ndvi", "capabilities": ["ndvi"]}, "node_url": "http://n:8787"}]
+                return [
+                    {
+                        "skill": {"name": "ndvi", "capabilities": ["ndvi"]},
+                        "node_url": "http://n:8787",
+                    }
+                ]
 
         monkeypatch.setattr("geonexus.registry.RegistryClient", lambda *a, **k: _Reg())
 
@@ -362,7 +369,12 @@ class TestGoals:
                 return None
 
             def list_skills(self) -> list[dict]:
-                return [{"skill": {"name": "ndvi", "capabilities": ["ndvi"]}, "node_url": "http://n:8787"}]
+                return [
+                    {
+                        "skill": {"name": "ndvi", "capabilities": ["ndvi"]},
+                        "node_url": "http://n:8787",
+                    }
+                ]
 
         monkeypatch.setattr("geonexus.registry.RegistryClient", lambda *a, **k: _Reg())
 

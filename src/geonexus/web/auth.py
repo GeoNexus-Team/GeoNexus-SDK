@@ -149,6 +149,7 @@ def decode_token(config: JWTConfig, token: str) -> dict[str, Any]:
 # FastAPI integration
 # --------------------------------------------------------------------------- #
 
+
 class BearerAuth:
     """FastAPI dependency factory that requires a valid JWT bearer token.
 
@@ -168,13 +169,11 @@ class BearerAuth:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Missing or malformed Authorization header",
             )
-        token = header[len("Bearer "):].strip()
+        token = header[len("Bearer ") :].strip()
         try:
             return decode_token(self.config, token)
         except AuthError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)
-            ) from exc
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
 
 
 class APIKeyAuth:

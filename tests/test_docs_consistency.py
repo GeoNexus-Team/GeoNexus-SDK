@@ -30,8 +30,9 @@ def checker() -> Any:
 
 class TestRealDocs:
     def test_repository_docs_are_consistent(self) -> None:
-        result = subprocess.run([sys.executable, str(SCRIPT)], capture_output=True,
-                                text=True, cwd=CORE)
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT)], capture_output=True, text=True, cwd=CORE
+        )
         assert result.returncode == 0, result.stdout + result.stderr
         assert "文档一致性检查通过" in result.stdout
 
@@ -70,47 +71,55 @@ class TestFalsifiability:
         checker.DOCS = tmp_path
 
     def test_fake_public_name_in_api_table(self, checker: Any, tmp_path: Path) -> None:
-        self._lying_docs(checker, tmp_path, "API_STABILITY.md",
-                         "# API\n\n## Stable public API\n\n"
-                         "| Module | Exported names |\n|---|---|\n"
-                         "| `geonexus.model` | `invoke_model`, `invoke_model_v2` |\n")
+        self._lying_docs(
+            checker,
+            tmp_path,
+            "API_STABILITY.md",
+            "# API\n\n## Stable public API\n\n"
+            "| Module | Exported names |\n|---|---|\n"
+            "| `geonexus.model` | `invoke_model`, `invoke_model_v2` |\n",
+        )
         problems = checker.Problems()
         checker.check_api_table(problems)
         assert any("invoke_model_v2" in item for item in problems.items)
 
     def test_fake_module_in_api_table(self, checker: Any, tmp_path: Path) -> None:
-        self._lying_docs(checker, tmp_path, "API_STABILITY.md",
-                         "# API\n\n## Stable public API\n\n"
-                         "| Module | Exported names |\n|---|---|\n"
-                         "| `geonexus.nowhere` | `Thing` |\n")
+        self._lying_docs(
+            checker,
+            tmp_path,
+            "API_STABILITY.md",
+            "# API\n\n## Stable public API\n\n"
+            "| Module | Exported names |\n|---|---|\n"
+            "| `geonexus.nowhere` | `Thing` |\n",
+        )
         problems = checker.Problems()
         checker.check_api_table(problems)
         assert any("geonexus.nowhere" in item for item in problems.items)
 
     def test_fake_dotted_name_in_prose(self, checker: Any, tmp_path: Path) -> None:
-        self._lying_docs(checker, tmp_path, "FAKE.md",
-                         "用 `geonexus.geotask.TaskRunnerr` 跑任务。\n")
+        self._lying_docs(
+            checker, tmp_path, "FAKE.md", "用 `geonexus.geotask.TaskRunnerr` 跑任务。\n"
+        )
         problems = checker.Problems()
         checker.check_dotted_names(problems)
         assert any("TaskRunnerr" in item for item in problems.items)
 
     def test_fake_geo_method(self, checker: Any, tmp_path: Path) -> None:
-        self._lying_docs(checker, tmp_path, "FAKE.md",
-                         "新方法是 `geo.solve_everything`。\n")
+        self._lying_docs(checker, tmp_path, "FAKE.md", "新方法是 `geo.solve_everything`。\n")
         problems = checker.Problems()
         checker.check_geo_methods(problems)
         assert any("geo.solve_everything" in item for item in problems.items)
 
     def test_fake_path_reference(self, checker: Any, tmp_path: Path) -> None:
-        self._lying_docs(checker, tmp_path, "FAKE.md",
-                         "见 `docs/GHOST.md` 与 `tests/test_ghost.py`。\n")
+        self._lying_docs(
+            checker, tmp_path, "FAKE.md", "见 `docs/GHOST.md` 与 `tests/test_ghost.py`。\n"
+        )
         problems = checker.Problems()
         checker.check_path_refs(problems)
         assert len([i for i in problems.items if "GHOST" in i or "ghost" in i]) == 2
 
     def test_fake_markdown_link(self, checker: Any, tmp_path: Path) -> None:
-        self._lying_docs(checker, tmp_path, "FAKE.md",
-                         "见 [契约](GEOTASK_OLD.md)。\n")
+        self._lying_docs(checker, tmp_path, "FAKE.md", "见 [契约](GEOTASK_OLD.md)。\n")
         problems = checker.Problems()
         checker.check_links(problems)
         assert any("GEOTASK_OLD.md" in item for item in problems.items)
@@ -120,8 +129,10 @@ class TestFalsifiability:
         (tmp_path / "API_STABILITY.md").write_text(
             "# API\n\n## Stable public API\n\n"
             "| Module | Exported names |\n|---|---|\n"
-            "| `geonexus.model` | `totally_made_up` |\n", encoding="utf-8")
-        assert checker.Problems().report() == 0        # 空问题集 → 0
+            "| `geonexus.model` | `totally_made_up` |\n",
+            encoding="utf-8",
+        )
+        assert checker.Problems().report() == 0  # 空问题集 → 0
         problems = checker.Problems()
         checker.check_api_table(problems)
         assert problems.report() == 1, "有问题必须返回非零"

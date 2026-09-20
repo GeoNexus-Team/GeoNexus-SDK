@@ -132,11 +132,7 @@ def list_ogc_records(
     if q:
         params["q"] = q
     try:
-        path = (
-            f"/collections/{collection_id}/items"
-            if collection_id
-            else "/records"
-        )
+        path = f"/collections/{collection_id}/items" if collection_id else "/records"
         data = client.get_json(path, params=params)
         return list(data.get("features") or data.get("records") or [])
     finally:
@@ -159,9 +155,7 @@ def ogc_record_to_geocard(
     self_href = _first_link(links, "self")
     # Prefer a data-download link for access; fall back to self.
     data_href = (
-        _first_link(links, "data", href=None)
-        or _first_link(links, "enclosure")
-        or self_href
+        _first_link(links, "data", href=None) or _first_link(links, "enclosure") or self_href
     )
     fmt = None
     for link in links:
@@ -174,9 +168,7 @@ def ogc_record_to_geocard(
             id=rid,
             type="data",
             name=str(record.get("title") or rid),
-            description=str(
-                record.get("description") or f"OGC API - Records record '{rid}'"
-            ),
+            description=str(record.get("description") or f"OGC API - Records record '{rid}'"),
             geocard_version=geocard_version,
         )
         .tag("ogcapi", "ogcapi-records", "record")

@@ -89,10 +89,19 @@ def query_osm(
             resp.raise_for_status()
             data = resp.json()
             elements = data.get("elements", [])
-            logger.info("OSM query %s @ %s: bbox=%s → %d elements",
-                        query_type, endpoint.split("/")[2], bbox_str, len(elements))
-            return {"elements": elements, "query_type": query_type, "bbox": bbox,
-                    "endpoint": endpoint}
+            logger.info(
+                "OSM query %s @ %s: bbox=%s → %d elements",
+                query_type,
+                endpoint.split("/")[2],
+                bbox_str,
+                len(elements),
+            )
+            return {
+                "elements": elements,
+                "query_type": query_type,
+                "bbox": bbox,
+                "endpoint": endpoint,
+            }
         except Exception as exc:
             last_error = exc
             logger.warning("Overpass mirror %s failed: %s", endpoint, exc)

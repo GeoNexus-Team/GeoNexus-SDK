@@ -55,8 +55,10 @@ class LLMRepair:
             logger.warning("LLMRepair: no LLM API key configured, using fallback repair")
             return
         import httpx
+
         self._client = client or httpx.Client(
-            base_url=self.config.base_url.rstrip("/"), timeout=30.0,
+            base_url=self.config.base_url.rstrip("/"),
+            timeout=30.0,
         )
 
     @property

@@ -18,9 +18,17 @@ from geonexus.cafe import (
 
 def _make_raster(path, val=0.5, w=16, h=16):
     data = np.full((h, w), val, dtype=np.float32)
-    with rasterio.open(path, "w", driver="GTiff", dtype=rasterio.float32, count=1,
-                       width=w, height=h, crs="EPSG:4326",
-                       transform=from_bounds(-10, -5, 10, 5, w, h)) as dst:
+    with rasterio.open(
+        path,
+        "w",
+        driver="GTiff",
+        dtype=rasterio.float32,
+        count=1,
+        width=w,
+        height=h,
+        crs="EPSG:4326",
+        transform=from_bounds(-10, -5, 10, 5, w, h),
+    ) as dst:
         dst.write(data, 1)
     return str(path)
 
@@ -130,7 +138,9 @@ class TestSDKDataFlow:
     def test_federated_pushdown_macro(self, tmp_path):
         """宏流程：Central 分发 → Worker 本地计算 → 结果聚合（不下载原始数据）。"""
         raster = _make_raster(str(tmp_path / "mekong.tif"), val=0.42)
-        worker = WorkerNode("mekong-data", data_assets={"raster": raster}, tags={"region": "mekong"})
+        worker = WorkerNode(
+            "mekong-data", data_assets={"raster": raster}, tags={"region": "mekong"}
+        )
         central = CentralServer().register_worker(worker)
 
         req = PushdownRequest(

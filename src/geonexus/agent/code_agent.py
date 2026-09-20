@@ -109,6 +109,7 @@ class CodeAgent:
         if llm_repair is None:
             try:
                 from .llm_repair import LLMRepair
+
                 self._llm_repair = LLMRepair()
             except Exception:
                 self._llm_repair = None
@@ -118,7 +119,9 @@ class CodeAgent:
         return self._llm_repair is not None and self._llm_repair.available
 
     # ------------------------------------------------------------------ #
-    def run(self, template_key: str, inputs: dict[str, Any], task_id: str | None = None) -> CodeAgentResult:
+    def run(
+        self, template_key: str, inputs: dict[str, Any], task_id: str | None = None
+    ) -> CodeAgentResult:
         """执行一次代码合成任务，含自修复循环。"""
         from uuid import uuid4
 
@@ -175,7 +178,9 @@ class CodeAgent:
             if hint in error and hint.split(":")[0] in ("NameError", "division", "invalid"):
                 if hint.startswith("NameError: name 'np'") and "import numpy" not in fixed:
                     fixed = "import numpy as np\n" + fixed
-                elif hint.startswith("NameError: name 'rasterio'") and "import rasterio" not in fixed:
+                elif (
+                    hint.startswith("NameError: name 'rasterio'") and "import rasterio" not in fixed
+                ):
                     fixed = "import rasterio\n" + fixed
                 break
         return fixed
@@ -184,6 +189,7 @@ class CodeAgent:
 # --------------------------------------------------------------------------- #
 # 默认 codegen（基于模板）与 sandbox executor
 # --------------------------------------------------------------------------- #
+
 
 def default_codegen(template_key: str, inputs: dict[str, Any]) -> str:
     """合约感知模板选择：根据输入/操作类型挑选代码模板。"""

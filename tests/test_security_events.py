@@ -15,6 +15,7 @@ from geonexus.security import AccessRequest, PolicyDecision, SecurityGateway
 # Security Gateway
 # --------------------------------------------------------------------------- #
 
+
 class TestSecurityGateway:
     def test_allow_public_read(self):
         gw = SecurityGateway()
@@ -29,7 +30,9 @@ class TestSecurityGateway:
     def test_deny_cross_region_secret(self):
         gw = SecurityGateway()
         req = AccessRequest(
-            subject="user2", action="read", region="eu",
+            subject="user2",
+            action="read",
+            region="eu",
             sensitivity="secret",
         )
         decision = gw.evaluate(req)
@@ -46,7 +49,9 @@ class TestSecurityGateway:
     def test_allow_internal_region(self):
         gw = SecurityGateway()
         req = AccessRequest(
-            subject="admin1", action="write", region="admin",
+            subject="admin1",
+            action="write",
+            region="admin",
             sensitivity="restricted",
             metadata={"user_region": "admin"},
         )
@@ -54,7 +59,12 @@ class TestSecurityGateway:
 
     def test_custom_rule(self):
         gw = SecurityGateway()
-        gw.add_rule("allow_test", lambda req: PolicyDecision(True, "test rule", "allow_test") if req.action == "ping" else None)
+        gw.add_rule(
+            "allow_test",
+            lambda req: (
+                PolicyDecision(True, "test rule", "allow_test") if req.action == "ping" else None
+            ),
+        )
         assert gw.is_allowed(AccessRequest(action="ping"))
         assert not gw.is_allowed(AccessRequest(action="delete"))
 
@@ -72,6 +82,7 @@ class TestSecurityGateway:
 # --------------------------------------------------------------------------- #
 # SSE Events
 # --------------------------------------------------------------------------- #
+
 
 class TestSSEEvents:
     def setup_method(self):
@@ -111,12 +122,16 @@ class TestSSEEvents:
 # Neo4j Store
 # --------------------------------------------------------------------------- #
 
+
 class TestNeo4jStore:
     def test_from_env_empty(self):
         store = Neo4jStore.from_env()
         assert store is None  # No NEO4J_URI in test env
 
-    @patch.dict("os.environ", {"NEO4J_URI": "bolt://localhost:7687", "NEO4J_USER": "neo4j", "NEO4J_PASSWORD": "test"})
+    @patch.dict(
+        "os.environ",
+        {"NEO4J_URI": "bolt://localhost:7687", "NEO4J_USER": "neo4j", "NEO4J_PASSWORD": "test"},
+    )
     def test_from_env_with_uri(self):
         store = Neo4jStore.from_env()
         assert store is not None
@@ -132,6 +147,7 @@ class TestNeo4jStore:
         store._driver = None
         results = store.search("test")
         assert results == []
+
 
 class TestEventSequence:
     """事件必须带 seq —— 否则客户端无法判断丢帧、重连无法去重。

@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class OgeCredential:
     """OGE 凭证快照 — 由外部（Java mgbackend）配置和管理。"""
+
     endpoint: str = "http://openge.org.cn/api"
     username: str = ""
     password: str = ""
@@ -34,6 +35,7 @@ class OgeCredential:
 @dataclass
 class OgeCredentialCache:
     """OGE 凭证缓存 — 运行时状态，不持久化。"""
+
     jwt_token: str = ""
     jwt_expire_at: float = 0
     app_key: str = ""  # tk (apk.xxx)

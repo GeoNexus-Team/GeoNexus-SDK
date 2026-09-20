@@ -97,9 +97,10 @@ def _make_session_factory(
 
         @asynccontextmanager
         async def _session() -> Any:
-            async with stdio_client(stdio_params) as (read, write), session_cls(
-                read, write
-            ) as session:
+            async with (
+                stdio_client(stdio_params) as (read, write),
+                session_cls(read, write) as session,
+            ):
                 await session.initialize()
                 yield session
 
@@ -114,10 +115,13 @@ def _make_session_factory(
             import httpx
 
             http_client: Any = httpx.AsyncClient(headers=http_headers or {})
-            async with streamable_http_client(
-                url,
-                http_client=http_client,
-            ) as (read, write), session_cls(read, write) as session:
+            async with (
+                streamable_http_client(
+                    url,
+                    http_client=http_client,
+                ) as (read, write),
+                session_cls(read, write) as session,
+            ):
                 await session.initialize()
                 yield session
 
@@ -131,9 +135,7 @@ class MCPTool:
     name: str
     description: str = ""
     input_schema: dict[str, Any] = field(default_factory=dict)
-    _call: Callable[[dict[str, Any]], dict[str, Any]] | None = field(
-        default=None, repr=False
-    )
+    _call: Callable[[dict[str, Any]], dict[str, Any]] | None = field(default=None, repr=False)
 
     def to_skill(self, prefix: str = "") -> Skill:
         """Wrap this MCP tool as a GeoSkill.
@@ -254,13 +256,9 @@ class MCPToolClient:
     def call_tool(self, tool_name: str, params: dict[str, Any]) -> dict[str, Any]:
         """Invoke one tool on the server and return a plain dict."""
         _require_sdk()
-        return _run_async(
-            self._call_tool_async(tool_name, params), timeout=self.timeout
-        )
+        return _run_async(self._call_tool_async(tool_name, params), timeout=self.timeout)
 
-    async def _call_tool_async(
-        self, tool_name: str, params: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def _call_tool_async(self, tool_name: str, params: dict[str, Any]) -> dict[str, Any]:
         async with self._session_factory() as session:
             result = await session.call_tool(tool_name, arguments=params)
             return _tool_result_to_dict(result)
@@ -342,6 +340,7 @@ def _run_async(coro: Any, timeout: float) -> Any:
     handlers work from any thread — including FastAPI thread-pool contexts
     where a running loop is visible and ``asyncio.run`` would raise.
     """
+
     async def _guarded() -> Any:
         return await asyncio.wait_for(coro, timeout=timeout)
 

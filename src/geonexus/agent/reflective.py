@@ -249,18 +249,14 @@ class ReflectiveExecutor(PlanExecutor):
                 s
                 for s in plan.steps
                 if s.status == "failed"
-                and not any(
-                    by_id[d].status == "failed" for d in s.depends_on if d in by_id
-                )
+                and not any(by_id[d].status == "failed" for d in s.depends_on if d in by_id)
             ]
             if not failed:
                 break
             step = failed[0]
             context = self._context_summary(plan, by_id)
             advice = self._advise(plan, step, context)
-            step.reflections.append(
-                {**advice.to_dict(), "round": reflections_used + 1}
-            )
+            step.reflections.append({**advice.to_dict(), "round": reflections_used + 1})
             reflections_used += 1
             logger.info(
                 "Reflection %d on step %d: %s (%s)",
@@ -326,10 +322,16 @@ class ReflectiveExecutor(PlanExecutor):
             if step.status == "done" and step.result is not None:
                 outputs = step.result.get("outputs", {})
                 summary = {
-                    k: (str(v)[:120] if not isinstance(v, dict) else {kk: str(vv)[:60] for kk, vv in list(v.items())[:5]})
+                    k: (
+                        str(v)[:120]
+                        if not isinstance(v, dict)
+                        else {kk: str(vv)[:60] for kk, vv in list(v.items())[:5]}
+                    )
                     for k, v in list(outputs.items())[:5]
                 }
-                lines.append(f"  step {step.step_id} ({step.skill}): OK outputs={json.dumps(summary, ensure_ascii=False)}")
+                lines.append(
+                    f"  step {step.step_id} ({step.skill}): OK outputs={json.dumps(summary, ensure_ascii=False)}"
+                )
             elif step.status == "skipped":
                 lines.append(f"  step {step.step_id} ({step.skill}): skipped")
         return "\n".join(lines)
@@ -379,7 +381,8 @@ def evaluate_plan(
                     "error": s.error,
                     "outputs": (
                         {k: str(v)[:120] for k, v in (s.result or {}).get("outputs", {}).items()}
-                        if s.result else None
+                        if s.result
+                        else None
                     ),
                 }
                 for s in plan.steps
