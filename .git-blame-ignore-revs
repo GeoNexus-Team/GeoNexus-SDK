@@ -1,0 +1,10 @@
+# 机械式重排/格式化提交——`git blame` 与 GitHub 的 blame 视图跳过它们。
+#
+# 本地启用（每份克隆一次）：
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# GitHub 会自动读取本文件，无需配置。
+#
+# 只放**纯格式化**提交：语义有变化的提交放进来会让 blame 指向错误的地方。
+
+# style: apply ruff format (88 → 100 column drift)
+c72dfe99c94d9c6b0e2112a84c2f36ae4ff99461

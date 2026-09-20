@@ -45,7 +45,10 @@ Changelog = "https://github.com/geonexus/geonexus/blob/main/CHANGELOG.md"
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4",
-    "ruff>=0.6",
+    # Pinned: the formatter's output is version-dependent, and an unpinned
+    # range silently re-formats the whole repo on a new release.
+    "ruff==0.16.7",
+    "pre-commit>=3.7",
     "mypy>=1.10",
     "build>=1.2",
     "coverage>=7.4",
@@ -72,6 +75,17 @@ target-version = "py310"
 line-length = 100
 src = ["src"]
 exclude = [".venv", "output", "build", "dist"]
+
+[tool.ruff.format]
+# 不格式化 Markdown 里的 Python 示例代码。ruff 会把 ```python 代码块当源码处理，
+# 于是文档里**有意对齐的注释列**会被压成两个空格——那是排版，不是代码风格问题：
+#
+#     task_id: str                    # 全局唯一，同时是幂等键
+#     kind: TaskKind                  # skill | model | batch | composite
+#
+# 示例片段的正确性由 tests/test_docs_consistency.py（名字/路径存在性）与文档评审保证，
+# 不由格式化器保证。
+exclude = ["docs", "**/*.md"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]

@@ -1,0 +1,13 @@
+# 本地钩子：把 CI 的两道闸前移到提交前，避免再出现"88 列文件溜进来"。
+#
+#   pip install pre-commit && pre-commit install
+#
+# 版本必须与 pyproject.toml 里钉住的 ruff 一致——格式化器的输出是版本相关的，
+# 两边不一致就会"本地过、CI 红"。
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.7
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format

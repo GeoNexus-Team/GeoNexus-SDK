@@ -4,7 +4,7 @@ PIP     = $(PYTHON) -m pip
 CLI     = $(PYTHON) -m geonexus.cli
 PYTEST  = $(PYTHON) -m pytest
 
-.PHONY: venv install dev test card node demo clean structure
+.PHONY: venv install dev test card node demo clean structure lint fmt hooks
 
 ## Create the virtual environment (Python 3.11+ recommended)
 venv:
@@ -32,6 +32,20 @@ node:
 ## Run the Amazon NDVI demo (synthetic data)
 demo:
 	$(CLI) demo amazon-ndvi
+
+## Check lint and formatting (same gates as CI)
+lint:
+	$(PYTHON) -m ruff check .
+	$(PYTHON) -m ruff format --check .
+
+## Apply formatting (line-length = 100, per pyproject.toml)
+fmt:
+	$(PYTHON) -m ruff format .
+	$(PYTHON) -m ruff check --fix .
+
+## Install the git hooks (one-time, per clone)
+hooks:
+	$(PYTHON) -m pre_commit install
 
 ## Remove generated artifacts
 clean:
