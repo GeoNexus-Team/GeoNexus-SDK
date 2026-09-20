@@ -101,7 +101,7 @@ in federated deployments.
 ## Async tasks
 
 `run_goal` / `execute` are synchronous SDK calls; the Web layer runs them on
-a background thread pool (`TaskManager`) and returns a `task_id` immediately.
+a background thread pool and returns a `task_id` immediately.
 
 - `queued → running → done | failed | cancelled`
 - `GET /api/tasks/{id}` returns `result` only when done.
@@ -111,6 +111,39 @@ a background thread pool (`TaskManager`) and returns a `task_id` immediately.
 - `GET /api/tasks/{id}/stream` is SSE (`data: {json}\n\n` per state change).
 - `TaskManager(persist=...)` accepts a callback for pluggable persistence
   (JSONL / Redis / Postgres) for horizontally scaled deployments.
+
+**These five bullet points are unchanged, but the internals are not.**
+`TaskManager` is now an **adapter view over `geonexus.geotask`**: state lives in a
+`TaskStore` (in-memory or JSON), transitions go through the GeoTask state machine,
+and every transition also emits a sequence-numbered event that can be replayed
+with `events_since()`. The Web vocabulary (`done`) and the GeoTask one
+(`succeeded`) are kept apart on purpose — the strings above are the external
+contract, so the projection happens at this boundary
+(`WEB_TO_STATE` / `STATE_TO_WEB`, see `docs/GEOTASK.md` §8.2).
+
+Two consequences worth knowing:
+
+- `get()` / `list()` are projections. If you need the full task (dependencies,
+  resources, retry policy, attempt count, lease, error retryability), read
+  `task_manager.store`.
+- Because the store is pluggable, restart reconciliation is available:
+  `store.reconcile()` decides by lease whether a `running` task lost its executor
+  (`failed(executor_lost)`) or should go back to the queue. Nothing about a dead
+  process is ever reported as still running.
+
+For operators, `geonexus task` inspects and reconciles a task store file:
+
+```bash
+geonexus task list      --state geotask.json
+geonexus task show      <task_id> --state geotask.json
+geonexus task events    <task_id> --since 3 --state geotask.json
+geonexus task reconcile --state geotask.json
+```
+
+`task` deliberately offers no submit or cancel: cancellation is cooperative, so a
+second process flipping a flag in a file would change nothing while looking like
+it worked. Submitting and cancelling belong to the process that owns the task
+(the HTTP API or the agent).
 
 ## Reflective goals (v1.1)
 

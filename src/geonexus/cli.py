@@ -14,6 +14,7 @@ Commands::
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
 import sys
@@ -502,6 +503,145 @@ def cmd_registry_skill_list(args: argparse.Namespace) -> int:
         skill = entry["skill"]
         caps = ", ".join(skill["capabilities"]) or "-"
         print(f"  - {skill['name']}: {skill['description']} [{caps}] -> {entry['node_url']}")
+    return 0
+
+
+# --------------------------------------------------------------------------- #
+# GeoTask 运维命令
+# --------------------------------------------------------------------------- #
+# 为什么 CLI 只做"看 + 对账"，不做提交/取消：
+# GeoTask 的取消是**协作式**的——请求取消只是置一个标志，真正生效要靠**拥有该
+# 任务的进程**在步骤边界检查它。另一个进程读同一个状态文件看到的是快照，
+# 置了标志也不会有人去读，于是"取消成功"会是个谎。
+# 因此提交与取消留在拥有任务的入口（HTTP API / agent），CLI 负责事后核查，
+# 其中 `reconcile` 正是"进程崩溃后不许把死任务报成 running"那条契约的运维工具。
+def _open_task_store(args: argparse.Namespace) -> Any:
+    from .geotask import JsonTaskStore
+
+    path = Path(args.state)
+    if not path.exists():
+        return None
+    return JsonTaskStore(path)
+
+
+def _task_state_counts(tasks: list[Any]) -> str:
+    counts: dict[str, int] = {}
+    for task in tasks:
+        counts[task.state.value] = counts.get(task.state.value, 0) + 1
+    return ", ".join(f"{k} {v}" for k, v in sorted(counts.items()))
+
+
+def cmd_task_list(args: argparse.Namespace) -> int:
+    store = _open_task_store(args)
+    if store is None:
+        print(f"没有任务状态文件: {args.state}")
+        print("它由运行中的服务产生（配置 JsonTaskStore 的那个进程）。")
+        return 0
+    tasks = store.list(limit=args.limit)
+    if args.json:
+        print(json.dumps([t.to_dict() for t in tasks], indent=2, ensure_ascii=False))
+        return 0
+    if not tasks:
+        print(f"状态文件里没有任务: {args.state}")
+        return 0
+    print(f"{len(tasks)} 个任务（{_task_state_counts(tasks)}）")
+    print()
+    print(f"  {'task_id':34} {'state':10} {'kind':10} {'try':>3} {'progress':>8}  description")
+    print(f"  {'-' * 34} {'-' * 10} {'-' * 10} {'-' * 3} {'-' * 8}  {'-' * 20}")
+    for task in tasks:
+        print(f"  {task.task_id:34} {task.state.value:10} {task.kind.value:10} "
+              f"{task.attempt:>3} {task.progress:>8.2f}  {task.description}")
+    return 0
+
+
+def cmd_task_show(args: argparse.Namespace) -> int:
+    store = _open_task_store(args)
+    if store is None:
+        print(f"没有任务状态文件: {args.state}", file=sys.stderr)
+        return 1
+    task = store.get(args.task_id)
+    if task is None:
+        print(f"ERROR: 未知任务 {args.task_id}", file=sys.stderr)
+        return 1
+    events, latest = store.events_since(args.task_id)
+    if args.json:
+        print(json.dumps({"task": task.to_dict(), "events": events,
+                          "latest_seq": latest}, indent=2, ensure_ascii=False))
+        return 0
+    data = task.to_dict()
+    print("=" * 78)
+    print(f" 任务 {task.task_id}    {task.state.value}    {task.kind.value}")
+    print("=" * 78)
+    print()
+    for key in ("description", "attempt", "progress", "message", "scheduled_to",
+                "lease_expires_at", "created_at", "started_at", "finished_at"):
+        print(f"  {key:16}: {data.get(key)}")
+    if task.error:
+        print(f"  {'error.code':16}: {task.error.code}"
+              f"{'（可重试）' if task.error.retryable else '（不可重试）'}")
+        print(f"  {'error.message':16}: {task.error.message}")
+    if task.depends_on:
+        print(f"  {'depends_on':16}: {', '.join(task.depends_on)}")
+    if task.result:
+        print(f"  {'outputs':16}: {json.dumps(task.result.outputs, ensure_ascii=False)[:200]}")
+    print(f"  {'events':16}: {latest} 条（seq 1..{latest}）")
+    return 0
+
+
+def cmd_task_events(args: argparse.Namespace) -> int:
+    store = _open_task_store(args)
+    if store is None:
+        print(f"没有任务状态文件: {args.state}", file=sys.stderr)
+        return 1
+    if store.get(args.task_id) is None:
+        print(f"ERROR: 未知任务 {args.task_id}", file=sys.stderr)
+        return 1
+    from .geotask import EventHistoryGone
+
+    try:
+        events, latest = store.events_since(args.task_id, since=args.since)
+    except EventHistoryGone as exc:
+        # 事件历史被保留窗口裁掉了：必须报错，不能静默从头开始（会让客户端重复处理）
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    if args.json:
+        print(json.dumps({"events": events, "latest_seq": latest},
+                         indent=2, ensure_ascii=False))
+        return 0
+    if not events:
+        print(f"没有 seq > {args.since} 的事件（最新 seq={latest}）")
+        return 0
+    print(f"{len(events)} 条事件（since={args.since}, latest={latest}）")
+    print()
+    for event in events:
+        data = event["data"]
+        detail = data.get("to") or data.get("message") or data.get("code") or ""
+        if event["event"] == "task.progress":
+            detail = f'{data.get("progress", 0):.2f} {data.get("message", "")}'.strip()
+        print(f"  #{event['seq']:<4} try={event['attempt']} {event['event']:20} {detail}")
+    return 0
+
+
+def cmd_task_reconcile(args: argparse.Namespace) -> int:
+    """对状态文件做重启对账：没有存活执行者的任务不许继续报 running。"""
+    store = _open_task_store(args)
+    if store is None:
+        print(f"没有任务状态文件: {args.state}", file=sys.stderr)
+        return 1
+    report = store.reconcile(now=args.now)
+    if args.json:
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+        return 0
+    print("=" * 78)
+    print(" GeoTask 重启对账")
+    print("=" * 78)
+    print()
+    print(f"  检查了 {report['checked']} 个 scheduled/running 任务")
+    print(f"  退回队列 {report['requeued']} 个（还有重试余量）")
+    print(f"  判为失败 {report['failed']} 个（executor_lost：执行者已不在）")
+    if not report["checked"]:
+        print()
+        print("  没有需要处理的任务。")
     return 0
 
 
@@ -1517,6 +1657,47 @@ def build_parser() -> argparse.ArgumentParser:
     p_mcp_run.add_argument("--name", default="local-node")
     p_mcp_run.add_argument("--bare", action="store_true", help="No demo assets")
     p_mcp_run.set_defaults(func=cmd_mcp_run)
+    task = sub.add_parser(
+        "task",
+        help="GeoTask 运维：查看任务与事件、重启对账",
+        description=(
+            "GeoTask 运维命令。刻意**不提供**提交与取消：取消是协作式的，"
+            "只有拥有任务的进程在步骤边界检查标志才会生效，另一个进程改状态文件"
+            "看到的是快照、置了标志也没人读。提交/取消走拥有任务的入口"
+            "（HTTP API 或 agent），CLI 负责事后核查与对账。"
+        ),
+    )
+    task_sub = task.add_subparsers(dest="task_command", required=True)
+    p_task_list = task_sub.add_parser("list", help="列出任务")
+    p_task_list.add_argument("--state", default="geotask.json",
+                             help="状态文件（JsonTaskStore 写的那个）")
+    p_task_list.add_argument("--limit", type=int, default=50, help="最多列多少条")
+    p_task_list.add_argument("--json", action="store_true", help="输出 JSON")
+    p_task_list.set_defaults(func=cmd_task_list)
+
+    p_task_show = task_sub.add_parser("show", help="查看单个任务")
+    p_task_show.add_argument("task_id")
+    p_task_show.add_argument("--state", default="geotask.json")
+    p_task_show.add_argument("--json", action="store_true", help="输出 JSON")
+    p_task_show.set_defaults(func=cmd_task_show)
+
+    p_task_events = task_sub.add_parser(
+        "events", help="回放任务事件（seq > since，无重复无空洞）")
+    p_task_events.add_argument("task_id")
+    p_task_events.add_argument("--state", default="geotask.json")
+    p_task_events.add_argument("--since", type=int, default=0,
+                               help="只回放 seq 大于该值的事件（客户端重连时用）")
+    p_task_events.add_argument("--json", action="store_true", help="输出 JSON")
+    p_task_events.set_defaults(func=cmd_task_events)
+
+    p_task_reconcile = task_sub.add_parser(
+        "reconcile", help="重启对账：把无执行者的 running 任务判失败或退回队列")
+    p_task_reconcile.add_argument("--state", default="geotask.json")
+    p_task_reconcile.add_argument("--now", type=float, default=None,
+                                  help="用这个时间戳（默认现在）判断租约是否过期")
+    p_task_reconcile.add_argument("--json", action="store_true", help="输出 JSON")
+    p_task_reconcile.set_defaults(func=cmd_task_reconcile)
+
     p_mcp_serve = mcp_sub.add_parser("serve", help="Run the MCP bridge over Streamable HTTP (V1.0)")
     p_mcp_serve.add_argument("--host", default="127.0.0.1")
     p_mcp_serve.add_argument("--port", type=int, default=9000)

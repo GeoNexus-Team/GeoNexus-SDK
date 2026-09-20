@@ -101,6 +101,12 @@ python3.12 -m venv .venv
 # Natural-language goal via an OpenAI-compatible LLM (needs GEONEXUS_LLM_API_KEY)
 # .venv/bin/geonexus agent ask "分析亚马逊雨林 2015 与 2025 的植被变化"
 
+# GeoTask ops: inspect tasks and events, reconcile after a restart
+# (submit/cancel belong to the process that owns the task — see docs/GEOTASK.md)
+.venv/bin/geonexus task list      --state geotask.json
+.venv/bin/geonexus task events    <task_id> --since 3 --state geotask.json
+.venv/bin/geonexus task reconcile --state geotask.json
+
 # Run the MCP bridges (GeoMCP over Model Context Protocol)
 .venv/bin/geonexus mcp run --bare        # stdio (local AI assistants)
 .venv/bin/geonexus mcp serve --port 9000 # Streamable HTTP (remote clients)

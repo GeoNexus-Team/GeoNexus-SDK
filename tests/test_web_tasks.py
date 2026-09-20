@@ -12,6 +12,7 @@ from geonexus.web.tasks import (
     DONE,
     FAILED,
     QUEUED,
+    RUNNING,
     TaskManager,
     TaskNotCancellableError,
     TaskNotFoundError,
@@ -144,3 +145,97 @@ class TestTaskManager:
             assert tm.get(second)["status"] == QUEUED
             tm.wait(first, timeout=10)
             tm.wait(second, timeout=10)
+
+
+# --------------------------------------------------------------------------- #
+# 适配器契约：Web 层用的确实是 GeoTask
+# --------------------------------------------------------------------------- #
+class TestGeoTaskAdapter:
+    """`web.TaskManager` 是 GeoTask 的适配器视图，不是另一套实现。
+
+    对外行为（11 项旧测试）不变，但内部必须真的走 GeoTask——否则"统一任务模型"
+    只是说法。这里用 GeoTask 自己的事件流与状态机来证明这一点。
+    """
+
+    def test_transitions_are_recorded_as_seq_events(self) -> None:
+        """每次状态迁移都产生带 seq 的事件——这是 GeoTask 事件契约的形态。"""
+        with TaskManager() as tm:
+            tid = tm.submit(lambda: "x")
+            tm.wait(tid, timeout=10)
+            events, latest = tm.store.events_since(tid)
+
+        assert [e["seq"] for e in events] == list(range(1, latest + 1)), "seq 必须无洞"
+        kinds = [e["event"] for e in events]
+        assert kinds[0] == "task.created"
+        assert "task.state_changed" in kinds
+        states = [e["data"]["to"] for e in events if e["event"] == "task.state_changed"]
+        assert states == ["queued", "scheduled", "running", "succeeded"], states
+
+    def test_store_is_the_single_source_of_truth(self) -> None:
+        """``get()`` 只是投影：store 里的状态与它必须一致。"""
+        with TaskManager() as tm:
+            tid = tm.submit(lambda: 1)
+            tm.wait(tid, timeout=10)
+            stored = tm.store.require(tid)
+            view = tm.get(tid)
+
+        assert stored.state.value == "succeeded"
+        assert view["status"] == DONE
+
+    def test_cancel_flag_lives_on_the_geotask(self) -> None:
+        """协作式取消的标志放在 GeoTask 上，`should_cancel` 读的就是它。"""
+        import threading as _t
+
+        gate = _t.Event()
+        with TaskManager() as tm:
+            tid = tm.submit(lambda: gate.wait(10))
+            time.sleep(0.1)
+            tm.cancel(tid)
+            assert tm.store.require(tid).cancel_requested is True
+            assert tm.should_cancel(tid) is True
+            gate.set()
+            tm.wait(tid, timeout=10)
+
+    def test_callables_never_enter_the_serializable_spec(self) -> None:
+        """可调用对象必须在侧表里。
+
+        ``spec`` 要能 JSON 序列化（落盘、进事件）；把函数塞进去会让 to_dict() 崩。
+        """
+        import json
+
+        with TaskManager() as tm:
+            tid = tm.submit(lambda: "x")
+            task = tm.store.require(tid)
+            json.dumps(task.to_dict())      # 抛异常即失败
+            assert task.spec == {"handler": "__web_callable__"}
+
+
+class TestVocabularyProjection:
+    """§8.2 的词表投影：Web 用 done/queued，GeoTask 用 succeeded/…。"""
+
+    def test_mapping_is_total_and_inverse(self) -> None:
+        from geonexus.geotask import TaskState
+        from geonexus.web.tasks import STATE_TO_WEB, WEB_TO_STATE
+
+        # 每个 GeoTask 状态都要有 Web 投影（全函数），否则投影时会 KeyError
+        assert set(STATE_TO_WEB) == set(TaskState)
+        # 每个 Web 词都要有反向映射
+        assert set(WEB_TO_STATE) == {QUEUED, RUNNING, DONE, FAILED, CANCELLED}
+        # 五个 Web 词都能往返
+        for word, state in WEB_TO_STATE.items():
+            assert STATE_TO_WEB[state] == word
+
+    def test_internal_states_merge_into_queued(self) -> None:
+        """created/scheduled/blocked 对外都是 queued：调用方只关心"还没跑"。"""
+        from geonexus.geotask import TaskState
+        from geonexus.web.tasks import STATE_TO_WEB
+
+        for state in (TaskState.CREATED, TaskState.SCHEDULED, TaskState.BLOCKED):
+            assert STATE_TO_WEB[state] == QUEUED
+
+    def test_skipped_projects_to_cancelled_not_done(self) -> None:
+        """跳过没有产出，投影成 done 就是撒谎。"""
+        from geonexus.geotask import TaskState
+        from geonexus.web.tasks import STATE_TO_WEB
+
+        assert STATE_TO_WEB[TaskState.SKIPPED] == CANCELLED

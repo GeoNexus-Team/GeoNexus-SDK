@@ -438,11 +438,28 @@ class ExecutionBackend(Protocol):
 
 | 项 | 为什么还没做 |
 |---|---|
-| `web.TaskManager` 改为 GeoTask 适配器 | 需要把 `done/queued` 那套旧词表在**边界投影**回去（契约 §8.2），是 287 行的重写；`tests/test_web_tasks.py` 的 11 项是回归防线，值得单独一轮做 |
-| HTTP + CLI 提交/查询/取消 + SSE | 依赖适配器先定型，否则会有两套任务 API 并存 |
+| ~~`web.TaskManager` 改为 GeoTask 适配器~~ | ✅ **已完成**：状态归 `TaskStore`，边界做词表投影（`WEB_TO_STATE`/`STATE_TO_WEB`）；11 项旧测试未改动即通过 |
+| ~~HTTP + CLI + SSE~~ | ✅ **已完成**：16 条 web 路由（含 SSE）全部转为 GeoTask 支撑；新增 `geonexus task list/show/events/reconcile`。CLI **刻意不做**提交/取消——取消是协作式的，异进程改标志无人读，详见 §10.1 |
 | ~~`agent.PlanExecutor` 改用就绪集并行~~ | ✅ **已完成**（见下） |
 | `TaskRouter` 调度策略（数据本地性+算力余量+合规） | 路线图 Phase 2 |
 | 资源占用记账 | 路线图 Phase 4 |
 
 > 换句话说：**能力已具备且被证明，但还没接到用户入口上**。这几项都不改变本文契约——
 > 它们是把契约接到既有入口，而不是改契约。
+
+### 10.1 为什么 CLI 不做提交与取消
+
+取消是**协作式**的（契约 §3.4）：请求取消只是置一个标志，真正生效要靠**拥有该
+任务的进程**在步骤边界去读它。另一个进程读同一个状态文件看到的是快照——置了标志
+也不会有人去读，于是"取消成功"会是个谎。
+
+因此职责这样分：
+
+| 动作 | 由谁做 | 为什么 |
+|---|---|---|
+| 提交 / 取消 | 拥有任务的入口（HTTP API、agent） | 只有它能在步骤边界响应标志 |
+| 查看 / 事件回放 | CLI（`task list\|show\|events`） | 纯读，跨进程安全 |
+| 重启对账 | CLI（`task reconcile`） | 纯文件操作，正是崩溃后需要的那个工具 |
+
+`tests/test_cli.py::TestTaskCli::test_subcommands_are_exactly_inspection_and_reconcile`
+钉住这个决定：有人加 `task cancel` 时它会先失败。

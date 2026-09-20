@@ -190,7 +190,7 @@ TaskRouter 选节点/服务 ──▶ InferenceBackend（HTTP/gRPC）
 > 用 strict xfail 而不是让套件直接变红：一整套红的测试会淹没**新出现的**回归。
 > 想看真实的红，加 `--runxfail` 即可。
 
-### Phase 1 — GeoTask 模型 + 本地执行后端（1.5 周）🟡 **核心完成，入口待接**
+### Phase 1 — GeoTask 模型 + 本地执行后端（1.5 周）✅ **已完成**
 
 - `geonexus/geotask/`：`GeoTask`、`TaskState`、`TaskStore`(memory/JSON)、
   `TaskGraph`（依赖、拓扑、**就绪集并行**）、状态机与取消
@@ -209,11 +209,11 @@ TaskRouter 选节点/服务 ──▶ InferenceBackend（HTTP/gRPC）
 **已交付**：`geonexus/geotask/`（model / machine / events / store 内存+JSON / graph /
 backend / runner）、`LocalBackend` 线程池、`cafe.events` 补 `seq`+`latest_seq`。
 
-**Phase 1 剩余（已明确，不改变契约）**
+**Phase 1 剩余（除 `TaskRouter` 属 Phase 2 外均已完成）**
 | 项 | 说明 |
 |---|---|
-| `web.TaskManager` → GeoTask 适配器 | 需在边界把 `done/queued` 旧词表投影回去（契约 §8.2）；11 项 web 测试是防线 |
-| HTTP + CLI 提交/查询/取消 + SSE | 依赖适配器先定型，避免两套任务 API 并存 |
+| ~~`web.TaskManager` → GeoTask 适配器~~ | ✅ **已完成**（契约 §8.2 投影；11 项旧测试未改动即通过） |
+| ~~HTTP + CLI + SSE~~ | ✅ **已完成**：16 条 web 路由（SSE 在内）转为 GeoTask 支撑；新增 `geonexus task list/show/events/reconcile` |
 | ~~`agent.PlanExecutor` 改用就绪集~~ | ✅ **已完成**：模板依赖显式化 + 栅栏法证明并行 + 失败文案逐字保留 |
 | `TaskRouter` 调度策略 | 属 Phase 2 |
 
