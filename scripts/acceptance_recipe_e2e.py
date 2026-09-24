@@ -246,6 +246,22 @@ def main() -> int:  # noqa: PLR0915 - a linear checklist is the point
         check("方案进入目录（approved）", reg.returncode == 0,
               (reg.stdout or reg.stderr).strip().splitlines()[0] if (reg.stdout or reg.stderr) else "")
 
+        # 方案的 steps[].uses 指向的算子也登记成卡片（type: skill）：
+        # 组合案例的可见性由组成项推出，目录里没有 = 解析不到 = 整案不可见。
+        # 只登记方案 requires 里的**数据**卡片：可见性继承看的是承载内容的组成项。
+        # 算子（如 "2026.9.16 SDG15.3.1"）常常只是个名字，本就不该因为"不在目录里"
+        # 而让整案不可见 —— 而且它含空格，压根不是合法的卡片 id。
+        data_cards = ("geocard.packed.menggu", "geocard.oge.lc08-l2", "report.sdg1531.mng.2019")
+        for card_id in data_cards:
+            status, _, body = call(
+                f"http://127.0.0.1:{reg_port}/cards", "POST",
+                {"card": {"geocard_version": "1.0", "id": card_id, "type": "knowledge",
+                          "name": card_id, "description": "验收数据资产",
+                          "compliance": {"sensitivity": "public"}},
+                 "node_url": f"http://127.0.0.1:{node_port}", "status": "approved"})
+            if status >= 400:
+                print(f"  WARN: component card {card_id} -> {status} {body}")
+
         (scripts / "run_node.py").write_text(
             NODE_SOURCE.format(core_src=str(ROOT / "src"), scripts=str(scripts),
                                port=node_port, workdir=str(artifacts), recipes=str(recipes),
@@ -274,6 +290,7 @@ def main() -> int:  # noqa: PLR0915 - a linear checklist is the point
             "SDK_WEB_PASSWORD": "admin",
             "ARTIFACT_ROOTS": str(artifacts),
             "IDENTITY_BASE_URL": "",
+            "ADMIN_EMAILS": "acceptance@test.local",
         }
         spawn(["node", "server.js"], PLATFORM, env=plat_env, name="platform BFF")
         base = f"http://127.0.0.1:{plat_port}"
@@ -348,11 +365,17 @@ def main() -> int:  # noqa: PLR0915 - a linear checklist is the point
         check("未过审的派生件不能运行（2005）",
               pending_run[0] == 404 and pending_run[1].get("code") == 2005,
               f"status={pending_run[0]} body={json.dumps(pending_run[1], ensure_ascii=False)[:300]}")
-        approved = call(
-            f"http://127.0.0.1:{reg_port}/recipes/{forked_id}/approve", "POST",
-            {"by": "acceptance", "note": "验收：口径已核对"})
-        check("派生件过审", approved[0] == 200 and approved[1].get("status") == "approved",
-              f"status={approved[0]}")
+        approval_id = (forked[1].get("approval") or {}).get("id")
+        check("fork 同时生成平台审批单", bool(approval_id), str(approval_id))
+        approved = call(f"{base}/api/approvals/{approval_id}/decide", "POST",
+                        {"decision": "approve", "note": "验收：口径已核对"}, token=token)
+        check("在平台审批 → SDK 侧 approved",
+              approved[0] == 200 and approved[1].get("item", {}).get("sdkState") == "approved",
+              json.dumps(approved[1], ensure_ascii=False)[:200])
+        sdk_state = call(f"http://127.0.0.1:{reg_port}/recipes/{forked_id}")[1]
+        check("SDK 目录里确实是 approved",
+              (sdk_state.get("entry") or {}).get("status") == "approved",
+              str((sdk_state.get("entry") or {}).get("status")))
 
         run = call(f"{base}/api/recipes/run", "POST",
                    {"caseId": case_id, "params": {"year": 2019}, "runId": "acceptance-run-1"},
@@ -409,6 +432,45 @@ def main() -> int:  # noqa: PLR0915 - a linear checklist is the point
                         {"caseId": case_id, "params": {"year": 1990}}, token=token)
         check("越界参数在运行前被拒", overflow[0] == 400 and overflow[1].get("field") == "year",
               f"status={overflow[0]}")
+
+        section("9. 可见性继承：组成项受限 ⇒ 整案对外不存在")
+        anon_before = call(f"{base}/api/cases/{case_id}")
+        check("组成项全公开时访客可见", anon_before[0] == 200, f"status={anon_before[0]}")
+
+        restricted_card = data_cards[0]
+        # 注册中心不做 replace：先撤下再以新档位登记（真实运维也是这个动作）
+        call(f"http://127.0.0.1:{reg_port}/cards/{restricted_card}", "DELETE")
+        call(f"http://127.0.0.1:{reg_port}/cards", "POST",
+             {"card": {"geocard_version": "1.0", "id": restricted_card, "type": "knowledge",
+                       "name": restricted_card, "description": "验收数据资产（受限）",
+                       "compliance": {"sensitivity": "restricted"}},
+              "node_url": f"http://127.0.0.1:{node_port}", "status": "approved"})
+        anon_after = call(f"{base}/api/cases/{case_id}")
+        check("组成项受限 ⇒ 访客 404（不是 403）",
+              anon_after[0] == 404 and anon_after[1].get("error") == "案例不存在",
+              f"status={anon_after[0]} body={json.dumps(anon_after[1], ensure_ascii=False)[:120]}")
+        check("图层视图同样 404", call(f"{base}/api/cases/{case_id}/layers")[0] == 404)
+        check("交付物清单同样 404", call(f"{base}/api/cases/{case_id}/deliverables")[0] == 404)
+        listed = call(f"{base}/api/cases")[1]
+        check("案例列表里不出现隐藏条目（访客看不出少了一条）",
+              all(item.get("id") != case_id for item in listed.get("items", [])),
+              f"items={len(listed.get('items', []))} hidden={listed.get('hidden')}")
+        check("管理员仍可见", call(f"{base}/api/cases/{case_id}", token=token)[0] == 200)
+        admin_view = call(f"{base}/api/cases/{case_id}/layers", token=token)[1].get("view", {})
+        check("管理员能看到档位与原因",
+              (admin_view.get("visibility") or {}).get("visibility") == "restricted",
+              json.dumps(admin_view.get("visibility"), ensure_ascii=False)[:200])
+
+        section("10. 后台页签的数据面")
+        admin_recipes = call(f"{base}/api/admin/recipes", token=token)[1]
+        check("方案页签：绑定 + 目录 + 待审计数",
+              admin_recipes.get("bindingCount", 0) >= 1 and admin_recipes.get("catalogueCount", 0) >= 1,
+              f"bindings={admin_recipes.get('bindingCount')} catalogue={admin_recipes.get('catalogueCount')}")
+        admin_deliv = call(f"{base}/api/admin/deliverables", token=token)[1]
+        check("交付物页签：条数与角色统计",
+              admin_deliv.get("count", 0) >= 3 and admin_deliv.get("byRole", {}).get("knowledge", 0) >= 1,
+              json.dumps(admin_deliv.get("byRole"), ensure_ascii=False))
+        check("后台端点需要权限", call(f"{base}/api/admin/recipes")[0] == 401)
 
         section("结果")
         failed = [c for c in CHECKS if not c[1]]

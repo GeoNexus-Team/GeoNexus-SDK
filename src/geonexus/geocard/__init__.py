@@ -34,6 +34,16 @@ from .validator import (
     SchemaReport,
     validate_card_schema,
 )
+from .visibility import (
+    DEFAULT_VISIBILITY,
+    GATING_ROLES,
+    VISIBILITY_LEVELS,
+    VisibilityReport,
+    compose_visibility,
+    effective_visibility,
+    invisible_components,
+    normalize_visibility,
+)
 
 __all__ = [
     "GeoCard",
@@ -67,4 +77,12 @@ __all__ = [
     "COMPONENT_ROLES",
     "PARAM_TYPES",
     "PARAM_SCOPES",
+    "VISIBILITY_LEVELS",
+    "DEFAULT_VISIBILITY",
+    "GATING_ROLES",
+    "VisibilityReport",
+    "normalize_visibility",
+    "compose_visibility",
+    "effective_visibility",
+    "invisible_components",
 ]

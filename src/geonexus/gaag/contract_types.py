@@ -103,6 +103,26 @@ CONTRACT_SCHEMAS: dict[str, ContractSchema] = {
         extensions=[".pdf", ".md", ".txt", ".docx"],
         description="文本知识：内容类型 + 语言 + 主题标签",
     ),
+    # 报告不是"一种文本文件"：它的必填项是**来源**，不是字数。
+    # 结论必须能回答"按哪一版数据、用哪个算子、改了哪些参数算出来的"。
+    # 实现见 geonexus/gaag/report_contract.py。
+    "report": ContractSchema(
+        asset_type="report",
+        required_fields=[
+            "format",            # 产物形态（html/pdf/docx…）
+            "checksum",          # 这份结论的指纹：改了就能被发现
+            "source_run",        # 哪一次运行产生的
+            "recipe",            # 哪一份可执行方案
+            "params",            # 这一次实际取了什么参数
+            "data_snapshot",     # 数据版本快照
+        ],
+        optional_fields=[
+            "media_type", "file_size", "title", "sections", "word_count",
+            "produced_at", "recipe_version", "deliverables", "deliverable_ref",
+        ],
+        extensions=[".html", ".htm", ".pdf", ".docx"],
+        description="知识产品（报告）：产物指纹 + 来源四件套（run/recipe/params/snapshot）",
+    ),
 }
 
 
@@ -291,6 +311,8 @@ def scan_text(path: str | Path) -> dict[str, Any]:
 
 
 #: 类型 → 扫描函数
+#: ``report`` 的扫描器定义在 :mod:`geonexus.gaag.report_contract`（它还要看运行来源），
+#: 这里不重复登记，避免两处各扫一份。
 SCANNERS: dict[str, Callable[[str | Path], dict[str, Any]]] = {
     "temporal": scan_temporal,
     "volume3d": scan_volume3d,
@@ -304,9 +326,18 @@ SCANNERS: dict[str, Callable[[str | Path], dict[str, Any]]] = {
 # 类型探测
 # --------------------------------------------------------------------------- #
 def detect_asset_type(path: str | Path) -> str:
-    """按扩展名探测资产类型（覆盖全部 7 类）。"""
+    """按扩展名探测资产类型。
+
+    报告（``.html``）与文本（``.pdf``/``.md``/``.txt``/``.docx``）会重叠，所以顺序
+    有意义：**先判报告**。一份 ``.md`` 报告如果被当成普通文本入册，来源四件套就丢
+    了；反过来，普通文本被判成报告只会多要求几个字段，是更安全的错。
+    """
     suffix = Path(path).suffix.lower()
+    if suffix in (".html", ".htm"):
+        return "report"
     for asset_type, schema in CONTRACT_SCHEMAS.items():
+        if asset_type == "report":
+            continue
         if suffix in schema.extensions:
             return asset_type
     return "other"

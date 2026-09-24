@@ -292,17 +292,23 @@ class RunPlan:
     def __init__(
         self,
         *,
-        recipe_id: str,
+        recipe: Recipe,
         run_id: str,
         graph: TaskGraph,
         params: dict[str, Any],
         outputs: list[RecipeOutput],
     ) -> None:
-        self.recipe_id = recipe_id
+        # 计划必须记得自己是**从哪份方案**物化出来的：报告合约、血缘、复现都靠它。
+        # 只存 id 的话，事后想拿参数契约或数据快照还得再去查一次目录。
+        self.recipe = recipe
         self.run_id = run_id
         self.graph = graph
         self.params = params
         self.outputs = outputs
+
+    @property
+    def recipe_id(self) -> str:
+        return self.recipe.id
 
     def task_ids(self) -> list[str]:
         return self.graph.topological_order()
@@ -412,7 +418,7 @@ def materialize(
         tasks.append(task)
 
     return RunPlan(
-        recipe_id=recipe.id,
+        recipe=recipe,
         run_id=run_id,
         graph=TaskGraph(tasks),
         params=resolved,

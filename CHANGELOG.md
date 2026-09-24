@@ -28,6 +28,34 @@ project uses Semantic Versioning.
     entries) are covered in `tests/test_geocard.py`.
   - `docs/GEOCARD.md` documents all three sections.
 
+- **Report contracts (v1.1, `geonexus.gaag`)**: a conclusion becomes a citable
+  asset. `report_card_from_run(plan, ...)` builds a `type: knowledge` card that
+  carries `composition` / `params` / `recipe_ref` and provenance pointing at the
+  run; `scan_report` captures the artefact's identity (format, sha256, title,
+  sections) — **never a quality score**; `report_contract` + `validate_report`
+  require the source four (run / recipe / params / data snapshot);
+  `register_report_contract` refuses to write a report whose source is
+  incomplete, because otherwise everyone downstream would cite it as verified.
+  A `report` contract type joins `CONTRACT_SCHEMAS` (8 types), and
+  `detect_asset_type` now answers `report` for `.html` *before* the generic
+  `text` rule.
+
+- **Visibility inheritance (v1.1, `geonexus.geocard.visibility`)**: a composite
+  card is not a way around access control.
+  - `effective_visibility(card, lookup)` = min over the card's own level and its
+    **content-bearing** components (`GATING_ROLES`: data / model / knowledge /
+    workflow). Skills and compute do not gate: they are code and resources, leak
+    no content, and often exist only as a name — gating on them would make every
+    case invisible.
+  - Anything unresolvable ⇒ the whole composite is invisible, and callers answer
+    **404, never 403**: 403 would admit that something exists which you cannot
+    see. Unknown values degrade to `restricted`, never to `public`.
+  - `required: false` components do not participate (the author already declared
+    the case runs without them), and `gating_only=False` gives the stricter
+    audit view.
+  - The module decides *visibility*, not *authority* — who may see what stays
+    with the platform's identity layer.
+
 - **`geonexus.recipe` (v1.1)** — the executable half of a knowledge product:
   a **Recipe** says *how to run*, a GeoCard says *what it is*, and a `TaskGraph`
   is *one run*. No layer is a representation of another.

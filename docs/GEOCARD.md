@@ -176,6 +176,43 @@ Box `card` → `composition` → `params` → `recipe_ref` → recipe (DAG) → 
 (task graph) → outputs. The card is a **facade**; it holds no steps and no
 files.
 
+## Visibility inheritance
+
+A composite card must not become a way around access control. If a case cites a
+`sensitive` dataset and is itself labelled `public`, showing it as public would
+leak the dataset's existence, extent — and, through a rerun, its content. So:
+
+```
+effective visibility = min( own , each CONTENT component )
+any content component unresolvable  ⇒  the whole case is invisible
+```
+
+* **Only content-bearing roles gate**: `data`, `model`, `knowledge`, `workflow`
+  (`GATING_ROLES`). Skills and compute do not: they are code and resources, they
+  leak no content, and an operator often exists only as a name — gating on them
+  would make every case invisible, and a rule nobody can satisfy is no rule.
+  `effective_visibility(..., gating_only=False)` gives the stricter audit view.
+* **Unresolvable = invisible.** "No such id" and "not visible to you" must be the
+  same answer, otherwise the API becomes a probe for the latter. Callers return
+  **404**, never 403: 403 admits that a case exists that you cannot see.
+* **Unknown values degrade to `restricted`**, never to `public`; an undeclared
+  card is `restricted`.
+* `required: false` components do not participate — the author already declared
+  the case runs without them.
+
+```python
+from geonexus.geocard import effective_visibility
+
+report = effective_visibility(case_card, library.get)   # library: id -> card
+report.visibility          # 'sensitive'
+report.visible             # False when a component could not be resolved
+report.missing             # ['dataset-x']  — safe to log, not to return
+report.is_visible_to(['public', 'secret'])
+```
+
+This module decides *visibility*, not *authority*: who may see what is the
+platform's identity layer (the SDK does not invent an account system).
+
 ## Contract satisfaction
 
 A GeoCard is more than metadata: the `ContractValidator` decides whether a

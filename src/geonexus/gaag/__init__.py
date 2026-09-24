@@ -9,6 +9,8 @@ GAAG 合约注册中心（参考 AutoGIS GAAG 架构）为每个地理空间资�
 - :mod:`geonexus.gaag.scanner` — scan 流水线: 文件 → 元数据 → GeoCard
 - :mod:`geonexus.gaag.embed` — 语义向量嵌入（可插拔 LLM / 确定性特征）
 - :mod:`geonexus.gaag.registry` — 注册中心 + 语义检索 + 合约门控
+- :mod:`geonexus.gaag.report_contract` — **报告合约**：知识产品（结论）也入册，
+  必填项是它的来源（run / recipe / params / data snapshot），不是一个分数
 """
 
 from .contract import GAAGContract, GAAGContractSpec, GAAGError
@@ -27,6 +29,18 @@ from .contract_types import (
 )
 from .embed import FeatureEmbedder, cosine_similarity, embed_card, embed_text
 from .registry import ContractGate, ContractGateResult, GAAGRegistry
+from .report_contract import (
+    DATA_COMPONENT_ROLES,
+    REPORT_ASSET_TYPE,
+    REPORT_MEDIA_TYPES,
+    REPORT_SOURCE_FIELDS,
+    ReportContractSource,
+    register_report_contract,
+    report_card_from_run,
+    report_contract,
+    scan_report,
+    validate_report,
+)
 from .scanner import (
     RasterScanner,
     VectorScanner,
@@ -63,4 +77,15 @@ __all__ = [
     "scan_pointcloud",
     "scan_statistical",
     "scan_text",
+    # 报告合约（知识产品）
+    "REPORT_ASSET_TYPE",
+    "REPORT_MEDIA_TYPES",
+    "REPORT_SOURCE_FIELDS",
+    "DATA_COMPONENT_ROLES",
+    "ReportContractSource",
+    "scan_report",
+    "report_card_from_run",
+    "report_contract",
+    "validate_report",
+    "register_report_contract",
 ]

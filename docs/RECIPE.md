@@ -253,6 +253,36 @@ plan = materialize(forks.require(forked.id, approved_only=True).recipe, {"year":
 plan.output_refs()   # {'degradation_map': 'step://s2/degradation', 'report': 'step://s3/report'}
 ```
 
+## From a run to a registered report
+
+A run produces conclusions; a **report contract** makes them citable. The GAAG
+report contract (`geonexus.gaag.report_contract`) requires the source — run,
+recipe, parameters and data snapshot — plus the artefact's own fingerprint, and
+refuses to register a report without them:
+
+```python
+from geonexus.gaag import ReportContractSource, register_report_contract, report_card_from_run
+
+card = report_card_from_run(plan, report_path="report.html", license="CC-BY-4.0")
+contract, result = register_report_contract(
+    gaag_registry, card,
+    source=ReportContractSource(
+        source_run=plan.run_id, recipe=plan.recipe.id,
+        params=plan.params, data_snapshot=plan.recipe.data_snapshot,
+    ),
+    report_path="report.html",
+)
+result.satisfied      # False ⇒ nothing was written to the registry
+```
+
+The card built this way is a full knowledge product: `composition` (which data,
+which operator), `params` (what this run changed), `recipe_ref` (which method,
+which snapshot) and provenance pointing at the run. It contains **no values** —
+the conclusion stays in the artefact; the card says how to judge it.
+
+A report is only reachable if its case is: see the visibility rules in
+`docs/GEOCARD.md`.
+
 ## GeoMCP surface
 
 `geo.plan` (V1.1, **additive**) materialises `recipe + params` into a run without
