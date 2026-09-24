@@ -259,28 +259,65 @@ def cmd_recipe_plan(args: argparse.Namespace) -> int:
     return 0
 
 
+def _recipe_target(args: argparse.Namespace) -> str:
+    """``--catalogue PATH`` 还是 ``--url URL``：一次只能用一种，且必须给一个。
+
+    两种模式不是重复：文件模式适合单机/离线（也是 ``node start --recipes`` 的来源），
+    HTTP 模式才连得上**已经在跑**的注册中心 —— 否则本地写文件、服务端读内存，
+    两边各自以为自己是目录，谁也看不见谁。
+    """
+    catalogue = getattr(args, "catalogue", None)
+    url = getattr(args, "url", None)
+    if catalogue and url:
+        raise ValueError("--catalogue 与 --url 只能给一个")
+    if catalogue:
+        return "file"
+    if url:
+        return "http"
+    raise ValueError("需要 --catalogue PATH（本地目录）或 --url URL（运行中的注册中心）")
+
+
 def cmd_recipe_register(args: argparse.Namespace) -> int:
     from .recipe import RecipeConflict, RecipeError, RecipeRegistry, load_recipe
+    from .registry import RegistryClient, RegistryClientError
 
     try:
+        mode = _recipe_target(args)
         recipe = load_recipe(args.file)
-        registry = RecipeRegistry(args.catalogue)
-        entry = registry.register(
-            recipe,
-            provider_url=args.provider or "",
-            status=args.status,
-            submitted_by=args.by,
-            replace=args.replace,
-        )
+        if mode == "http":
+            with RegistryClient(args.url, api_key=args.api_key) as client:
+                result = client.register_recipe(
+                    recipe.to_dict(),
+                    node_url=args.provider or "cli",
+                    status=args.status,
+                    submitted_by=args.by,
+                    replace=args.replace,
+                )
+            entry_id = result.get("id", recipe.id)
+            entry_status = (result.get("entry") or {}).get("status", args.status)
+            target = args.url
+        else:
+            registry = RecipeRegistry(args.catalogue)
+            entry = registry.register(
+                recipe,
+                provider_url=args.provider or "",
+                status=args.status,
+                submitted_by=args.by,
+                replace=args.replace,
+            )
+            entry_id, entry_status, target = entry.recipe_id, entry.status, args.catalogue
     except RecipeConflict as exc:
         print(f"CONFLICT: {exc}", file=sys.stderr)
         return 1
-    except RecipeError as exc:
+    except RegistryClientError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
-    print(f"REGISTERED: {entry.recipe_id}  status={entry.status}")
-    print(f"  catalogue: {args.catalogue}")
-    if entry.status != "approved":
+    except (RecipeError, ValueError) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    print(f"REGISTERED: {entry_id}  status={entry_status}")
+    print(f"  target: {target}")
+    if entry_status != "approved":
         print("  note: not approved yet — `recipe search --approved-only` will not show it")
     return 0
 
@@ -289,53 +326,100 @@ def cmd_recipe_search(args: argparse.Namespace) -> int:
     import json
 
     from .recipe import RecipeRegistry
+    from .registry import RegistryClient, RegistryClientError
 
-    registry = RecipeRegistry(args.catalogue)
-    hits = registry.search(
-        args.query or "",
-        namespace=args.namespace,
-        tag=args.tag,
-        param=args.param,
-        output_role=args.output_role,
-        approved_only=args.approved_only,
-        limit=args.limit,
-    )
+    try:
+        mode = _recipe_target(args)
+        if mode == "http":
+            with RegistryClient(args.url, api_key=args.api_key) as client:
+                hits = client.list_recipes(
+                    status=None if args.approved_only else getattr(args, "status", None),
+                    query=args.query or None,
+                    namespace=args.namespace,
+                    tag=args.tag,
+                    param=args.param,
+                    role=args.output_role,
+                    approved_only=args.approved_only,
+                )
+        else:
+            registry = RecipeRegistry(args.catalogue)
+            hits = [
+                h.summary()
+                for h in registry.search(
+                    args.query or "",
+                    namespace=args.namespace,
+                    tag=args.tag,
+                    param=args.param,
+                    output_role=args.output_role,
+                    approved_only=args.approved_only,
+                    limit=args.limit,
+                )
+            ]
+    except (RegistryClientError, ValueError) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+    if args.limit:
+        hits = hits[: args.limit]
     if args.json:
-        print(json.dumps([h.summary() for h in hits], indent=2, ensure_ascii=False))
+        print(json.dumps(hits, indent=2, ensure_ascii=False))
         return 0
     if not hits:
         print("no recipes matched")
         return 0
-    for hit in hits:
-        summary = hit.summary()
+    for summary in hits:
         print(f"{summary['id']}  [{summary['status']}]")
         print(f"    {summary['name']}")
-        print(f"    steps={summary['steps']}  reusable={', '.join(summary['reusable_params']) or '-'}")
-        print(f"    outputs={', '.join(summary['outputs']) or '-'}")
+        print(
+            f"    steps={summary['steps']}  "
+            f"reusable={', '.join(summary.get('reusable_params') or []) or '-'}"
+        )
+        print(f"    outputs={', '.join(summary.get('outputs') or []) or '-'}")
     return 0
 
 
 def cmd_recipe_fork(args: argparse.Namespace) -> int:
     """派生一份配方 —— "复用"这个词的可执行形式。"""
-    from .recipe import RecipeError, RecipeNotFound, RecipeRegistry, save_recipe
+    from .recipe import Recipe, RecipeError, RecipeNotFound, RecipeRegistry, save_recipe
+    from .registry import RegistryClient, RegistryClientError
 
     try:
-        registry = RecipeRegistry(args.catalogue)
-        forked = registry.fork(
-            args.address,
-            namespace=args.namespace,
-            name=args.name,
-            version=args.version,
-            params=_parse_param_assignments(args.set),
-            fixed=_parse_param_assignments(args.fix),
-            title=args.title,
-            register=not args.no_register,
-            approved_only=not args.allow_unapproved,
-        )
+        mode = _recipe_target(args)
+        params = _parse_param_assignments(args.set)
+        fixed = _parse_param_assignments(args.fix)
+        if mode == "http":
+            with RegistryClient(args.url, api_key=args.api_key) as client:
+                result = client.fork_recipe(
+                    args.address,
+                    namespace=args.namespace,
+                    name=args.name,
+                    version=args.version,
+                    params=params or None,
+                    fixed=fixed or None,
+                    title=args.title,
+                    register=not args.no_register,
+                )
+            forked = Recipe.from_dict(result["recipe"])
+        else:
+            registry = RecipeRegistry(args.catalogue)
+            forked = registry.fork(
+                args.address,
+                namespace=args.namespace,
+                name=args.name,
+                version=args.version,
+                params=params,
+                fixed=fixed,
+                title=args.title,
+                register=not args.no_register,
+                approved_only=not args.allow_unapproved,
+            )
     except RecipeNotFound as exc:
         print(f"NOT FOUND: {exc}", file=sys.stderr)
         return 1
-    except (RecipeError, ValueError) as exc:
+    except RecipeError as exc:
+        print(f"NOT FOUND: {exc}", file=sys.stderr)
+        return 1
+    except (RegistryClientError, ValueError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
 
@@ -353,7 +437,20 @@ def cmd_recipe_fork(args: argparse.Namespace) -> int:
 def cmd_node_start(args: argparse.Namespace) -> int:
     from .geonode import GeoNode
 
-    node = GeoNode(name=args.name, host=args.host, port=args.port)
+    recipe_registry = None
+    if getattr(args, "recipes", None):
+        from .recipe import RecipeRegistry
+
+        recipe_registry = RecipeRegistry(args.recipes)
+        print(
+            f"Loaded {len(recipe_registry)} recipe(s) from {args.recipes}; geo.plan enabled"
+        )
+    node = GeoNode(
+        name=args.name,
+        host=args.host,
+        port=args.port,
+        recipe_registry=recipe_registry,
+    )
     if not args.bare:
         _register_demo_assets(node)
     for ogc_ref in args.ogc_process or []:
@@ -576,9 +673,13 @@ def cmd_registry_start(args: argparse.Namespace) -> int:
         api_keys=api_keys,
         peers=peers,
         health_probe=args.health_probe,
+        recipe_persist_path=getattr(args, "recipes", None),
     )
     for peer in peers:
         print(f"  peer: {peer}")
+    if args.persist or getattr(args, "recipes", None):
+        print(f"  recipes: {args.recipes or (args.persist + '.recipes.json')}")
+        print("  ... point `node start --recipes <that file>` at it to enable geo.plan")
     server.run(host=args.host, port=args.port)
     return 0
 
@@ -1586,7 +1687,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_rec_plan.set_defaults(func=cmd_recipe_plan)
     p_rec_register = recipe_sub.add_parser("register", help="Register a recipe in a catalogue")
     p_rec_register.add_argument("file", help="Path to a recipe file")
-    p_rec_register.add_argument("--catalogue", required=True, help="JSON catalogue path")
+    p_rec_register.add_argument("--catalogue", help="Local JSON catalogue path")
+    p_rec_register.add_argument(
+        "--url", help="Running registry base URL (alternative to --catalogue)"
+    )
+    p_rec_register.add_argument("--api-key", help="X-API-Key, when the registry requires one")
     p_rec_register.add_argument("--provider", help="Provider endpoint recorded with the recipe")
     p_rec_register.add_argument(
         "--status", default="approved", choices=["pending", "approved", "rejected"]
@@ -1596,7 +1701,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_rec_register.set_defaults(func=cmd_recipe_register)
     p_rec_search = recipe_sub.add_parser("search", help="Search a recipe catalogue")
     p_rec_search.add_argument("query", nargs="?", default="", help="Free-text query")
-    p_rec_search.add_argument("--catalogue", required=True, help="JSON catalogue path")
+    p_rec_search.add_argument("--catalogue", help="Local JSON catalogue path")
+    p_rec_search.add_argument("--url", help="Running registry base URL (alternative to --catalogue)")
+    p_rec_search.add_argument("--api-key", help="X-API-Key, when the registry requires one")
+    p_rec_search.add_argument(
+        "--status", help="Filter by review status (local catalogue mode; default: all)"
+    )
     p_rec_search.add_argument("--namespace", help="Filter by namespace")
     p_rec_search.add_argument("--tag", help="Filter by tag")
     p_rec_search.add_argument("--param", help="Only recipes that accept this parameter")
@@ -1611,7 +1721,9 @@ def build_parser() -> argparse.ArgumentParser:
         "fork", help="Fork a recipe: new address, your parameters, source untouched"
     )
     p_rec_fork.add_argument("address", help="Source address, e.g. recipe://ns/name (version optional)")
-    p_rec_fork.add_argument("--catalogue", required=True, help="JSON catalogue path")
+    p_rec_fork.add_argument("--catalogue", help="Local JSON catalogue path")
+    p_rec_fork.add_argument("--url", help="Running registry base URL (alternative to --catalogue)")
+    p_rec_fork.add_argument("--api-key", help="X-API-Key, when the registry requires one")
     p_rec_fork.add_argument("--namespace", help="Namespace of the fork (default: same as source)")
     p_rec_fork.add_argument("--name", help="Name of the fork (default: <source>-fork)")
     p_rec_fork.add_argument("--version", help="Version of the fork (default: 1.0.0)")
@@ -1645,6 +1757,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Advertise this node's cards at a GeoCard Registry",
     )
     p_start.add_argument(
+        "--recipes",
+        default=None,
+        metavar="PATH",
+        help="Recipe catalogue JSON; enables geo.plan on this node (V1.1)",
+    )
+    p_start.add_argument(
         "--ogc-process",
         action="append",
         default=None,
@@ -1662,6 +1780,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_reg_start.add_argument("--name", default="geonexus-registry")
     p_reg_start.add_argument(
         "--persist", default=None, help="JSON file to persist cards/skills (V1.0)"
+    )
+    p_reg_start.add_argument(
+        "--recipes",
+        default=None,
+        metavar="PATH",
+        help="Recipe catalogue JSON (default: <persist>.recipes.json)",
     )
     p_reg_start.add_argument(
         "--api-key", default=None, help="Require X-API-Key on write endpoints (V1.0)"

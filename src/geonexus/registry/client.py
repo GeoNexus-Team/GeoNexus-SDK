@@ -104,6 +104,112 @@ class RegistryClient:
         return self._call("POST", f"/cards/{card_id}/reject", json=body)
 
     # ------------------------------------------------------------------ #
+    # Recipes (V1.1)
+    # ------------------------------------------------------------------ #
+    def register_recipe(
+        self,
+        recipe: dict[str, Any],
+        node_url: str = "platform",
+        status: str | None = None,
+        review_note: str | None = None,
+        submitted_by: str | None = None,
+        replace: bool = False,
+    ) -> dict[str, Any]:
+        """Submit a recipe. Defaults to ``pending`` on the server side.
+
+        Recipes are reviewed like cards, but they are more consequential: a
+        recipe is what a reuser actually *runs*, so publishing one publishes a
+        method, not just a description.
+        """
+        body: dict[str, Any] = {
+            "recipe": recipe,
+            "node_url": node_url,
+            "replace": replace,
+        }
+        if status:
+            body["status"] = status
+        if review_note:
+            body["review_note"] = review_note
+        if submitted_by:
+            body["submitted_by"] = submitted_by
+        return self._call("POST", "/recipes", json=body)
+
+    def list_recipes(
+        self,
+        status: str | None = None,
+        *,
+        query: str | None = None,
+        namespace: str | None = None,
+        tag: str | None = None,
+        param: str | None = None,
+        role: str | None = None,
+        approved_only: bool = False,
+    ) -> list[dict[str, Any]]:
+        params: dict[str, Any] = {}
+        if status:
+            params["status"] = status
+        if query:
+            params["q"] = query
+        if namespace:
+            params["namespace"] = namespace
+        if tag:
+            params["tag"] = tag
+        if param:
+            params["param"] = param
+        if role:
+            params["role"] = role
+        if approved_only:
+            params["approved_only"] = "true"
+        data = self._call("GET", "/recipes", params=params)
+        return data.get("recipes", [])
+
+    def get_recipe(self, address: str, approved_only: bool = False) -> dict[str, Any]:
+        """Fetch one recipe entry (address may omit the version)."""
+        params = {"approved_only": "true"} if approved_only else None
+        return self._call("GET", f"/recipes/{address}", params=params)
+
+    def unregister_recipe(self, address: str) -> dict[str, Any]:
+        return self._call("DELETE", f"/recipes/{address}")
+
+    def approve_recipe(
+        self, address: str, note: str | None = None, by: str | None = None
+    ) -> dict[str, Any]:
+        return self._call("POST", f"/recipes/{address}/approve", json={"note": note, "by": by})
+
+    def reject_recipe(
+        self, address: str, note: str | None = None, by: str | None = None
+    ) -> dict[str, Any]:
+        return self._call("POST", f"/recipes/{address}/reject", json={"note": note, "by": by})
+
+    def fork_recipe(
+        self,
+        recipe_id: str,
+        *,
+        namespace: str | None = None,
+        name: str | None = None,
+        version: str | None = None,
+        params: dict[str, Any] | None = None,
+        fixed: dict[str, Any] | None = None,
+        title: str | None = None,
+        provider_url: str = "",
+        register: bool = True,
+    ) -> dict[str, Any]:
+        """Fork a recipe into a new address; the source is not modified."""
+        body: dict[str, Any] = {"recipe_id": recipe_id, "provider_url": provider_url,
+                                "register": register}
+        for key, value in (
+            ("namespace", namespace),
+            ("name", name),
+            ("version", version),
+            ("params", params),
+            ("fixed", fixed),
+            ("title", title),
+        ):
+            if value is not None:
+                body[key] = value
+        return self._call("POST", "/recipes/fork", json=body)
+
+    # ------------------------------------------------------------------ #
     # Skills (V0.5)
     # ------------------------------------------------------------------ #
     def register_skill(

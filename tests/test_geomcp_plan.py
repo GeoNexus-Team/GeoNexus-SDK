@@ -7,7 +7,9 @@
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -20,7 +22,7 @@ from geonexus.geomcp import (
     GeoMCPServer,
     build_request,
 )
-from geonexus.recipe import RecipeRegistry, load_recipe
+from geonexus.recipe import STATUS_APPROVED, STATUS_PENDING, RecipeRegistry, load_recipe
 
 EXAMPLE = Path(__file__).resolve().parent.parent / "examples" / "sdg_15_3_1" / "recipe.yaml"
 ADDRESS = "recipe://geonexus/sdg-15-3-1"
@@ -220,3 +222,110 @@ def test_client_plan_round_trip_over_http(tmp_path) -> None:
             assert exc.value.code == RECIPE_PARAM_INVALID
     finally:
         running.stop()
+
+
+# --------------------------------------------------------------------------- #
+# 目录来源：本地缓存 vs 共享注册中心
+# 这三条来自一次真实端到端验收暴露的问题：节点把目录当启动快照，而目录是共享的。
+# --------------------------------------------------------------------------- #
+def test_catalogue_reloads_when_another_process_writes_it(tmp_path) -> None:
+    """`recipe register --catalogue` 是**另一个进程**在写文件，节点必须看得见。"""
+    path = tmp_path / "recipes.json"
+    node_side = RecipeRegistry(path)          # 节点：先启动，目录为空
+    assert len(node_side) == 0
+
+    writer_side = RecipeRegistry(path)        # 另一个进程写进去
+    writer_side.register(load_recipe(EXAMPLE), status=STATUS_APPROVED)
+
+    assert node_side.reload_if_changed() is True
+    assert [e.recipe_id for e in node_side.search(approved_only=True)] == [
+        "recipe://geonexus/sdg-15-3-1@1.0.0"
+    ]
+    # 没改动就不重复读盘
+    assert node_side.reload_if_changed() is False
+
+
+def test_geo_plan_falls_back_to_the_bound_registry(tmp_path) -> None:
+    """本地目录没有、注册中心有 —— 共享目录才是权威，不能报"不存在"。"""
+    import threading
+
+    import uvicorn
+
+    from geonexus.registry import RegistryClient, RegistryServer
+
+    server = RegistryServer(name="shared", persist_path=str(tmp_path / "registry.json"))
+    config = uvicorn.Config(server.create_app(), host="127.0.0.1", port=0, log_level="error")
+    running = uvicorn.Server(config)
+    threading.Thread(target=running.run, daemon=True).start()
+    for _ in range(200):
+        if running.started:
+            break
+        time.sleep(0.05)
+    port = running.servers[0].sockets[0].getsockname()[1]
+    url = f"http://127.0.0.1:{port}"
+    try:
+        with RegistryClient(url, timeout=10) as client:
+            client.register_recipe(load_recipe(EXAMPLE).to_dict(), status=STATUS_APPROVED)
+
+        # 节点侧目录是空的（模拟"启动时注册中心还没有这个方案"）
+        node = GeoMCPServer(
+            name="late-node", recipe_registry=RecipeRegistry(), registry_url=url
+        )
+        result = _call(node, {"recipe": ADDRESS, "params": {"year": 2019}, "run_id": "r"})["result"]
+        assert result["recipe_id"] == "recipe://geonexus/sdg-15-3-1@1.0.0"
+        assert [t["step"] for t in result["tasks"]] == ["s1", "s2", "s3"]
+
+        # 未过审的派生件：注册中心会 404，节点必须照实说"不可用"
+        with RegistryClient(url, timeout=10) as client:
+            forked = client.fork_recipe(ADDRESS, name="pending-fork")
+        miss = _call(node, {"recipe": forked["id"], "params": {"year": 2019}, "run_id": "r"})
+        assert miss["error"]["code"] == RECIPE_NOT_FOUND
+    finally:
+        running.should_exit = True
+
+
+def test_geo_plan_never_bypasses_the_approval_gate() -> None:
+    """回归：``resolve`` 说"没有"时不能退回不带审批条件的 ``get``。
+
+    这一条是真机验收抓到的：节点先用带审批条件的 resolve 查不到，又用 get 查到了，
+    于是一个 pending 的方案**可以被运行**。审批门形同虚设。
+    """
+
+    class _DuckRegistry:
+        """只实现 get 的目录（没有 resolve）—— 兼容路径也必须自己查状态。"""
+
+        def __init__(self, entry) -> None:
+            self.entry = entry
+
+        def get(self, address):  # noqa: ANN001, ANN201
+            return self.entry if address == self.entry.recipe.id else None
+
+    recipe = load_recipe(EXAMPLE)
+    pending = SimpleNamespace(recipe=recipe, status=STATUS_PENDING)
+    approved = SimpleNamespace(recipe=recipe, status=STATUS_APPROVED)
+
+    pending_node = GeoMCPServer(name="duck", recipe_registry=_DuckRegistry(pending))
+    refused = _call(pending_node, {"recipe": recipe.id, "params": {"year": 2019}, "run_id": "r"})
+    assert refused["error"]["code"] == RECIPE_NOT_FOUND
+
+    approved_node = GeoMCPServer(name="duck", recipe_registry=_DuckRegistry(approved))
+    allowed = _call(approved_node, {"recipe": recipe.id, "params": {"year": 2019}, "run_id": "r"})
+    assert allowed["result"]["recipe_id"] == recipe.id
+
+    # 带 resolve 的目录：resolve 返回 None 就是 None，不再退到 get
+    class _LyingRegistry:
+        def __init__(self) -> None:
+            self.got: list[str] = []
+
+        def resolve(self, address, approved_only=True):  # noqa: ANN001, ANN201, ARG002
+            return None
+
+        def get(self, address):  # noqa: ANN001, ANN201
+            self.got.append(address)
+            return SimpleNamespace(recipe=recipe, status=STATUS_APPROVED)
+
+    lying = _LyingRegistry()
+    node = GeoMCPServer(name="lying", recipe_registry=lying)
+    response = _call(node, {"recipe": recipe.id, "params": {"year": 2019}, "run_id": "r"})
+    assert response["error"]["code"] == RECIPE_NOT_FOUND
+    assert lying.got == [], "resolve 已经给出答案，不该再去问 get"

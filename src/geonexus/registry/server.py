@@ -11,9 +11,11 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
+from ..recipe import RecipeRegistry
 from .models import (
     REVIEW_STATUSES,
     STATUS_APPROVED,
+    STATUS_PENDING,
     RegistryEntry,
     RegistrySearchResult,
     SkillDescriptor,
@@ -45,6 +47,10 @@ class RegistryServer:
         ``DELETE /skills/{name}``  (V0.5 skill registry)
       - ``GET    /nodes``      node view: aggregated cards/skills per node
                                with optional health probing (V1.0+)
+      - ``POST   /recipes`` / ``GET /recipes`` / ``GET /recipes/{address:path}`` /
+        ``DELETE /recipes/{address:path}``  (V1.1 recipe catalogue)
+      - ``POST   /recipes/{address:path}/approve`` / ``reject`` (V1.1 review)
+      - ``POST   /recipes/fork``  fork a recipe (new address, source untouched)
       - ``GET    /health``     health check
 
     Persistence (V1.0): pass ``persist_path`` to survive restarts.
@@ -64,9 +70,15 @@ class RegistryServer:
         health_timeout: float = 2.0,
         health_cache_ttl: float = 5.0,
         peers: list[str] | None = None,
+        recipe_persist_path: str | os.PathLike | None = None,
     ) -> None:
         self.name = name
         self.store = RegistryStore(persist_path=persist_path)
+        # 配方与卡片分文件存：卡片目录可能已经很重，且两者的审核节奏不同。
+        # 未指定时按卡片文件派生（registry.json → registry.json.recipes.json）。
+        if recipe_persist_path is None and persist_path:
+            recipe_persist_path = f"{persist_path}.recipes.json"
+        self.recipes = RecipeRegistry(persist_path=recipe_persist_path)
         self.api_keys = set(api_keys or ())
         self.health_probe = health_probe
         self.health_timeout = health_timeout
@@ -242,6 +254,146 @@ class RegistryServer:
         entries = [e.to_dict() for e in self.store.list_skills()]
         return {"count": len(entries), "skills": entries}
 
+    # ------------------------------------------------------------------ #
+    # Recipes (V1.1) —— 方案目录：与卡片共用 pending/approved/rejected 词表
+    # ------------------------------------------------------------------ #
+    def register_recipe(
+        self,
+        recipe: dict[str, Any] | Any,
+        *,
+        provider_url: str = "",
+        status: str | None = None,
+        submitted_by: str | None = None,
+        review_note: str | None = None,
+        replace: bool = False,
+    ) -> dict[str, Any]:
+        """登记一个配方。默认 ``pending``：方案比卡片更该过审再被复用。"""
+        from ..recipe import RecipeConflict, RecipeError, RecipeValidationError
+
+        try:
+            entry = self.recipes.register(
+                recipe,
+                provider_url=provider_url,
+                status=status or STATUS_PENDING,
+                submitted_by=submitted_by,
+                review_note=review_note,
+                replace=replace,
+            )
+        except RecipeConflict as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        except RecipeValidationError as exc:
+            raise HTTPException(status_code=422, detail=exc.errors) from exc
+        except RecipeError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"status": "registered", "id": entry.recipe_id, "entry": entry.to_dict()}
+
+    def unregister_recipe(self, recipe_id: str) -> dict[str, Any]:
+        from ..recipe import RecipeNotFound
+
+        try:
+            self.recipes.remove(recipe_id)
+        except RecipeNotFound as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        return {"status": "removed", "id": recipe_id}
+
+    def get_recipe(self, address: str, approved_only: bool = False) -> dict[str, Any]:
+        entry = self.recipes.resolve(address, approved_only=approved_only)
+        if entry is None:
+            raise HTTPException(status_code=404, detail=f"Recipe not registered: {address}")
+        return {"entry": entry.to_dict(), "summary": entry.summary()}
+
+    def list_recipes(
+        self,
+        *,
+        status: str | None = None,
+        namespace: str | None = None,
+        tag: str | None = None,
+        param: str | None = None,
+        role: str | None = None,
+        query: str = "",
+        approved_only: bool = False,
+    ) -> dict[str, Any]:
+        hits = self.recipes.search(
+            query,
+            namespace=namespace,
+            status=None if status == "all" else status,
+            tag=tag,
+            param=param,
+            output_role=role,
+            approved_only=approved_only,
+        )
+        return {"count": len(hits), "recipes": [h.summary() for h in hits]}
+
+    def approve_recipe(
+        self, recipe_id: str, note: str | None = None, by: str | None = None
+    ) -> dict[str, Any]:
+        entry = self._review_recipe(recipe_id, approve=True, note=note, by=by)
+        return {"status": "approved", "id": entry.recipe_id, "entry": entry.to_dict()}
+
+    def reject_recipe(
+        self, recipe_id: str, note: str | None = None, by: str | None = None
+    ) -> dict[str, Any]:
+        entry = self._review_recipe(recipe_id, approve=False, note=note, by=by)
+        return {"status": "rejected", "id": entry.recipe_id, "entry": entry.to_dict()}
+
+    def _review_recipe(
+        self, recipe_id: str, *, approve: bool, note: str | None, by: str | None
+    ) -> Any:
+        """审批一条配方。无版本的地址只在**唯一**匹配时才被接受（否则 409）。"""
+        from ..recipe import RecipeAmbiguous, RecipeNotFound
+
+        try:
+            return (
+                self.recipes.approve(recipe_id, by=by, note=note)
+                if approve
+                else self.recipes.reject(recipe_id, by=by, note=note)
+            )
+        except RecipeAmbiguous as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        except RecipeNotFound as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    def fork_recipe(
+        self,
+        recipe_id: str,
+        *,
+        namespace: str | None = None,
+        name: str | None = None,
+        version: str | None = None,
+        params: dict[str, Any] | None = None,
+        fixed: dict[str, Any] | None = None,
+        title: str | None = None,
+        provider_url: str = "",
+        register: bool = True,
+    ) -> dict[str, Any]:
+        """派生一份方案（默认登记为 ``pending``）。**源方案不改动。**"""
+        from ..recipe import RecipeError, RecipeNotFound
+
+        try:
+            forked = self.recipes.fork(
+                recipe_id,
+                namespace=namespace,
+                name=name,
+                version=version,
+                params=params,
+                fixed=fixed,
+                title=title,
+                register=register,
+                provider_url=provider_url,
+            )
+        except RecipeNotFound as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except RecipeError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        entry = self.recipes.get(forked.id)
+        return {
+            "status": "forked",
+            "from": recipe_id,
+            "id": forked.id,
+            "recipe": forked.to_dict(),
+            "entry": entry.to_dict() if entry is not None else None,
+        }
+
     def health(self) -> dict[str, Any]:
         return {
             "status": "ok",
@@ -249,6 +401,7 @@ class RegistryServer:
             "name": self.name,
             "version": SERVICE_VERSION,
             "cards": self.store.count(),
+            "recipes": len(self.recipes),
             "time": datetime.now(timezone.utc).isoformat(),
         }
 
@@ -403,6 +556,108 @@ class RegistryServer:
         async def delete_skill_endpoint(name: str, request: Request) -> dict[str, Any]:
             self._require_key(request)
             return self.unregister_skill(name)
+
+        # ---- Recipes (V1.1) ------------------------------------------- #
+        # 配方地址里有 '/' 和 '@'，所以用 ``:path`` 转换器整段接收，而不是让
+        # 调用方去猜怎么转义。更具体的 ``/fork``、``/approve`` 先声明。
+        @app.post("/recipes")
+        async def register_recipe_endpoint(request: Request) -> JSONResponse:
+            self._require_key(request)
+            try:
+                body = await request.json()
+            except Exception:
+                raise HTTPException(status_code=400, detail="Body must be valid JSON") from None
+            if not isinstance(body, dict) or "recipe" not in body:
+                raise HTTPException(status_code=422, detail="Body must contain 'recipe'")
+            result = self.register_recipe(
+                body["recipe"],
+                provider_url=body.get("provider_url") or body.get("node_url") or "",
+                status=body.get("status"),
+                submitted_by=body.get("submitted_by") or body.get("by"),
+                review_note=body.get("review_note"),
+                replace=bool(body.get("replace")),
+            )
+            return JSONResponse(result, status_code=201)
+
+        @app.get("/recipes")
+        async def list_recipes_endpoint(
+            status: str | None = None,
+            namespace: str | None = None,
+            tag: str | None = None,
+            param: str | None = None,
+            role: str | None = None,
+            q: str | None = None,
+            approved_only: bool = False,
+        ) -> dict[str, Any]:
+            return self.list_recipes(
+                status=status,
+                namespace=namespace,
+                tag=tag,
+                param=param,
+                role=role,
+                query=q or "",
+                approved_only=approved_only,
+            )
+
+        @app.post("/recipes/fork")
+        async def fork_recipe_endpoint(request: Request) -> JSONResponse:
+            self._require_key(request)
+            try:
+                body = await request.json()
+            except Exception:
+                raise HTTPException(status_code=400, detail="Body must be valid JSON") from None
+            if not isinstance(body, dict) or not body.get("recipe_id"):
+                raise HTTPException(status_code=422, detail="Body must contain 'recipe_id'")
+            result = self.fork_recipe(
+                body["recipe_id"],
+                namespace=body.get("namespace"),
+                name=body.get("name"),
+                version=body.get("version"),
+                params=body.get("params"),
+                fixed=body.get("fixed"),
+                title=body.get("title"),
+                provider_url=body.get("provider_url") or "",
+                register=body.get("register", True),
+            )
+            return JSONResponse(result, status_code=201)
+
+        @app.post("/recipes/{recipe_id:path}/approve")
+        async def approve_recipe_endpoint(recipe_id: str, request: Request) -> dict[str, Any]:
+            self._require_key(request)
+            body = (
+                await request.json()
+                if request.headers.get("content-type", "").startswith("application/json")
+                else {}
+            )
+            return self.approve_recipe(
+                recipe_id, note=(body or {}).get("note"), by=(body or {}).get("by")
+            )
+
+        @app.post("/recipes/{recipe_id:path}/reject")
+        async def reject_recipe_endpoint(recipe_id: str, request: Request) -> dict[str, Any]:
+            self._require_key(request)
+            body = (
+                await request.json()
+                if request.headers.get("content-type", "").startswith("application/json")
+                else {}
+            )
+            return self.reject_recipe(
+                recipe_id, note=(body or {}).get("note"), by=(body or {}).get("by")
+            )
+
+        @app.get("/recipes/{recipe_id:path}")
+        async def get_recipe_endpoint(
+            recipe_id: str, approved_only: bool = False, version: str | None = None
+        ) -> dict[str, Any]:
+            # 地址可以不带版本（``recipe://ns/name``）；给 ``version`` 时拼成精确
+            # 地址，这样"看 1.0 还是 1.1"由调用方明确决定，而不是靠猜。
+            address = f"{recipe_id}@{version}" if version and "@" not in recipe_id else recipe_id
+            return self.get_recipe(address, approved_only=approved_only)
+
+        @app.delete("/recipes/{recipe_id:path}")
+        async def delete_recipe_endpoint(recipe_id: str, request: Request) -> dict[str, Any]:
+            self._require_key(request)
+            return self.unregister_recipe(recipe_id)
 
         @app.get("/health")
         async def health() -> dict[str, Any]:

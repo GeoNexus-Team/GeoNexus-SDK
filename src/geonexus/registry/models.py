@@ -10,11 +10,15 @@ from pydantic import BaseModel, Field
 from ..geocard.model import GeoCard
 from ..geocard.validator import ContractResult
 
-# Registry review states (v1.1).
-STATUS_PENDING = "pending"
-STATUS_APPROVED = "approved"
-STATUS_REJECTED = "rejected"
-REVIEW_STATUSES = (STATUS_PENDING, STATUS_APPROVED, STATUS_REJECTED)
+# Registry review states (v1.1). The vocabulary itself lives in
+# ``geonexus.review`` because recipes share it; re-exported here so every
+# existing import path keeps working.
+from ..review import (  # noqa: F401  (re-export)
+    REVIEW_STATUSES,
+    STATUS_APPROVED,
+    STATUS_PENDING,
+    STATUS_REJECTED,
+)
 
 
 class RegistryEntry(BaseModel):

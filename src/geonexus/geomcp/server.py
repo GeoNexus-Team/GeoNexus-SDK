@@ -37,6 +37,19 @@ logger = logging.getLogger(__name__)
 PROTOCOL_VERSION = "1.0.0"
 
 
+class _RegistryRecipe:
+    """本地目录没有、从注册中心取回的那条记录的最小外壳。
+
+    ``geo.plan`` 只用到 ``.recipe``，所以不为了一个字段去重建 RecipeEntry
+    （那会连带审核历史等本地概念一起造假）。
+    """
+
+    __slots__ = ("recipe",)
+
+    def __init__(self, recipe: Any) -> None:
+        self.recipe = recipe
+
+
 def _recipe_view(entry: Any) -> dict[str, Any]:
     """目录条目 → 线上视图。
 
@@ -410,15 +423,60 @@ class GeoMCPServer:
     # geo.plan (V1.1) —— 物化，不执行
     # ------------------------------------------------------------------ #
     def _resolve_recipe(self, address: str) -> Any | None:
-        """把一个（可能没写版本的）地址解析成一条登记记录。"""
+        """把一个（可能没写版本的）地址解析成一条登记记录。
+
+        解析分三步，因为目录是**共享**的、而节点的副本可能已经过时：
+
+        1. 本地目录若被别的进程改过（``recipe register --catalogue`` 那种），先重载；
+        2. 本地命中就直接用；
+        3. 本地没有、但节点绑定了注册中心 —— 去注册中心问一次。共享目录才是权威，
+           不能因为"我启动时它还不存在"就告诉调用方方案不存在。
+        """
         registry = self.recipe_registry
-        if registry is None:
+        if registry is not None:
+            reloader = getattr(registry, "reload_if_changed", None)
+            if callable(reloader):
+                try:
+                    reloader()
+                except Exception:  # noqa: BLE001 - 目录坏了不该让物化变成 500
+                    logger.warning("Recipe catalogue reload failed", exc_info=True)
+            resolve = getattr(registry, "resolve", None)
+            if callable(resolve):
+                found = resolve(address, approved_only=True)
+            else:
+                # 兼容只实现 get 的目录：**自己**把审批状态也检查一遍。
+                # 不能因为"resolve 没找到"就退回不带审批条件的 get —— 那等于
+                # 让未过审的方案悄悄变得可运行。
+                get = getattr(registry, "get", None)
+                found = get(address) if callable(get) else None
+                status = getattr(found, "status", None)
+                if found is not None and status is not None and status != "approved":
+                    found = None
+            if found is not None:
+                return found
+        return self._recipe_from_registry(address)
+
+    def _recipe_from_registry(self, address: str) -> Any | None:
+        """向绑定的注册中心查一条已批准的方案（本地没有时）。"""
+        if not self.registry_url:
             return None
-        resolve = getattr(registry, "resolve", None)
-        if callable(resolve):
-            return resolve(address, approved_only=True)
-        get = getattr(registry, "get", None)
-        return get(address) if callable(get) else None
+        try:
+            import httpx
+
+            from ..recipe import Recipe
+
+            url = f"{self.registry_url.rstrip('/')}/recipes/{address}"
+            response = httpx.get(url, params={"approved_only": "true"}, timeout=5.0)
+            if response.status_code != 200:
+                return None
+            payload = response.json()
+            raw = ((payload or {}).get("entry") or {}).get("recipe")
+            if not isinstance(raw, dict):
+                return None
+            return _RegistryRecipe(Recipe.from_dict(raw))
+        except Exception:  # noqa: BLE001 - 注册中心不可达 = 本地也没有
+            logger.debug("Recipe lookup at %s failed for %s", self.registry_url, address, exc_info=True)
+            return None
 
     def plan(self, params: PlanParams) -> dict[str, Any]:
         """Materialise a recipe into a run (``geo.plan``).

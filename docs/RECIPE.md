@@ -190,6 +190,51 @@ Approval **authority** is not here. `approve`/`reject` record state and history;
 who is allowed to call them is the platform's decision (SDK must not invent an
 identity system).
 
+Approving an address **without a version** is accepted only when it matches
+exactly one registered version. With several it raises `RecipeAmbiguous`
+(HTTP `409`) listing the candidates: guessing "the newest one" would turn a
+governance act into an inference.
+
+The shared registry serves the same vocabulary over HTTP:
+
+```
+POST   /recipes                      register (default: pending)
+GET    /recipes?param=year&approved_only=true
+GET    /recipes/{address}            address may omit @version
+POST   /recipes/{address}/approve    POST /recipes/{address}/reject
+POST   /recipes/fork                 new address, source untouched
+DELETE /recipes/{address}
+```
+
+Recipes persist beside the card catalogue but in their own file
+(`<persist>.recipes.json`), so a corrupt file cannot take both down.
+
+### Where a plan's recipe comes from
+
+A catalogue is **shared**, so a node's copy of it can be stale. Resolution is
+therefore three-step, and only ever considers **approved** versions:
+
+1. reload the local catalogue file if another process changed it
+   (`reload_if_changed`, mtime+size) — this is what makes
+   `geonexus recipe register --catalogue <file>` visible to a running node;
+2. resolve locally;
+3. if the node is bound to a registry (`registry_url`), ask it.
+
+An unapproved recipe is *not* runnable through any of these paths —
+`geo.plan` answers `2005` with no plan. (An integration test pins this: the
+earlier fallback chain could return a `pending` recipe, which made the approval
+gate decorative.)
+
+The CLI mirrors the two modes explicitly, because writing a file and talking to
+a running service are not the same thing:
+
+```bash
+geonexus recipe register r.yaml --catalogue recipes.json   # offline / single machine
+geonexus recipe register r.yaml --url http://127.0.0.1:8790 # a running registry
+```
+
+Passing both, or neither, is an error rather than a silent guess.
+
 `fork` is the executable definition of "reuse": take an approved recipe, change
 namespace/name/version, set defaults on reusable parameters, pin others as
 `fixed`, and get a **new, independently approvable** recipe. The source is not

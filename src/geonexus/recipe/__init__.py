@@ -11,7 +11,7 @@ GeoCard 说"这是什么"，Recipe 说"怎么跑"，TaskGraph 是一次**运行*
     plan.output_refs()               # {'report': 'step://s3/report'}
 """
 
-from ..registry.models import (
+from ..review import (
     REVIEW_STATUSES,
     STATUS_APPROVED,
     STATUS_PENDING,
@@ -41,6 +41,7 @@ from .model import (
 )
 from .registry import (
     STATUSES,
+    RecipeAmbiguous,
     RecipeConflict,
     RecipeEntry,
     RecipeNotFound,
@@ -74,6 +75,7 @@ __all__ = [
     "RecipeEntry",
     "RecipeConflict",
     "RecipeNotFound",
+    "RecipeAmbiguous",
     "version_key",
     "STATUSES",
     "STATUS_PENDING",

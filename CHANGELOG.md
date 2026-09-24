@@ -52,10 +52,34 @@ project uses Semantic Versioning.
     availability; `geo.describe` lists recipe summaries; errors `2005
     RECIPE_NOT_FOUND` / `2006 RECIPE_PARAM_INVALID` (with machine-readable
     `field`/`code`). Also exported through the MCP bridge as `geo_plan`.
+  - **Catalogue with review**: the shared registry now serves recipes too
+    (`POST/GET/DELETE /recipes`, `/recipes/{address}/approve|reject`,
+    `/recipes/fork`) with the same `pending → approved/rejected` vocabulary as
+    cards. Recipes persist in their own file (`<persist>.recipes.json`) so a bad
+    file cannot take the card catalogue with it. Approving an unversioned
+    address is accepted only when it matches exactly one version; with several
+    it is `409` rather than guessing — approval is a governance act.
+  - `geonexus.review` holds that vocabulary for both layers (a shared module,
+    not one borrowing the other's words).
+  - **A catalogue is shared, so a node's copy may be stale.** `geo.plan`
+    resolution reloads the local catalogue file when another process changed it
+    (`RecipeRegistry.reload_if_changed`) and, on a miss, asks the registry the
+    node is bound to. Only **approved** versions are ever resolved: an earlier
+    fallback chain could hand back a `pending` recipe, which made the approval
+    gate decorative — the regression is pinned by a test.
   - CLI: `recipe validate|inspect|plan|register|search|fork` (`plan` exits `2` on
-    a parameter-contract violation). `docs/RECIPE.md`,
-    `examples/sdg_15_3_1/recipe.yaml`, `tests/test_recipe.py`,
-    `tests/test_geomcp_plan.py`.
+    a parameter-contract violation). Catalogue commands take **either**
+    `--catalogue PATH` (offline/single machine) **or** `--url URL` (a running
+    registry) — writing a file and talking to a service are different things, and
+    passing both or neither is an error rather than a guess. `registry start
+    --recipes` and `node start --recipes` bind a catalogue (the node flag is what
+    enables `geo.plan`).
+  - `scripts/acceptance_recipe_e2e.py`: the batch-1 acceptance chain driven
+    against **real** processes — Python registry + GeoNode (`geo.plan`) + SDK Web
+    BFF + the Node platform BFF: fork → change params → approve → run →
+    download the report. 36 checks, non-zero exit on the first unmet expectation.
+  - `docs/RECIPE.md`, `examples/sdg_15_3_1/recipe.yaml`, `tests/test_recipe.py`,
+    `tests/test_geomcp_plan.py`, `tests/test_registry_recipes.py`.
 
 - **`geonexus.model` (v1.2, Phase 3)** — model invocation contract: a
   `type: model` GeoCard finally has an execution path.

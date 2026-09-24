@@ -74,6 +74,7 @@ class GeoNode:
         workdir: str | Path | None = None,
         log_level: str = "info",
         registry_url: str | None = None,
+        recipe_registry: Any | None = None,
     ) -> None:
         self.name = name
         self.host = host
@@ -89,12 +90,16 @@ class GeoNode:
             geocard_registry=self.geocard_registry,
             node_name=self.name,
         )
+        #: 配方目录（V1.1）。绑定后 ``geo.plan`` 才能物化方案；未绑定时该方法
+        #: 明确返回 ``recipe_not_found`` 并说明原因，而不是给出一张空图。
+        self.recipe_registry = recipe_registry
         self.server = GeoMCPServer(
             name=name,
             engine=self.runtime,
             geocard_registry=self.geocard_registry,
             skill_registry=self.skill_registry,
             registry_url=registry_url,
+            recipe_registry=recipe_registry,
         )
 
     # ------------------------------------------------------------------ #

@@ -17,7 +17,7 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from ..registry.models import REVIEW_STATUSES, STATUS_APPROVED, STATUS_PENDING, STATUS_REJECTED
+from ..review import REVIEW_STATUSES, STATUS_APPROVED, STATUS_PENDING, STATUS_REJECTED
 from .materialize import coerce_param_value
 from .model import (
     Recipe,
@@ -31,6 +31,7 @@ __all__ = [
     "RecipeEntry",
     "RecipeConflict",
     "RecipeNotFound",
+    "RecipeAmbiguous",
     "RecipeRegistry",
     "version_key",
 ]
@@ -62,6 +63,10 @@ class RecipeConflict(RecipeError):
 
 class RecipeNotFound(RecipeError):
     """目录里没有这个配方。"""
+
+
+class RecipeAmbiguous(RecipeError):
+    """地址不带版本，却匹配到多个版本 —— 拒绝替调用方猜。"""
 
 
 class RecipeEntry:
@@ -149,8 +154,10 @@ class RecipeRegistry:
         self._entries: dict[str, RecipeEntry] = {}
         self._lock = threading.RLock()
         self.persist_path = str(persist_path) if persist_path else None
+        self._stamp: tuple[float, int] | None = None
         if self.persist_path:
             self._load()
+            self._stamp = self._file_stamp()
 
     # ------------------------------------------------------------------ #
     # 持久化
@@ -180,6 +187,33 @@ class RecipeRegistry:
         tmp = path.with_suffix(path.suffix + ".tmp")
         tmp.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         tmp.replace(path)
+        self._stamp = self._file_stamp()
+
+    def _file_stamp(self) -> tuple[float, int] | None:
+        if self.persist_path is None:
+            return None
+        try:
+            stat = Path(self.persist_path).stat()
+        except OSError:
+            return None
+        return (stat.st_mtime, stat.st_size)
+
+    def reload_if_changed(self) -> bool:
+        """文件被**别的进程**改过时重新载入（``recipe register --catalogue`` 就是那种）。
+
+        目录是多进程共享的：节点启动时读一次就再也不看，会让"刚登记的方案在节点上
+        不存在"。按 mtime+size 判断，改动过就整体重载 —— 目录很小，够用且简单。
+        """
+        if self.persist_path is None:
+            return False
+        stamp = self._file_stamp()
+        if stamp is None or stamp == self._stamp:
+            return False
+        with self._lock:
+            self._entries.clear()
+            self._load()
+            self._stamp = self._file_stamp()
+        return True
 
     # ------------------------------------------------------------------ #
     # 写入
@@ -205,7 +239,7 @@ class RecipeRegistry:
                 f"unknown review status {status!r}; expected one of {', '.join(STATUSES)}"
             )
         parsed = recipe if isinstance(recipe, Recipe) else Recipe.from_dict(recipe)
-        recipe.validate()
+        parsed.validate()
 
         with self._lock:
             if parsed.id in self._entries and not replace:
@@ -238,13 +272,43 @@ class RecipeRegistry:
     def reject(self, recipe_id: str, *, by: str | None = None, note: str | None = None) -> RecipeEntry:
         return self._review(recipe_id, STATUS_REJECTED, by=by, note=note)
 
+    def _entry_for_review(self, address: str) -> RecipeEntry:
+        """审批必须落到**一条**记录上。
+
+        地址不带版本时：只有一个版本就用它；有多个版本则拒绝猜测 —— 审批是治理
+        动作，"我批准的是最新那版"这种推断一旦猜错，后果比报错严重得多。
+        """
+        exact = self._entries.get(address)
+        if exact is not None:
+            return exact
+
+        try:
+            namespace, name, version = parse_recipe_address(address)
+        except RecipeValidationError as exc:
+            raise RecipeNotFound(f"recipe {address} is not registered") from exc
+        if version:
+            raise RecipeNotFound(f"recipe {address} is not registered")
+
+        matches = [
+            e
+            for e in self._entries.values()
+            if e.recipe.namespace == namespace and e.recipe.slug == name
+        ]
+        if not matches:
+            raise RecipeNotFound(f"recipe {address} is not registered")
+        if len(matches) > 1:
+            versions = ", ".join(sorted(e.recipe.version or "-" for e in matches))
+            raise RecipeAmbiguous(
+                f"recipe {address} has {len(matches)} versions ({versions}); "
+                "include @<version> to say which one"
+            )
+        return matches[0]
+
     def _review(
         self, recipe_id: str, status: str, *, by: str | None, note: str | None
     ) -> RecipeEntry:
         with self._lock:
-            entry = self._entries.get(recipe_id)
-            if entry is None:
-                raise RecipeNotFound(f"recipe {recipe_id} is not registered")
+            entry = self._entry_for_review(recipe_id)
             entry.status = status
             entry.review_note = note
             entry.review_history.append(
@@ -255,9 +319,8 @@ class RecipeRegistry:
 
     def remove(self, recipe_id: str) -> None:
         with self._lock:
-            if recipe_id not in self._entries:
-                raise RecipeNotFound(f"recipe {recipe_id} is not registered")
-            del self._entries[recipe_id]
+            entry = self._entry_for_review(recipe_id)
+            del self._entries[entry.recipe_id]
             self._save()
 
     # ------------------------------------------------------------------ #
