@@ -251,12 +251,18 @@ def main() -> int:  # noqa: PLR0915 - a linear checklist is the point
         # 只登记方案 requires 里的**数据**卡片：可见性继承看的是承载内容的组成项。
         # 算子（如 "2026.9.16 SDG15.3.1"）常常只是个名字，本就不该因为"不在目录里"
         # 而让整案不可见 —— 而且它含空格，压根不是合法的卡片 id。
-        data_cards = ("geocard.packed.menggu", "geocard.oge.lc08-l2", "report.sdg1531.mng.2019")
-        for card_id in data_cards:
+        # 数据卡片带覆盖范围：血缘弧线的两端（案例范围 ↔ 资产范围）都得有位置
+        data_cards = {
+            "geocard.packed.menggu": [87.7, 41.6, 119.9, 52.1],
+            "geocard.oge.lc08-l2": [110.4, 14.5, 117.1, 32.7],
+            "report.sdg1531.mng.2019": [100.0, 20.0, 120.0, 45.0],
+        }
+        for card_id, card_bbox in data_cards.items():
             status, _, body = call(
                 f"http://127.0.0.1:{reg_port}/cards", "POST",
                 {"card": {"geocard_version": "1.0", "id": card_id, "type": "knowledge",
                           "name": card_id, "description": "验收数据资产",
+                          "spatial": {"bbox": card_bbox, "crs": "EPSG:4326"},
                           "compliance": {"sensitivity": "public"}},
                  "node_url": f"http://127.0.0.1:{node_port}", "status": "approved"})
             if status >= 400:
@@ -414,6 +420,21 @@ def main() -> int:  # noqa: PLR0915 - a linear checklist is the point
         check("步骤足迹按执行顺序",
               [st.get("stepId") for st in footprint.get("steps", [])] == ["s1", "s2", "s3"],
               str([st.get("stepId") for st in footprint.get("steps", [])]))
+        # 组成项带 bbox：血缘弧线的两端（案例范围 ↔ 提供数据的资产）
+        with_bbox = [c for c in view.get("components", []) if c.get("bbox")]
+        check("组成项给出范围（弧线两端）", len(with_bbox) >= 1,
+              f"components={[c.get('id') for c in view.get('components', [])]}")
+        check("算子不参与可见性判定", any(c.get("role") == "skill" for c in view.get("components", [])))
+        # 后端只给数据；"默认关"是前端画法（见 frontend/src/composables/caseLayers.js）。
+        # 这里能验证的是：承载内容的组成项都有可判定的档位，而算子可以没有。
+        content_roles = {"data", "model", "knowledge", "workflow"}
+        content = [c for c in view.get("components", []) if c.get("role") in content_roles]
+        check("承载内容的组成项都有档位（算子可以没有）",
+              all(c.get("visibility") for c in content)
+              and all(c.get("visibility") is None for c in view.get("components", [])
+                      if c.get("role") not in content_roles),
+              f"content={[(c.get('id'), c.get('visibility')) for c in content]}")
+
         timeline = view.get("timeline") or {}
         check("双时间轴各自独立",
               (timeline.get("dataTime") or {}).get("start") == "2019-01-01"
@@ -437,7 +458,7 @@ def main() -> int:  # noqa: PLR0915 - a linear checklist is the point
         anon_before = call(f"{base}/api/cases/{case_id}")
         check("组成项全公开时访客可见", anon_before[0] == 200, f"status={anon_before[0]}")
 
-        restricted_card = data_cards[0]
+        restricted_card = "geocard.packed.menggu"
         # 注册中心不做 replace：先撤下再以新档位登记（真实运维也是这个动作）
         call(f"http://127.0.0.1:{reg_port}/cards/{restricted_card}", "DELETE")
         call(f"http://127.0.0.1:{reg_port}/cards", "POST",
@@ -461,7 +482,21 @@ def main() -> int:  # noqa: PLR0915 - a linear checklist is the point
               (admin_view.get("visibility") or {}).get("visibility") == "restricted",
               json.dumps(admin_view.get("visibility"), ensure_ascii=False)[:200])
 
-        section("10. 后台页签的数据面")
+        section("10. 非空间案例：进侧栏，不上地球")
+        # 方案绑定的是同一份配方，这里只把几何声明去掉：没有范围就没有位置
+        # （真实场景里"指标口径说明"这类案例本就没有空间范围）
+        non_spatial = call(f"{base}/api/cases/{case_id}", "PUT",
+                           {"title": "非空间：口径说明", "bbox": None}, token=token)
+        check("去掉范围后案例仍存在", non_spatial[0] == 200, f"status={non_spatial[0]}")
+        ns_view = call(f"{base}/api/cases/{case_id}/layers", token=token)[1].get("view", {})
+        check("spatial=false 且不给假位置",
+              ns_view.get("spatial") is False and ns_view.get("bbox") is None,
+              f"spatial={ns_view.get('spatial')} bbox={ns_view.get('bbox')}")
+        check("非空间案例仍有 L2/L3/L4（只是没有 L1）",
+              [x.get("level") for x in ns_view.get("layers", [])] == ["L2", "L3", "L4"],
+              str([x.get("level") for x in ns_view.get("layers", [])]))
+
+        section("11. 后台页签的数据面")
         admin_recipes = call(f"{base}/api/admin/recipes", token=token)[1]
         check("方案页签：绑定 + 目录 + 待审计数",
               admin_recipes.get("bindingCount", 0) >= 1 and admin_recipes.get("catalogueCount", 0) >= 1,
