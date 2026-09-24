@@ -80,6 +80,30 @@ class InvokeParams(BaseModel):
     )
 
 
+class PlanParams(BaseModel):
+    """Parameters of ``geo.plan`` (V1.1).
+
+    物化**不执行**：它把"配方 + 参数"变成一张任务图，返回每个步骤要跑什么、
+    依赖谁、交付什么。平台据此在用户点"运行"之前就给出参数校验与影响范围，
+    因此这是一个**只读**方法，不需要 API key。
+    """
+
+    recipe: str = Field(
+        description="Recipe address, e.g. 'recipe://geonexus/sdg-15-3-1@1.0.0'. "
+        "A version may be omitted, in which case the newest approved version is used."
+    )
+    params: dict[str, Any] = Field(
+        default_factory=dict, description="Parameter values, validated against the recipe contract."
+    )
+    run_id: str = Field(
+        default="run", description="Run identity; enters every task id, so replays are idempotent."
+    )
+    resolve: bool = Field(
+        default=False,
+        description="Resolve asset references through the node's cards (adds 'resolved' per task).",
+    )
+
+
 class DescribeParams(BaseModel):
     """Parameters of ``geo.describe``."""
 
@@ -88,6 +112,10 @@ class DescribeParams(BaseModel):
     )
     skills: list[str] | None = Field(
         default=None, description="Skill names to describe; None describes all."
+    )
+    recipes: list[str] | None = Field(
+        default=None,
+        description="V1.1: recipe addresses to describe; None describes all registered recipes.",
     )
 
 

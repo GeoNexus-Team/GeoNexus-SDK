@@ -12,7 +12,14 @@ import logging
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -190,6 +197,199 @@ class RenderingSection(BaseModel):
     opacity: float | None = Field(default=None, ge=0, le=1)
 
 
+#: Roles a component may take inside a composite asset. Deliberately the same
+#: vocabulary as ``GeoCard.type`` so a case never invents a second one — a
+#: report is a ``knowledge`` component whose own card declares
+#: ``interface.type: report``.
+COMPONENT_ROLES = (
+    "data",
+    "model",
+    "skill",
+    "agent",
+    "workflow",
+    "knowledge",
+    "compute",
+)
+
+#: Parameter kinds understood by :class:`ParamSpec`.
+PARAM_TYPES = (
+    "string",
+    "number",
+    "integer",
+    "boolean",
+    "time",
+    "bbox",
+    "geometry",
+    "enum",
+    "ref",
+)
+
+#: ``scope`` values for :class:`ParamSpec`.
+PARAM_SCOPES = ("reusable", "fixed")
+
+
+class ComponentRef(BaseModel):
+    """One component of a composite asset (``type: workflow``).
+
+    A reference — never a copy. The referenced card keeps its own identity,
+    access, licence and compliance, so reusing a case does not move data.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(description="GeoCard id of the referenced asset.")
+    role: str = Field(
+        default="data",
+        description="One of: " + ", ".join(COMPONENT_ROLES) + ".",
+    )
+    step: str | None = Field(
+        default=None,
+        description="Step id in the recipe that consumes or produces this component.",
+    )
+    required: bool = Field(
+        default=True,
+        description="False when the composite still runs without this component.",
+    )
+    alias: str | None = Field(
+        default=None,
+        description="Local name used by the recipe, when it differs from the card id.",
+    )
+
+
+class CompositionSection(BaseModel):
+    """What a composite asset is made of.
+
+    Answers "which assets, in which role" without embedding any of them, so a
+    reader can see the shape of a solution and a validator can check that every
+    reference resolves.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    components: list[ComponentRef] = Field(default_factory=list)
+    template: str | None = Field(
+        default=None,
+        description="Optional document/report template id bound to this composition.",
+    )
+
+    @field_validator("components")
+    @classmethod
+    def _unique_components(cls, value: list[ComponentRef]) -> list[ComponentRef]:
+        """Reject duplicate ``(id, role)`` pairs and empty ids."""
+        seen: set[tuple[str, str]] = set()
+        for item in value:
+            if not item.id or not item.id.strip():
+                raise ValueError("composition.components[].id must not be empty")
+            key = (item.id, item.role)
+            if key in seen:
+                raise ValueError(f"duplicate component: {item.id} as {item.role}")
+            seen.add(key)
+        return value
+
+
+class ParamSpec(BaseModel):
+    """One parameter of a composite asset — the thing a reuser may change.
+
+    Without this contract a forked case is inert: nobody knows which fields are
+    safe to vary, within what range, or which must stay as the author fixed
+    them.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(description="Parameter name, as used by the recipe.")
+    type: str = Field(default="string", description="One of: " + ", ".join(PARAM_TYPES) + ".")
+    required: bool = False
+    default: Any | None = None
+    enum: list[Any] = Field(
+        default_factory=list,
+        description="Allowed values; implies type 'enum' when non-empty.",
+    )
+    minimum: float | None = None
+    maximum: float | None = None
+    scope: str = Field(
+        default="reusable",
+        description="reusable (a reuser may change it) or fixed (must not be changed).",
+    )
+    target: str | None = Field(
+        default=None,
+        description="Where it lands in the DAG, e.g. 'step1.params.year'.",
+    )
+    description: str | None = None
+
+    @field_validator("enum")
+    @classmethod
+    def _enum_not_empty_strings(cls, value: list[Any]) -> list[Any]:
+        """``enum`` entries must not be blank strings — usually a typo."""
+        for item in value:
+            if isinstance(item, str) and not item.strip():
+                raise ValueError("params.enum must not contain empty strings")
+        return value
+
+    @model_validator(mode="after")
+    def _coherent_range(self) -> ParamSpec:
+        """``minimum`` must not exceed ``maximum``."""
+        if self.minimum is not None and self.maximum is not None and self.minimum > self.maximum:
+            raise ValueError(
+                f"param '{self.name}': minimum {self.minimum} > maximum {self.maximum}"
+            )
+        return self
+
+
+class ParamsSection(BaseModel):
+    """The reusable parameter contract of a composite asset."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    params: list[ParamSpec] = Field(default_factory=list)
+
+    @field_validator("params")
+    @classmethod
+    def _unique_params(cls, value: list[ParamSpec]) -> list[ParamSpec]:
+        """Parameter names are unique within a card."""
+        seen: set[str] = set()
+        for item in value:
+            if not item.name or not item.name.strip():
+                raise ValueError("params[].name must not be empty")
+            if item.name in seen:
+                raise ValueError(f"duplicate param: {item.name}")
+            seen.add(item.name)
+        return value
+
+    def reusable_names(self) -> list[str]:
+        """Names a reuser is allowed to override."""
+        return [p.name for p in self.params if p.scope == "reusable"]
+
+    def fixed_names(self) -> list[str]:
+        """Names pinned by the author."""
+        return [p.name for p in self.params if p.scope == "fixed"]
+
+
+class RecipeRefSection(BaseModel):
+    """Pointer from a card to the executable recipe (DAG) behind it.
+
+    The card stays a facade: the steps live in the recipe, the run lives in a
+    task graph, and the produced files live under the run's outputs.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    recipe_id: str = Field(
+        description="Address of the recipe, e.g. 'recipe://geonexus/sdg-15-3-1@1.0.0'."
+    )
+    version: str | None = Field(default=None, description="Semantic version, when not in the id.")
+    entrypoint: str | None = Field(
+        default=None, description="Step to start from; defaults to the recipe's entry step."
+    )
+    data_snapshot: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Data versions this solution was authored against, e.g. "
+            "{'geokg': '2026.09.1'} — so a replay can tell drift from a real change."
+        ),
+    )
+
+
 # --------------------------------------------------------------------------- #
 # GeoCard
 # --------------------------------------------------------------------------- #
@@ -222,6 +422,11 @@ class GeoCard(BaseModel):
     runtime: RuntimeSection | None = None
     interface: InterfaceSection | None = None
     rendering: RenderingSection | None = None
+    # Composition of a solution (type: workflow / case-style cards). Additive in
+    # 1.x: cards written before these sections existed stay valid untouched.
+    composition: CompositionSection | None = None
+    params: ParamsSection | None = None
+    recipe_ref: RecipeRefSection | None = None
 
     # --- serialisation ------------------------------------------------------ #
     def to_dict(self) -> dict[str, Any]:
@@ -298,6 +503,18 @@ class GeoCard(BaseModel):
     def band_names(self) -> list[str]:
         """Return the list of band names declared by this card."""
         return [b.name for b in self.bands]
+
+    def component_ids(self) -> list[str]:
+        """Return the ids of the assets this composite card references."""
+        return [c.id for c in self.composition.components] if self.composition else []
+
+    def reusable_param_names(self) -> list[str]:
+        """Return the parameter names a reuser may override."""
+        return self.params.reusable_names() if self.params else []
+
+    def fixed_param_names(self) -> list[str]:
+        """Return the parameter names the author pinned."""
+        return self.params.fixed_names() if self.params else []
 
     @field_validator("capabilities", mode="before")
     @classmethod

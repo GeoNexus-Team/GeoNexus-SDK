@@ -67,6 +67,78 @@ def _full() -> dict[str, Any]:
         "runtime": {"cpu": 2, "memory": "4Gi", "gpu": "none"},
         "interface": {"type": "geomcp-skill", "version": "1.0"},
         "rendering": {"min": -1, "max": 1, "colormap": "viridis", "opacity": 0.8},
+        "composition": {
+            "components": [
+                {"id": "geocard.packed.menggu", "role": "data", "step": "s1"},
+                {"id": "ndvi-change", "role": "skill", "step": "s2", "required": True},
+                {"id": "report.tpl.sdg", "role": "knowledge", "step": "s3", "alias": "report"},
+            ],
+            "template": "tpl.sdg-report",
+        },
+        "params": {
+            "params": [
+                {
+                    "name": "year",
+                    "type": "integer",
+                    "required": True,
+                    "minimum": 2015,
+                    "maximum": 2024,
+                    "target": "s2.params.year",
+                },
+                {
+                    "name": "region",
+                    "type": "enum",
+                    "enum": ["蒙古", "墨西哥"],
+                    "default": "蒙古",
+                },
+                {"name": "crs", "type": "string", "scope": "fixed", "default": "EPSG:4326"},
+            ]
+        },
+        "recipe_ref": {
+            "recipe_id": "recipe://geonexus/sdg-15-3-1@1.0.0",
+            "version": "1.0.0",
+            "entrypoint": "s1",
+            "data_snapshot": {"geokg": "2026.09.1"},
+        },
+    }
+
+
+def _composite_case() -> dict[str, Any]:
+    """A whole solution as one card: several assets plus a report.
+
+    This is the shape a complex application case takes — the card stays a
+    facade (references only), so reusing it never copies data.
+    """
+    return {
+        "geocard_version": "1.0",
+        "id": "geocard.case.sdg-15-3-1-mng-2019",
+        "type": "workflow",
+        "name": "SDG 15.3.1 土地退化评估（蒙古 2019）",
+        "description": "2 数据 + 1 算子 + 1 报告：可复用的整体方案。",
+        "spatial": {"bbox": [87.7, 41.6, 119.9, 52.1], "crs": "EPSG:4326"},
+        "temporal": {"start": "2019-01-01", "end": "2019-12-31"},
+        "composition": {
+            "components": [
+                {"id": "geocard.packed.menggu", "role": "data", "step": "s1"},
+                {"id": "geocard.oge.lc08-l2", "role": "data", "step": "s1"},
+                {"id": "2026.9.16 SDG15.3.1", "role": "skill", "step": "s2"},
+                {"id": "report.sdg1531.mng.2019", "role": "knowledge", "step": "s3"},
+            ],
+            "template": "tpl.sdg-report",
+        },
+        "params": {
+            "params": [
+                {"name": "year", "type": "integer", "required": True, "minimum": 2015, "maximum": 2024},
+                {"name": "region", "type": "enum", "enum": ["蒙古", "墨西哥"], "default": "蒙古"},
+                {"name": "baseline", "type": "integer", "scope": "fixed", "default": 2015},
+            ]
+        },
+        "recipe_ref": {
+            "recipe_id": "recipe://geonexus/sdg-15-3-1@1.0.0",
+            "entrypoint": "s1",
+            "data_snapshot": {"geokg": "2026.09.1"},
+        },
+        "rendering": {"colormap": "ylgn", "opacity": 0.7},
     }
 
 
@@ -99,6 +171,7 @@ def _3d_bbox() -> dict[str, Any]:
 VALID_VECTORS: list[dict[str, Any]] = [
     _minimal(),
     _full(),
+    _composite_case(),
     _legacy_01(),
     _legacy_string_capabilities(),
     _extension_fields(),
@@ -108,6 +181,7 @@ VALID_VECTORS: list[dict[str, Any]] = [
 VALID_CASE_IDS: list[str] = [
     "minimal",
     "full",
+    "composite-case",
     "legacy-0.1",
     "string-capabilities",
     "extension-fields",
@@ -133,6 +207,13 @@ def _bad_enum(field: str, value: Any) -> dict[str, Any]:
 def _bad_type(field: str, value: Any) -> dict[str, Any]:
     card = _minimal()
     card[field] = value
+    return card
+
+
+def _composed(**sections: Any) -> dict[str, Any]:
+    """A minimal card carrying whichever composition sections are given."""
+    card = _minimal()
+    card.update(sections)
     return card
 
 
@@ -220,6 +301,79 @@ INVALID_VECTORS: list[tuple[str, dict[str, Any]]] = [
             "description": "d",
             "inputs": [{"name": "a"}],
         },
+    ),
+    # --- composition: what a composite asset is made of ------------------- #
+    (
+        "component-bad-role",
+        _composed(composition={"components": [{"id": "a", "role": "not-a-role"}]}),
+    ),
+    (
+        "component-missing-id",
+        _composed(composition={"components": [{"role": "data"}]}),
+    ),
+    (
+        "component-blank-id",
+        _composed(composition={"components": [{"id": "", "role": "data"}]}),
+    ),
+    (
+        "component-unknown-key",
+        _composed(composition={"components": [{"id": "a", "weight": 0.5}]}),
+    ),
+    (
+        "composition-unknown-key",
+        _composed(composition={"components": [{"id": "a"}], "dag": ["s1", "s2"]}),
+    ),
+    (
+        "composition-template-not-string",
+        _composed(composition={"components": [{"id": "a"}], "template": {"id": "tpl"}}),
+    ),
+    # --- params: the reusable parameter contract -------------------------- #
+    (
+        "param-bad-type",
+        _composed(params={"params": [{"name": "year", "type": "date"}]}),
+    ),
+    (
+        "param-bad-scope",
+        _composed(params={"params": [{"name": "year", "type": "integer", "scope": "maybe"}]}),
+    ),
+    (
+        "param-blank-name",
+        _composed(params={"params": [{"name": ""}]}),
+    ),
+    (
+        "param-non-string-name",
+        _composed(params={"params": [{"name": 2019}]}),
+    ),
+    (
+        "param-unknown-key",
+        _composed(params={"params": [{"name": "year", "units": "a"}]}),
+    ),
+    (
+        "params-unknown-key",
+        _composed(params={"params": [], "optional": True}),
+    ),
+    # --- recipe_ref: the pointer to the executable recipe ----------------- #
+    (
+        "recipe-ref-missing-recipe-id",
+        _composed(recipe_ref={"version": "1.0.0"}),
+    ),
+    (
+        "recipe-ref-blank-recipe-id",
+        _composed(recipe_ref={"recipe_id": ""}),
+    ),
+    (
+        "recipe-ref-bad-snapshot-shape",
+        _composed(recipe_ref={"recipe_id": "recipe://ns/name@1.0.0", "data_snapshot": "2026.09.1"}),
+    ),
+    (
+        "recipe-ref-bad-snapshot-value",
+        _composed(
+            recipe_ref={"recipe_id": "recipe://ns/name@1.0.0", "data_snapshot": {"geokg": 1}}
+        ),
+    ),
+    (
+        "recipe-ref-unknown-key",
+        _composed(recipe_ref={"recipe_id": "recipe://ns/name@1.0.0", "steps": []}),
     ),
 ]
 

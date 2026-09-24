@@ -17,13 +17,15 @@ from fastapi.responses import JSONResponse
 
 from ..geocard.model import GeoCard
 from ..geocard.validator import ContractValidator
-from .models import DescribeParams, ExecuteParams, InvokeParams
+from .models import DescribeParams, ExecuteParams, InvokeParams, PlanParams
 from .protocol import (
     CONTRACT_NOT_SATISFIED,
     EXECUTION_FAILED,
     GEOCARD_NOT_FOUND,
     INVALID_ARGUMENT,
     INVALID_PARAMS,
+    RECIPE_NOT_FOUND,
+    RECIPE_PARAM_INVALID,
     SKILL_NOT_FOUND,
     WRITE_METHODS,
     GeoMCPDispatcher,
@@ -33,6 +35,30 @@ from .protocol import (
 logger = logging.getLogger(__name__)
 
 PROTOCOL_VERSION = "1.0.0"
+
+
+def _recipe_view(entry: Any) -> dict[str, Any]:
+    """目录条目 → 线上视图。
+
+    协议里给的是**摘要 + 契约**，不是整张配方：``geo.describe`` 可能一次返回几十
+    个配方，把每个步骤的取值都塞进去会让响应大到没人愿意读。要看全文用
+    ``geo.plan``（它返回 ``recipe`` 全量）。
+    """
+    summary = getattr(entry, "summary", None)
+    if callable(summary):
+        return summary()
+    recipe = getattr(entry, "recipe", None)
+    if recipe is not None:
+        return {
+            "id": recipe.id,
+            "name": recipe.name,
+            "description": recipe.description,
+            "version": recipe.version,
+            "params": [p.name for p in recipe.params],
+            "reusable_params": recipe.reusable_param_names(),
+            "outputs": recipe.deliverable_names(),
+        }
+    return dict(entry) if isinstance(entry, dict) else {"recipe": str(entry)}
 
 # Internal marker preventing delegation loops (never reaches skill handlers).
 DELEGATE_MARKER = "__geonode_delegate"
@@ -112,6 +138,7 @@ class GeoMCPServer:
         api_keys: set[str] | None = None,
         forward_api_key: str | None = None,
         model_backend: Any | None = None,
+        recipe_registry: Any | None = None,
     ) -> None:
         self.name = name
         self.engine = engine
@@ -124,6 +151,9 @@ class GeoMCPServer:
         #: ``geonexus.model.ModelBackend``（或任何有 ``invoke_card`` 的对象）。
         #: 为 ``None`` 时 ``geo.invoke`` **明确拒绝**而不是假装可用——见 capabilities()。
         self.model_backend = model_backend
+        #: ``geonexus.recipe.RecipeRegistry``（或任何满足 ``resolve``/``get`` 的对象）。
+        #: 未绑定时 ``geo.plan`` **明确拒绝**，而不是返回一张空图——见 capabilities()。
+        self.recipe_registry = recipe_registry
         self.contract_validator = contract_validator or ContractValidator()
 
         self._tools: dict[str, _Tool] = {}
@@ -135,6 +165,7 @@ class GeoMCPServer:
             describe_fn=self._handle_describe,
             execute_fn=self._handle_execute,
             invoke_fn=self._handle_invoke,
+            plan_fn=self._handle_plan,
             health_fn=self._handle_health,
         )
 
@@ -191,6 +222,13 @@ class GeoMCPServer:
             raise GeoMCPProtocolError(INVALID_PARAMS, f"Invalid geo.invoke params: {exc}") from exc
         return self.invoke(invoke_params)
 
+    def _handle_plan(self, params: dict[str, Any]) -> dict[str, Any]:
+        try:
+            plan_params = PlanParams(**params)
+        except Exception as exc:
+            raise GeoMCPProtocolError(INVALID_PARAMS, f"Invalid geo.plan params: {exc}") from exc
+        return self.plan(plan_params)
+
     # ------------------------------------------------------------------ #
     # Public API
     # ------------------------------------------------------------------ #
@@ -216,9 +254,44 @@ class GeoMCPServer:
             "skills": skills,
             "geocards": [c["id"] for c in cards],
             "geocard_ids": [c["id"] for c in cards],
+            "recipes": self._recipe_summaries(),
             # 加法式扩展：老客户端读不认识的键会忽略它；认识它的客户端据此判断
             # 这个节点能不能真的执行模型调用，而不是发出去才知道。
             "model_invocation": self.model_invocation_capability(),
+            "recipe_planning": self.recipe_planning_capability(),
+        }
+
+    def _recipe_entries(self) -> list[Any]:
+        """目录里登记的配方（已批准优先）——没有目录就是空列表。"""
+        registry = self.recipe_registry
+        if registry is None:
+            return []
+        search = getattr(registry, "search", None)
+        if callable(search):
+            return list(search(approved_only=True))
+        lister = getattr(registry, "list", None)
+        return list(lister()) if callable(lister) else []
+
+    def _recipe_summaries(self) -> list[dict[str, Any]]:
+        out: list[dict[str, Any]] = []
+        for entry in self._recipe_entries():
+            summary = getattr(entry, "summary", None)
+            out.append(summary() if callable(summary) else getattr(entry, "recipe", entry))
+        return out
+
+    def recipe_planning_capability(self) -> dict[str, Any]:
+        """``geo.plan`` 的可用性声明 —— 与 ``geo.invoke`` 同样的"先声明再调用"。"""
+        if self.recipe_registry is None:
+            return {
+                "enabled": False,
+                "method": "geo.plan",
+                "reason": "此节点未绑定 recipe_registry，geo.plan 会返回 recipe_not_found",
+            }
+        return {
+            "enabled": True,
+            "method": "geo.plan",
+            "read_only": True,
+            "recipes": len(self._recipe_entries()),
         }
 
     def model_invocation_capability(self) -> dict[str, Any]:
@@ -309,10 +382,118 @@ class GeoMCPServer:
                     f"Skill(s) not found: {missing}",
                     {"missing": missing},
                 )
+        recipes = self._recipe_entries()
+        if params.recipes is not None:
+            wanted = list(params.recipes)
+            selected: list[Any] = []
+            missing = []
+            for address in wanted:
+                found = self._resolve_recipe(address)
+                if found is None:
+                    missing.append(address)
+                else:
+                    selected.append(found)
+            if missing:
+                raise GeoMCPProtocolError(
+                    RECIPE_NOT_FOUND,
+                    f"Recipe(s) not found: {missing}",
+                    {"missing": missing},
+                )
+            recipes = selected
         return {
             "geocards": [c.to_dict() for c in cards],
             "skills": [s.describe() for s in skills],
+            "recipes": [_recipe_view(e) for e in recipes],
         }
+
+    # ------------------------------------------------------------------ #
+    # geo.plan (V1.1) —— 物化，不执行
+    # ------------------------------------------------------------------ #
+    def _resolve_recipe(self, address: str) -> Any | None:
+        """把一个（可能没写版本的）地址解析成一条登记记录。"""
+        registry = self.recipe_registry
+        if registry is None:
+            return None
+        resolve = getattr(registry, "resolve", None)
+        if callable(resolve):
+            return resolve(address, approved_only=True)
+        get = getattr(registry, "get", None)
+        return get(address) if callable(get) else None
+
+    def plan(self, params: PlanParams) -> dict[str, Any]:
+        """Materialise a recipe into a run (``geo.plan``).
+
+        **只读**：返回任务图与交付物清单，不执行任何步骤、不落任何产物。平台的
+        参数表单据此在"运行"之前就报出契约错误，用户不必等到任务失败才发现
+        参数写错了。
+        """
+        if self.recipe_registry is None:
+            raise GeoMCPProtocolError(
+                RECIPE_NOT_FOUND,
+                "此节点未绑定 recipe_registry，无法物化配方",
+                {"reason": "recipe_registry_not_configured"},
+            )
+        entry = self._resolve_recipe(params.recipe)
+        if entry is None:
+            raise GeoMCPProtocolError(
+                RECIPE_NOT_FOUND,
+                f"Recipe not found or not approved: {params.recipe}",
+                {"recipe": params.recipe},
+            )
+        recipe = getattr(entry, "recipe", entry)
+
+        from ..recipe.materialize import deliverables as _deliverables
+        from ..recipe.materialize import materialize
+        from ..recipe.model import RecipeParamError
+
+        resolver = self._resolve_plan_asset if params.resolve else None
+        try:
+            run = materialize(recipe, params.params, run_id=params.run_id, resolve=resolver)
+        except RecipeParamError as exc:
+            # 参数契约失败是**调用方**的错误，必须能被机器读懂（field/code），
+            # 而不是包成一句人话让前端去猜哪个输入框红了。
+            raise GeoMCPProtocolError(RECIPE_PARAM_INVALID, str(exc), exc.to_dict()) from exc
+
+        tasks = []
+        for task_id in run.task_ids():
+            task = run.graph.task(task_id)
+            tasks.append(
+                {
+                    "task_id": task_id,
+                    "step": task.labels.get("recipe_step"),
+                    "kind": task.kind.value,
+                    "uses": task.spec.get("uses"),
+                    "declared_uses": task.spec.get("declared_uses"),
+                    "depends_on": list(task.depends_on),
+                    "params": task.spec.get("params", {}),
+                    "inputs": {name: io.ref for name, io in task.inputs.items()},
+                    "outputs": {name: io.ref for name, io in task.outputs.items()},
+                }
+            )
+
+        return {
+            "recipe": recipe.to_dict(),
+            "recipe_id": recipe.id,
+            "run_id": run.run_id,
+            "params": run.params,
+            "reusable_params": recipe.reusable_param_names(),
+            "fixed_params": recipe.fixed_param_names(),
+            "tasks": tasks,
+            "deliverables": _deliverables(run),
+        }
+
+    def _resolve_plan_asset(self, uses: str) -> str:
+        """把步骤声明的 ``uses`` 解析成实际引用（仅当调用方要求 resolve 时）。
+
+        解析不到就保留原样：物化不该因为"这个节点的资产目录还没同步"而失败 ——
+        它描述的是**计划**，不是**此刻的库存**。
+        """
+        card = self._resolve_card(uses)
+        if card is None:
+            return uses
+        access = getattr(card, "access", None)
+        endpoint = getattr(access, "endpoint", None) if access is not None else None
+        return endpoint or uses
 
     def execute(self, params: ExecuteParams) -> dict[str, Any]:
         """Execute a skill via the engine, gated by contract validation.

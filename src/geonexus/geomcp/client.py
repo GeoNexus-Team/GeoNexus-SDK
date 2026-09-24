@@ -102,14 +102,41 @@ class GeoMCPClient:
         self,
         geocards: list[str] | None = None,
         skills: list[str] | None = None,
+        recipes: list[str] | None = None,
     ) -> dict[str, Any]:
-        """Describe registered GeoCards and skills (``geo.describe``)."""
+        """Describe registered GeoCards, skills and recipes (``geo.describe``)."""
         params: dict[str, Any] = {}
         if geocards is not None:
             params["geocards"] = geocards
         if skills is not None:
             params["skills"] = skills
+        if recipes is not None:
+            params["recipes"] = recipes
         return self._call("geo.describe", params)
+
+    def plan(
+        self,
+        recipe: str,
+        params: dict[str, Any] | None = None,
+        run_id: str = "run",
+        resolve: bool = False,
+    ) -> dict[str, Any]:
+        """Materialise a recipe into a run (``geo.plan``, V1.1).
+
+        Read-only: returns the task graph and deliverables without executing
+        anything. Parameter-contract failures come back as error code
+        ``2006`` with ``field``/``code`` in ``data`` — which is exactly what a
+        parameter form needs to highlight the offending input.
+        """
+        return self._call(
+            "geo.plan",
+            {
+                "recipe": recipe,
+                "params": params or {},
+                "run_id": run_id,
+                "resolve": resolve,
+            },
+        )
 
     def capabilities(self) -> dict[str, Any]:
         """Fetch the server's capability surface (``geo.capabilities``)."""

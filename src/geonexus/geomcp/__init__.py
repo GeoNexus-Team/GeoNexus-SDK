@@ -7,6 +7,7 @@ from .models import (
     GeoMCPError,
     GeoMCPRequest,
     GeoMCPResponse,
+    PlanParams,
     SpatialContext,
     TemporalContext,
 )
@@ -19,6 +20,8 @@ from .protocol import (
     INVALID_REQUEST,
     METHOD_NOT_FOUND,
     PARSE_ERROR,
+    RECIPE_NOT_FOUND,
+    RECIPE_PARAM_INVALID,
     SKILL_NOT_FOUND,
     GeoMCPDispatcher,
     GeoMCPProtocolError,
@@ -41,6 +44,7 @@ __all__ = [
     "GeoMCPError",
     "ExecuteParams",
     "DescribeParams",
+    "PlanParams",
     "SpatialContext",
     "TemporalContext",
     "build_request",
@@ -56,4 +60,6 @@ __all__ = [
     "SKILL_NOT_FOUND",
     "GEOCARD_NOT_FOUND",
     "EXECUTION_FAILED",
+    "RECIPE_NOT_FOUND",
+    "RECIPE_PARAM_INVALID",
 ]

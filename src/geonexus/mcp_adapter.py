@@ -14,7 +14,13 @@ import logging
 from typing import Any
 
 from . import __version__
-from .geomcp.models import DescribeParams, ExecuteParams, SpatialContext, TemporalContext
+from .geomcp.models import (
+    DescribeParams,
+    ExecuteParams,
+    PlanParams,
+    SpatialContext,
+    TemporalContext,
+)
 from .geomcp.server import GeoMCPServer
 
 logger = logging.getLogger(__name__)
@@ -25,7 +31,7 @@ DEFAULT_MCP_PROTOCOL_VERSION = "2025-06-18"
 
 def create_mcp_server(server: GeoMCPServer) -> Any:
     """Build an MCP server (``mcp.server.mcpserver.MCPServer``) wrapping a
-    GeoMCP server's four methods as MCP tools."""
+    GeoMCP server's methods as MCP tools."""
     try:
         from mcp.server.mcpserver import MCPServer
     except ImportError as exc:  # pragma: no cover - env dependent
@@ -40,7 +46,9 @@ def create_mcp_server(server: GeoMCPServer) -> Any:
         version=__version__,
         instructions=(
             "GeoNexus geospatial interaction protocol over MCP. "
-            "Use geo_execute to run a skill on the node that owns the data."
+            "Use geo_plan to see what a reusable recipe would do (and which of its "
+            "parameters you may change) before spending compute, then geo_execute "
+            "to run a skill on the node that owns the data."
         ),
     )
 
@@ -55,8 +63,11 @@ def create_mcp_server(server: GeoMCPServer) -> Any:
     async def geo_describe(
         geocards: list[str] | None = None,
         skills: list[str] | None = None,
+        recipes: list[str] | None = None,
     ) -> dict[str, Any]:
-        return server.describe(DescribeParams(geocards=geocards, skills=skills))
+        return server.describe(
+            DescribeParams(geocards=geocards, skills=skills, recipes=recipes)
+        )
 
     @mcp.tool(
         description=(
@@ -83,6 +94,25 @@ def create_mcp_server(server: GeoMCPServer) -> Any:
                 params=params or {},
                 request_id=request_id,
             )
+        )
+
+    @mcp.tool(
+        description=(
+            "Materialise a reusable recipe into a run WITHOUT executing it: returns "
+            "the tasks (step, kind, uses, depends_on, resolved params) and the "
+            "deliverables, plus the recipe's parameter contract. recipe: address "
+            "such as 'recipe://ns/name@1.0.0' (version optional); params: values to "
+            "validate; run_id: identity for this run. Read-only."
+        )
+    )
+    async def geo_plan(
+        recipe: str,
+        params: dict[str, Any] | None = None,
+        run_id: str = "run",
+        resolve: bool = False,
+    ) -> dict[str, Any]:
+        return server.plan(
+            PlanParams(recipe=recipe, params=params or {}, run_id=run_id, resolve=resolve)
         )
 
     @mcp.tool(description="GeoMCP health check (node status, version, time).")

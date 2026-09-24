@@ -8,6 +8,55 @@ project uses Semantic Versioning.
 
 ### Added
 
+- **GeoCard 1.1 sections: `composition` / `params` / `recipe_ref`** — a card can
+  now describe a *whole solution* without containing one.
+  - `composition.components[]` (`{id, role, step?, required?, alias?}`) lists the
+    assets a composite case is made of, as **references only**: reusing a case
+    moves no data, and each component keeps its own identity, access and licence.
+    Duplicate `(id, role)` pairs are rejected — a duplicate reference would run a
+    step twice.
+  - `params.params[]` is the **parameter contract** (`ParamSpec`: name, type,
+    required, default, enum, minimum/maximum, scope, target). Without it a forked
+    case is inert: nobody knows which fields are safe to vary. `scope: fixed`
+    publishes a *result* rather than a *method*.
+  - `recipe_ref` points at the executable recipe (`recipe://ns/name@semver`),
+    carrying the `data_snapshot` the solution was authored against.
+  - Additive within 1.x: cards without the new sections stay valid, and the 0.1
+    schema is still accepted. Conformance vectors grow with the sections
+    (`tests/conformance/geocard_vectors.py`), and cross-field rules that JSON
+    Schema cannot express (duplicate params, `minimum > maximum`, blank enum
+    entries) are covered in `tests/test_geocard.py`.
+  - `docs/GEOCARD.md` documents all three sections.
+
+- **`geonexus.recipe` (v1.1)** — the executable half of a knowledge product:
+  a **Recipe** says *how to run*, a GeoCard says *what it is*, and a `TaskGraph`
+  is *one run*. No layer is a representation of another.
+  - `Recipe` / `RecipeStep` / `RecipeOutput` with an address that carries
+    identity (`recipe://<ns>/<name>@<semver>`), full DAG validation (unique ids,
+    known dependencies, acyclicity, entrypoint, deliverables that point at real
+    outputs, `step://` inputs that resolve).
+  - `materialize(recipe, params, run_id=...)` → `RunPlan`: parameter contract
+    first (`field`/`code` on every failure), then `${params.x}` substitution, then
+    `task_id = "<run_id>:<step_id>"` so a replay is idempotent and two runs never
+    collide. `provenance` on every task records recipe version, run id, resolved
+    params and data snapshot.
+  - `deliverables(plan)` returns the run's conclusions with roles — deliberately
+    **no URLs**: where an artefact lives is the run environment's decision.
+  - `RecipeRegistry`: file-backed catalogue reusing the card registry's review
+    vocabulary, with `resolve()` picking the newest **approved** version
+    (`version_key` avoids the `1.10.0 < 1.9.0` trap) and `fork()` as the
+    executable definition of reuse — new address, your parameters, source
+    untouched, fork returns as `pending`.
+  - `geo.plan` (GeoMCP, **additive**, **read-only**): materialises a recipe over
+    the wire without executing it. `geo.capabilities.recipe_planning` declares
+    availability; `geo.describe` lists recipe summaries; errors `2005
+    RECIPE_NOT_FOUND` / `2006 RECIPE_PARAM_INVALID` (with machine-readable
+    `field`/`code`). Also exported through the MCP bridge as `geo_plan`.
+  - CLI: `recipe validate|inspect|plan|register|search|fork` (`plan` exits `2` on
+    a parameter-contract violation). `docs/RECIPE.md`,
+    `examples/sdg_15_3_1/recipe.yaml`, `tests/test_recipe.py`,
+    `tests/test_geomcp_plan.py`.
+
 - **`geonexus.model` (v1.2, Phase 3)** — model invocation contract: a
   `type: model` GeoCard finally has an execution path.
   - `invoke_model(card, inputs, ...)` runs **compute gate → provider →

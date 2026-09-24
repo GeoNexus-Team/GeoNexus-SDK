@@ -21,11 +21,16 @@ from .model import (
     Band,
     Capability,
     ComplianceSection,
+    ComponentRef,
+    CompositionSection,
     GeoCard,
     InterfaceSection,
     IOField,
     LicenseField,
+    ParamSpec,
+    ParamsSection,
     ProvenanceSection,
+    RecipeRefSection,
     RenderingSection,
     RuntimeSection,
     SpatialSection,
@@ -194,6 +199,82 @@ class GeoCardBuilder:
         """Declare visualisation hints."""
         self._card.rendering = RenderingSection(
             min=min, max=max, colormap=colormap, opacity=opacity
+        )
+        return self
+
+    # -- composition (solutions built from several assets) -------------------- #
+    def component(
+        self,
+        id: str,
+        role: str = "data",
+        step: str | None = None,
+        required: bool = True,
+        alias: str | None = None,
+    ) -> GeoCardBuilder:
+        """Add one component reference to this composite card.
+
+        References only — the referenced card keeps its own identity, access,
+        licence and compliance, so reusing a solution never moves data.
+        """
+        section = self._card.composition or CompositionSection()
+        section.components.append(
+            ComponentRef(id=id, role=role, step=step, required=required, alias=alias)
+        )
+        self._card.composition = section
+        return self
+
+    def composition_template(self, template: str | None = None) -> GeoCardBuilder:
+        """Bind a document/report template to this composition."""
+        section = self._card.composition or CompositionSection()
+        section.template = template
+        self._card.composition = section
+        return self
+
+    def param(
+        self,
+        name: str,
+        type: str = "string",
+        required: bool = False,
+        default: Any | None = None,
+        enum: list[Any] | None = None,
+        minimum: float | None = None,
+        maximum: float | None = None,
+        scope: str = "reusable",
+        target: str | None = None,
+        description: str | None = None,
+    ) -> GeoCardBuilder:
+        """Declare one parameter of the reusable contract."""
+        section = self._card.params or ParamsSection()
+        section.params.append(
+            ParamSpec(
+                name=name,
+                type=type,
+                required=required,
+                default=default,
+                enum=list(enum or []),
+                minimum=minimum,
+                maximum=maximum,
+                scope=scope,
+                target=target,
+                description=description,
+            )
+        )
+        self._card.params = section
+        return self
+
+    def recipe(
+        self,
+        recipe_id: str,
+        version: str | None = None,
+        entrypoint: str | None = None,
+        data_snapshot: dict[str, str] | None = None,
+    ) -> GeoCardBuilder:
+        """Point this card at the executable recipe behind it."""
+        self._card.recipe_ref = RecipeRefSection(
+            recipe_id=recipe_id,
+            version=version,
+            entrypoint=entrypoint,
+            data_snapshot=dict(data_snapshot or {}),
         )
         return self
 

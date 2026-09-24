@@ -150,3 +150,105 @@ def test_geocard_load_rejects_invalid(tmp_path) -> None:
     path2.write_text(json.dumps(bad2), encoding="utf-8")
     with pytest.raises(GeoCardValidationError):
         load_geocard(str(path2))
+
+
+# --------------------------------------------------------------------------- #
+# Composition / params / recipe_ref: rules JSON Schema cannot express.
+# The schema vectors in tests/conformance cover the shape; these cover the
+# cross-field semantics the pydantic model enforces on top of it.
+# --------------------------------------------------------------------------- #
+def _composite_dict() -> dict:
+    """A card whose sections are valid, so each test can break exactly one."""
+    return {
+        "geocard_version": "1.0",
+        "id": "geocard.case.demo",
+        "type": "workflow",
+        "name": "Demo composite",
+        "description": "2 data + 1 skill + 1 report.",
+        "composition": {
+            "components": [
+                {"id": "a", "role": "data"},
+                {"id": "b", "role": "data"},
+                {"id": "c", "role": "skill"},
+            ],
+            "template": "tpl.report",
+        },
+        "params": {
+            "params": [
+                {"name": "year", "type": "integer", "minimum": 2015, "maximum": 2024},
+                {"name": "baseline", "type": "integer", "scope": "fixed", "default": 2015},
+            ]
+        },
+        "recipe_ref": {"recipe_id": "recipe://geonexus/demo@1.0.0"},
+    }
+
+
+def test_composite_card_roundtrip() -> None:
+    """A composite card parses, re-serialises and exposes its contract."""
+    card = GeoCard.model_validate(_composite_dict())
+    assert card.component_ids() == ["a", "b", "c"]
+    assert card.reusable_param_names() == ["year"]
+    assert card.fixed_param_names() == ["baseline"]
+    assert card.to_dict()["composition"]["template"] == "tpl.report"
+    # Round-trips through the serialised form without losing a section.
+    assert GeoCard.model_validate(card.to_dict()).to_dict() == card.to_dict()
+
+
+def test_composition_rejects_duplicate_component() -> None:
+    """The same (id, role) may not appear twice — a step would run twice."""
+    import pydantic
+
+    bad = _composite_dict()
+    bad["composition"]["components"].append({"id": "a", "role": "data"})
+    with pytest.raises(pydantic.ValidationError, match="duplicate component"):
+        GeoCard.model_validate(bad)
+    # The same asset in two different roles is a different reference: allowed.
+    ok = _composite_dict()
+    ok["composition"]["components"].append({"id": "a", "role": "model"})
+    assert GeoCard.model_validate(ok).component_ids() == ["a", "b", "c", "a"]
+
+
+def test_composition_rejects_blank_component_id() -> None:
+    import pydantic
+
+    bad = _composite_dict()
+    bad["composition"]["components"].append({"id": "   "})
+    with pytest.raises(pydantic.ValidationError, match="must not be empty"):
+        GeoCard.model_validate(bad)
+
+
+def test_params_reject_duplicate_name() -> None:
+    import pydantic
+
+    bad = _composite_dict()
+    bad["params"]["params"].append({"name": "year", "type": "string"})
+    with pytest.raises(pydantic.ValidationError, match="duplicate param"):
+        GeoCard.model_validate(bad)
+
+
+def test_params_reject_incoherent_range() -> None:
+    """minimum > maximum can never be satisfied, so it is a contract bug."""
+    import pydantic
+
+    bad = _composite_dict()
+    bad["params"]["params"][0] = {"name": "year", "type": "integer", "minimum": 2024, "maximum": 2015}
+    with pytest.raises(pydantic.ValidationError, match="minimum .* > maximum"):
+        GeoCard.model_validate(bad)
+
+
+def test_params_reject_blank_enum_entry() -> None:
+    import pydantic
+
+    bad = _composite_dict()
+    bad["params"]["params"].append({"name": "region", "type": "enum", "enum": ["蒙古", " "]})
+    with pytest.raises(pydantic.ValidationError, match="empty strings"):
+        GeoCard.model_validate(bad)
+
+
+def test_composite_sections_are_optional() -> None:
+    """Cards without a composition stay valid: the sections are additive."""
+    card = GeoCard.model_validate(_valid_dict())
+    assert card.composition is None
+    assert card.component_ids() == []
+    assert card.reusable_param_names() == []
+    assert card.fixed_param_names() == []

@@ -37,15 +37,19 @@ SKILL_NOT_FOUND = 2001
 GEOCARD_NOT_FOUND = 2002
 EXECUTION_FAILED = 2003
 INVALID_ARGUMENT = 2004
+RECIPE_NOT_FOUND = 2005
+RECIPE_PARAM_INVALID = 2006
 
-#: GeoMCP 方法表。``geo.invoke`` 是 V2 追加的**加法式**扩展：调用一个
-#: ``type: model`` 的 GeoCard。老客户端只读 ``geo.capabilities.methods``
-#: 即可发现它，不认识它的实现按 JSON-RPC 返回 ``METHOD_NOT_FOUND``。
+#: GeoMCP 方法表。``geo.invoke``（V2）与 ``geo.plan``（V1.1）都是**加法式**
+#: 扩展：前者调用一个 ``type: model`` 的 GeoCard，后者把"配方 + 参数"物化成一次
+#: 运行（任务图）。老客户端只读 ``geo.capabilities.methods`` 即可发现它们，
+#: 不认识它们的实现按 JSON-RPC 返回 ``METHOD_NOT_FOUND``。
 METHODS = (
     "geo.capabilities",
     "geo.describe",
     "geo.execute",
     "geo.invoke",
+    "geo.plan",
     "geo.health",
 )
 
@@ -151,6 +155,7 @@ class GeoMCPDispatcher:
         describe_fn: Handler | None = None,
         execute_fn: Handler | None = None,
         invoke_fn: Handler | None = None,
+        plan_fn: Handler | None = None,
         health_fn: Handler | None = None,
     ) -> None:
         self._handlers: dict[str, Handler] = {}
@@ -162,6 +167,8 @@ class GeoMCPDispatcher:
             self._handlers["geo.execute"] = execute_fn
         if invoke_fn:
             self._handlers["geo.invoke"] = invoke_fn
+        if plan_fn:
+            self._handlers["geo.plan"] = plan_fn
         if health_fn:
             self._handlers["geo.health"] = health_fn
 

@@ -151,6 +151,205 @@ def _register_demo_assets(node: Any, out: Any = None) -> None:
     )
 
 
+def _parse_param_assignments(pairs: list[str] | None) -> dict:
+    """``--param year=2019`` → ``{"year": "2019"}``。
+
+    值一律先按字符串收，JSON 形状（``[``/``{``）才尝试解析；真正的类型收敛交给
+    配方的参数契约（``resolve_params``）—— 命令行不该自带第二套类型规则。
+    """
+    import json
+
+    out: dict = {}
+    for item in pairs or []:
+        if "=" not in item:
+            raise ValueError(f"expected NAME=VALUE, got {item!r}")
+        name, _, raw = item.partition("=")
+        name = name.strip()
+        raw = raw.strip()
+        if not name:
+            raise ValueError(f"expected NAME=VALUE, got {item!r}")
+        if raw[:1] in ("[", "{"):
+            try:
+                out[name] = json.loads(raw)
+                continue
+            except json.JSONDecodeError:
+                pass
+        out[name] = raw
+    return out
+
+
+def cmd_recipe_validate(args: argparse.Namespace) -> int:
+    from .recipe import RecipeError, RecipeValidationError, load_recipe
+
+    try:
+        recipe = load_recipe(args.file)
+    except RecipeValidationError as exc:
+        print(f"INVALID: {args.file}")
+        for error in exc.errors:
+            print(f"  - {error}")
+        return 1
+    except RecipeError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    print(f"OK: {args.file}")
+    print(f"  id:          {recipe.id}")
+    print(f"  name:        {recipe.name or '-'}")
+    print(f"  version:     {recipe.recipe_version}")
+    print(f"  steps:       {len(recipe.steps)} ({', '.join(s.id for s in recipe.steps)})")
+    print(f"  entrypoint:  {recipe.entry()}")
+    print(f"  reusable:    {', '.join(recipe.reusable_param_names()) or '-'}")
+    print(f"  fixed:       {', '.join(recipe.fixed_param_names()) or '-'}")
+    print(f"  outputs:     {', '.join(recipe.deliverable_names()) or '-'}")
+    print(f"  uses:        {', '.join(recipe.uses()) or '-'}")
+    return 0
+
+
+def cmd_recipe_inspect(args: argparse.Namespace) -> int:
+    import json
+
+    from .recipe import RecipeError, load_recipe
+
+    try:
+        recipe = load_recipe(args.file)
+    except RecipeError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(recipe.to_dict(), indent=2, ensure_ascii=False))
+    return 0
+
+
+def cmd_recipe_plan(args: argparse.Namespace) -> int:
+    """把配方 + 参数物化成一次运行，打印任务图 —— 复用前先看清楚会发生什么。"""
+    import json
+
+    from .recipe import RecipeError, RecipeParamError, load_recipe, materialize
+
+    try:
+        recipe = load_recipe(args.file)
+        params = _parse_param_assignments(args.param)
+        plan = materialize(recipe, params, run_id=args.run_id)
+    except RecipeParamError as exc:
+        print(f"PARAM ERROR: {exc}", file=sys.stderr)
+        print(f"  field: {exc.field}  code: {exc.code}", file=sys.stderr)
+        return 2
+    except (RecipeError, ValueError) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+    if args.json:
+        print(json.dumps(plan.to_dict(), indent=2, ensure_ascii=False))
+        return 0
+
+    print(f"recipe: {plan.recipe_id}")
+    print(f"run:    {plan.run_id}")
+    print("params:")
+    for name, value in plan.params.items():
+        print(f"  {name} = {value!r}")
+    print("tasks:")
+    for task_id in plan.task_ids():
+        task = plan.graph.task(task_id)
+        deps = ", ".join(task.depends_on) or "-"
+        print(f"  {task_id}  [{task.kind.value}] {task.spec['uses']}")
+        print(f"      depends_on: {deps}")
+        if task.spec.get("params"):
+            print(f"      params:     {task.spec['params']}")
+    print("deliverables:")
+    for name, ref in plan.output_refs().items():
+        print(f"  {name}: {ref}")
+    return 0
+
+
+def cmd_recipe_register(args: argparse.Namespace) -> int:
+    from .recipe import RecipeConflict, RecipeError, RecipeRegistry, load_recipe
+
+    try:
+        recipe = load_recipe(args.file)
+        registry = RecipeRegistry(args.catalogue)
+        entry = registry.register(
+            recipe,
+            provider_url=args.provider or "",
+            status=args.status,
+            submitted_by=args.by,
+            replace=args.replace,
+        )
+    except RecipeConflict as exc:
+        print(f"CONFLICT: {exc}", file=sys.stderr)
+        return 1
+    except RecipeError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    print(f"REGISTERED: {entry.recipe_id}  status={entry.status}")
+    print(f"  catalogue: {args.catalogue}")
+    if entry.status != "approved":
+        print("  note: not approved yet — `recipe search --approved-only` will not show it")
+    return 0
+
+
+def cmd_recipe_search(args: argparse.Namespace) -> int:
+    import json
+
+    from .recipe import RecipeRegistry
+
+    registry = RecipeRegistry(args.catalogue)
+    hits = registry.search(
+        args.query or "",
+        namespace=args.namespace,
+        tag=args.tag,
+        param=args.param,
+        output_role=args.output_role,
+        approved_only=args.approved_only,
+        limit=args.limit,
+    )
+    if args.json:
+        print(json.dumps([h.summary() for h in hits], indent=2, ensure_ascii=False))
+        return 0
+    if not hits:
+        print("no recipes matched")
+        return 0
+    for hit in hits:
+        summary = hit.summary()
+        print(f"{summary['id']}  [{summary['status']}]")
+        print(f"    {summary['name']}")
+        print(f"    steps={summary['steps']}  reusable={', '.join(summary['reusable_params']) or '-'}")
+        print(f"    outputs={', '.join(summary['outputs']) or '-'}")
+    return 0
+
+
+def cmd_recipe_fork(args: argparse.Namespace) -> int:
+    """派生一份配方 —— "复用"这个词的可执行形式。"""
+    from .recipe import RecipeError, RecipeNotFound, RecipeRegistry, save_recipe
+
+    try:
+        registry = RecipeRegistry(args.catalogue)
+        forked = registry.fork(
+            args.address,
+            namespace=args.namespace,
+            name=args.name,
+            version=args.version,
+            params=_parse_param_assignments(args.set),
+            fixed=_parse_param_assignments(args.fix),
+            title=args.title,
+            register=not args.no_register,
+            approved_only=not args.allow_unapproved,
+        )
+    except RecipeNotFound as exc:
+        print(f"NOT FOUND: {exc}", file=sys.stderr)
+        return 1
+    except (RecipeError, ValueError) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+    print(f"FORKED: {args.address} → {forked.id}")
+    if not args.no_register:
+        print("  registered as pending; run `recipe search` to confirm")
+    if args.output:
+        save_recipe(forked, args.output)
+        print(f"  written: {args.output}")
+    else:
+        print(forked.to_yaml())
+    return 0
+
+
 def cmd_node_start(args: argparse.Namespace) -> int:
     from .geonode import GeoNode
 
@@ -1362,6 +1561,75 @@ def build_parser() -> argparse.ArgumentParser:
     p_stac_export.add_argument("--output", help="Output .json path")
     p_stac_export.add_argument("--collection", help="STAC collection id")
     p_stac_export.set_defaults(func=cmd_card_export_stac)
+
+    recipe = sub.add_parser("recipe", help="Recipe commands (V1.1): the executable side")
+    recipe_sub = recipe.add_subparsers(dest="recipe_command", required=True)
+    p_rec_validate = recipe_sub.add_parser("validate", help="Validate a recipe file")
+    p_rec_validate.add_argument("file", help="Path to a .yaml/.yml/.json recipe")
+    p_rec_validate.set_defaults(func=cmd_recipe_validate)
+    p_rec_inspect = recipe_sub.add_parser("inspect", help="Print a recipe file as JSON")
+    p_rec_inspect.add_argument("file", help="Path to a recipe file")
+    p_rec_inspect.set_defaults(func=cmd_recipe_inspect)
+    p_rec_plan = recipe_sub.add_parser(
+        "plan", help="Materialise recipe + params into a run (task graph)"
+    )
+    p_rec_plan.add_argument("file", help="Path to a recipe file")
+    p_rec_plan.add_argument(
+        "--param",
+        action="append",
+        default=None,
+        metavar="NAME=VALUE",
+        help="Parameter value (repeatable). JSON is accepted for list/dict values.",
+    )
+    p_rec_plan.add_argument("--run-id", default="run", help="Run identity; enters every task id")
+    p_rec_plan.add_argument("--json", action="store_true", help="Print the plan as JSON")
+    p_rec_plan.set_defaults(func=cmd_recipe_plan)
+    p_rec_register = recipe_sub.add_parser("register", help="Register a recipe in a catalogue")
+    p_rec_register.add_argument("file", help="Path to a recipe file")
+    p_rec_register.add_argument("--catalogue", required=True, help="JSON catalogue path")
+    p_rec_register.add_argument("--provider", help="Provider endpoint recorded with the recipe")
+    p_rec_register.add_argument(
+        "--status", default="approved", choices=["pending", "approved", "rejected"]
+    )
+    p_rec_register.add_argument("--by", help="Who submitted it (recorded in review history)")
+    p_rec_register.add_argument("--replace", action="store_true", help="Overwrite an existing id")
+    p_rec_register.set_defaults(func=cmd_recipe_register)
+    p_rec_search = recipe_sub.add_parser("search", help="Search a recipe catalogue")
+    p_rec_search.add_argument("query", nargs="?", default="", help="Free-text query")
+    p_rec_search.add_argument("--catalogue", required=True, help="JSON catalogue path")
+    p_rec_search.add_argument("--namespace", help="Filter by namespace")
+    p_rec_search.add_argument("--tag", help="Filter by tag")
+    p_rec_search.add_argument("--param", help="Only recipes that accept this parameter")
+    p_rec_search.add_argument(
+        "--output-role", help="Only recipes delivering an output with this role"
+    )
+    p_rec_search.add_argument("--approved-only", action="store_true")
+    p_rec_search.add_argument("--limit", type=int, default=None)
+    p_rec_search.add_argument("--json", action="store_true")
+    p_rec_search.set_defaults(func=cmd_recipe_search)
+    p_rec_fork = recipe_sub.add_parser(
+        "fork", help="Fork a recipe: new address, your parameters, source untouched"
+    )
+    p_rec_fork.add_argument("address", help="Source address, e.g. recipe://ns/name (version optional)")
+    p_rec_fork.add_argument("--catalogue", required=True, help="JSON catalogue path")
+    p_rec_fork.add_argument("--namespace", help="Namespace of the fork (default: same as source)")
+    p_rec_fork.add_argument("--name", help="Name of the fork (default: <source>-fork)")
+    p_rec_fork.add_argument("--version", help="Version of the fork (default: 1.0.0)")
+    p_rec_fork.add_argument("--title", help="Human-readable name of the fork")
+    p_rec_fork.add_argument(
+        "--set", action="append", default=None, metavar="NAME=VALUE",
+        help="Change a reusable parameter's default (repeatable)",
+    )
+    p_rec_fork.add_argument(
+        "--fix", action="append", default=None, metavar="NAME=VALUE",
+        help="Pin a parameter as fixed (repeatable)",
+    )
+    p_rec_fork.add_argument("--output", help="Write the fork to this .yaml/.json file")
+    p_rec_fork.add_argument("--no-register", action="store_true", help="Do not add it to the catalogue")
+    p_rec_fork.add_argument(
+        "--allow-unapproved", action="store_true", help="Fork from a recipe that is not approved"
+    )
+    p_rec_fork.set_defaults(func=cmd_recipe_fork)
 
     node = sub.add_parser("node", help="GeoNode commands")
     node_sub = node.add_subparsers(dest="node_command", required=True)

@@ -1,8 +1,14 @@
-# MCP Bridge (V0.5)
+# MCP Bridge (V0.5 → V1.1)
 
-The **Model Context Protocol (MCP)** bridge exposes GeoMCP as standard MCP
-tools, so any MCP host (Claude Desktop, MCP-enabled assistants, custom
-clients) can drive GeoNexus.
+The **Model Context Protocol (MCP)** bridge makes GeoNexus both an MCP
+**host** and an MCP **client**:
+
+- **Server side (V0.5/V1.0)** — expose GeoMCP as standard MCP tools, so any
+  MCP host (Claude Desktop, MCP-enabled assistants, custom clients) can drive
+  GeoNexus.
+- **Client side (V1.1)** — connect to *external* MCP servers and import
+  their tools as GeoSkills, so the GeoAgent planner/executor can use them
+  like any local skill.
 
 ## Why
 
@@ -16,13 +22,21 @@ official adapter between them, built on the official
 | MCP tool           | Maps to GeoMCP      | Purpose |
 |--------------------|---------------------|---------|
 | `geo_capabilities` | `geo.capabilities`  | Protocol surface: methods, skills, tools, geocards |
-| `geo_describe`     | `geo.describe`      | Describe GeoCards and skills (by id or all) |
+| `geo_describe`     | `geo.describe`      | Describe GeoCards, skills and recipes (by id or all) |
 | `geo_execute`      | `geo.execute`       | Execute a skill on the node that owns the data (geospatial context included) |
+| `geo_plan`         | `geo.plan`          | Materialise `recipe + params` into a run (task graph + deliverables); executes nothing |
 | `geo_health`       | `geo.health`        | Node status, version, time |
 
 `geo_execute` accepts the full geospatial context: `skill`, `geocards`,
 `spatial` (`{bbox, crs}`), `temporal` (`{start, end}`), `params`,
 `request_id`. Contract validation still runs at the node before execution.
+
+`geo_plan` (V1.1) is the **planning** half of the bridge: an agent can ask what a
+reusable solution would do, and which of its parameters it may change, *before*
+committing compute. It is read-only, so no API key is needed. A parameter
+contract violation comes back as error code `2006 RECIPE_PARAM_INVALID` with
+`field` / `code` in `data`; an unknown or unapproved recipe is `2005
+RECIPE_NOT_FOUND`. See `docs/RECIPE.md`.
 
 ## Transport
 
@@ -46,7 +60,7 @@ Claude Desktop `claude_desktop_config.json`:
 {
   "mcpServers": {
     "geonexus": {
-      "command": "/path/to/GeoNexus-SDK/.venv/bin/geonexus",
+      "command": "/Users/mac/Repos/GeoNexus/core/.venv/bin/geonexus",
       "args": ["mcp", "run"]
     }
   }
@@ -91,8 +105,53 @@ identical.
 - Smoke tests: `tests/test_mcp_adapter.py` covers the stdio handshake and
   the full Streamable HTTP session (initialize → tools/list → tools/call).
 
+## Client side (V1.1): import external MCP tools as GeoSkills
+
+`geonexus.mcp_client` connects to an external MCP server (stdio or
+Streamable HTTP), enumerates its tools, and wraps each as a GeoSkill whose
+handler forwards calls to the MCP server:
+
+```python
+from geonexus.mcp_client import MCPToolClient
+from geonexus.geonode import GeoNode
+
+# stdio transport: launch the MCP server as a subprocess
+with MCPToolClient.stdio("npx", "-y", "some-mcp-server") as mcp:
+    tools = mcp.list_tools()                  # [MCPTool(name, description, input_schema)]
+    skills = mcp.to_skills(prefix="ext-")     # [Skill] — handlers call the MCP tool
+
+node = GeoNode(name="imported-node")
+node.register_skill_objects(skills)           # GeoAgent can now plan/execute them
+
+# Streamable HTTP transport
+with MCPToolClient.http("http://host:9000/mcp", headers={"Authorization": "Bearer x"}) as mcp:
+    mcp.register_into(node, prefix="ext-")
+```
+
+CLI:
+
+```bash
+geonexus mcp import --http http://host:9000/mcp --prefix ext-
+geonexus mcp import npx -y some-mcp-server --prefix ext-
+```
+
+Notes:
+
+- MCP is async; skill handlers are sync. Each tool call opens its own
+  `ClientSession` lifecycle bridged with `asyncio.run` — safe for the
+  concurrent plan worker threads (a connection per call).
+- `structuredContent` results are returned losslessly; text content blocks
+  are flattened to `{"text": ...}`.
+- Imported skills carry `mcp_source` (e.g. `mcp:tool-name`) and register
+  with the planner like any other skill — combine with the reflective
+  executor for cross-system self-healing pipelines.
+
 ## Limitations
 
 - The bridge exposes GeoMCP verbatim — it does not auto-decompose goals;
   pair it with the GeoAgent planner (`geonexus agent run` / `agent ask`) for
   orchestration.
+- `geo_plan` does not change that: it replays the decomposition an author already
+  committed to in a recipe. It lets an agent see the steps, the parameter
+  contract and the deliverables **before** spending compute, but inventing a plan
+  for a goal that has no recipe is still the planner's job.

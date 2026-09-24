@@ -1,0 +1,116 @@
+recipe_version: "1.0"
+id: recipe://geonexus/sdg-15-3-1@1.0.0
+name: SDG 15.3.1 土地退化评估（可复用方案）
+description: >-
+  2 个数据 + 1 个算子 + 1 份报告。产出的不是一个数字，而是一条能复盘到每个输入的
+  证据链：谁提供的地表覆盖、用哪个算子、按哪一版数据快照算出来的。
+license: CC-BY-4.0
+tags:
+  - sdg
+  - land-degradation
+  - demo
+
+params:
+  - name: year
+    type: integer
+    required: true
+    minimum: 2015
+    maximum: 2024
+    target: s2.params.year
+    description: 评估的目标年份。与 baseline 配对，判断这十年是退化还是恢复。
+  - name: region
+    type: enum
+    enum:
+      - 蒙古
+      - 墨西哥
+    default: 蒙古
+    target: s1.params.region
+    description: 评估区。枚举而不是自由文本——站位必须能对齐。
+  - name: baseline
+    type: integer
+    scope: fixed
+    default: 2015
+    description: 基准年。作者钉死：换基准年就是换了一个指标定义，不是换参数。
+  - name: report_format
+    type: enum
+    enum:
+      - html
+      - pdf
+      - docx
+    default: html
+    target: s3.params.format
+
+requires:
+  - geocard.packed.menggu
+  - geocard.oge.lc08-l2
+  - report.sdg1531.mng.2019
+
+steps:
+  - id: s1
+    kind: skill
+    uses: geocard.packed.menggu
+    description: 取评估区矢量边界，作为后续所有栅格运算的分析掩膜。
+    params:
+      region: ${params.region}
+    outputs:
+      aoi: 矢量边界（GeoJSON）
+      mask: 栅格化掩膜
+
+  - id: s2
+    kind: skill
+    uses: 2026.9.16 SDG15.3.1
+    depends_on:
+      - s1
+    description: 逐年计算土地覆盖转移矩阵，得到退化/恢复/稳定三类像元。
+    params:
+      year: ${params.year}
+      baseline: ${params.baseline}
+      aoi_ref: step://s1/aoi
+    inputs:
+      mask: step://s1/mask
+    outputs:
+      degradation: 退化强度栅格
+      transition: 转移矩阵表
+    timeout_seconds: 1800
+    max_attempts: 1
+    resources:
+      cpu: 4
+      memory_mb: 8192
+
+  - id: s3
+    kind: skill
+    uses: report.sdg1531.mng.2019
+    depends_on:
+      - s2
+    description: 把栅格与矩阵渲染成一份带图、带表、带口径说明的报告。
+    params:
+      format: ${params.report_format}
+      title: SDG 15.3.1 土地退化评估
+    inputs:
+      degradation: step://s2/degradation
+      transition: step://s2/transition
+    outputs:
+      report: 报告文件
+
+entrypoint: s1
+
+outputs:
+  - name: degradation_map
+    from: s2.degradation
+    role: data
+    media_type: image/tiff
+    description: 退化强度栅格——结论的空间形态。
+  - name: transition_table
+    from: s2.transition
+    role: data
+    media_type: text/csv
+    description: 土地覆盖转移矩阵——结论的可核对原始表。
+  - name: report
+    from: s3.report
+    role: knowledge
+    media_type: text/html
+    description: 评估报告——结论本身，含方法与数据口径。
+
+data_snapshot:
+  geokg: "2026.09.1"
+  lc08: "2024.12"
