@@ -61,6 +61,10 @@ params:
 requires:
   - geocard.eaaf.wetland-imagery-sample
   - geocard.eaaf.waterbird-counts-sample
+  # 精确点位是**本案的组成项**，即使当前的可执行链路只算到"每个地点的分值"：
+  # 分值要落到地图上就要用到坐标表。把它写进 requires 还有第二个作用 ——
+  # 它受限，于是引用它的组合案例对访客也不可见（可见性继承）。
+  - geocard.eaaf.priority-sites-restricted
 
 steps:
   - id: s1
