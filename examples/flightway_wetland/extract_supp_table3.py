@@ -246,37 +246,31 @@ def parse_pdf(path: str | Path) -> list[dict]:
                 else:
                     table_kind = 'score'
                 continue
-            # 小节标题（只有加粗的左侧片段）
-            # 注意：老挝的 Xayabury / Champasak 是**站点名下面的省份行**，不是小节标题，
-            # 不能当成小节（否则会把上一个站点截断）。
+            # 小节标题行：只有左侧一列（无物种列、无分值列），且首片段靠左。
+            # 两个踩过的坑：
+            #   · 不能要求"所有片段都 <110"：`Lao People’s Democratic Republic` 会跨到 x≈140，
+            #     但它仍然是一行标题；
+            #   · 不能只认加粗：老挝的 `Xayabury` / `Champasak` 是**站点名下面的省份行**，
+            #     把它们当小节会把上一个站点截断。
+            # 因此判据是：文本命中已知小节名（国家/省/流域/国名全称）。
             known_section = (left_txt in COUNTRIES or left_txt in PRC_COASTAL_SECTIONS
                              or left_txt in PRC_INLAND_SECTIONS or left_txt in PRC_BASINS
                              or left_txt in LAO_FULL or left_txt.startswith('Lao People')
                              or left_txt.startswith('Northeast')
                              or left_txt.startswith('People'))
-            # 小节标题行：只有左侧一列、无物种/分值列；首片段靠左。
-            # （不再要求"所有片段都 <110"——像 Lao People’s Democratic Republic
-            #   这种长国名会跨到 140，但那仍是一行标题。）
             if left_nb and not mid_nb and not right_nb and left_nb[0]['x'] < 110 \
                     and known_section and not PAGE_NO.match(left_txt) and left_txt:
                 section = left_txt
                 new_country, new_type = classify_section(section, prev_basin)
                 if new_country is None and country is not None and re.search(
-                        r'Province|Municipality|Basin|Aimag|Island|Region|Prefecture', section):
+                        r'Province|Municipality|Basin|Aimag|Region|Prefecture', section):
                     new_country, new_type = country, None      # 上一国家下的新分节
-                elif new_country is not None:
-                    pass
-                elif section.startswith('*') or section.startswith('Sites in') \
-                        or section.startswith('Nearly meeting'):
-                    continue                                   # 脚注行不是小节
                 if new_country is None:
-                    continue
+                    continue                                   # 认不出的标题：跳过，别改状态
                 country, wtype = new_country, new_type
                 flush()                      # 小节切换前收好上一节的最后一个站点
                 if section in PRC_BASINS:
                     prev_basin = section
-                elif section in PRC_COASTAL_SECTIONS or section in PRC_INLAND_SECTIONS:
-                    pass
                 cur = None
                 continue
             if PAGE_NO.match(left_txt) and not mid:
