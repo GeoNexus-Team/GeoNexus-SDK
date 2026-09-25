@@ -485,8 +485,12 @@ def rfi_report_handler(params: dict[str, Any], context: Any) -> dict[str, Any]:
   <div class="kpi"><b>{f.get('coastal', 91)}</b><span>沿海湿地（{totals.get('coastal_pct', 61.9)}%）</span></div>
   <div class="kpi"><b>{f.get('inland', 56)}</b><span>内陆湿地</span></div>
   <div class="kpi"><b>{totals.get('paper_protected_or_partial', 108)}</b><span>受保护或部分受保护</span></div>
-  <div class="kpi"><b>{len(f.get('threatened_species', []))}</b><span>受威胁物种（CR/EN/VU）</span></div>
+  <div class="kpi"><b>{len(f.get('threatened_species', []))}</b>
+    <span>受威胁物种（≥1% 名单中，CR/EN/VU）</span></div>
 </div>
+<p class="meta">口径说明：原文称这 147 处共代表<b>至少 34 种</b>全球受威胁迁徙水鸟（含未达到 1% 的物种）；
+ 这里统计的是补充材料"某站点达到 1%"记录里 IUCN 为 CR/EN/VU 的种数（{len(f.get('threatened_species', []))} 种），
+ 两者口径不同，因此数字不同。</p>
 <p>识别漏斗：候选 <b>{f.get('candidate_sites')}</b> 处 → 完整评估 <b>≥{f.get('assessed_sites_min')}</b> 处
  （补充材料列出的各国评估数为 {f.get('assessed_sites_listed')}）→ 优先湿地 <b>{f.get('priority_sites')}</b> 处。</p>
 
