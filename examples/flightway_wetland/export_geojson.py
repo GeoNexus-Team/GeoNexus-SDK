@@ -79,9 +79,12 @@ def vectorize_raster(path: Path, *, keep: list[int] | None = None) -> dict[str, 
                 "synthetic": True,
             },
         ))
+    # RFC 7946 已经不认 GeoJSON 里的 crs 成员（规定必须是 WGS84），而 Cesium 会把
+    # 字符串型的 crs 当对象解析并抛 "crs.properties is undefined"。
+    # 所以这里**不写 crs**，坐标一律 EPSG:4326，投影信息只放在 manifest.json 里。
+    del crs
     return {
         "type": "FeatureCollection",
-        "crs": crs,
         "features": out_features,
     }
 
