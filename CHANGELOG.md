@@ -8,7 +8,7 @@ project uses Semantic Versioning.
 
 ### Added
 
-- **Case template (v1.0) + a runnable worked example** — how a research article
+- **Case template (v1.0, since revised to v1.1 — see Changed) + a runnable worked example** — how a research article
   becomes a platform-usable case, and one end-to-end instance.
   - `docs/case-template.md`: the field set (identity / spatio-temporal extent /
     composition / parameter contract / deliverables / dataset slots), the
@@ -22,10 +22,9 @@ project uses Semantic Versioning.
     real.
   - `examples/flightway_wetland/`: the worked example — a migratory-bird /
     wetland study (EAAF priority wetlands, *Scientific Reports* 2026,
-    DOI 10.1038/s41598-025-31727-2) turned into a case that really runs:
-    `run_case.py` executes five steps with four real operators on synthetic
-    inputs and produces three downloadable deliverables (water-change raster,
-    priority-site table, HTML report).
+    DOI 10.1038/s41598-025-31727-2) turned into a case that really runs.
+    (It was first built on synthetic inputs; it has since been rebuilt on the
+    paper's own published site-level data and method — see **Changed**.)
   - The example doubles as a demo of both batch-2 rules: the 1% rule is a
     `scope: fixed` parameter (it is the metric's definition), and the case's own
     sensitivity is `public` while it cites a `restricted` precise-site dataset —
@@ -36,10 +35,9 @@ project uses Semantic Versioning.
     is synthetic — plus the gap list (site boundaries vs points, flyway network
     vs single AOI, human/expert steps having no node type, run id not yet
     injected by the platform).
-  - `tests/test_flightway_case.py` (16 tests) checks the contract, runs the real
-    chain, and pins the threshold semantics: 0.2 (sample-calibrated) selects
-    sites, 10 (the paper's regional calibration) selects none — a scale
-    difference, not a bug.
+  - `tests/test_flightway_case.py` checks the contract and runs the real chain.
+    (16 of its original assertions pinned the synthetic chain; the file has
+    since grown to 18 tests covering the rebuild — see **Changed**.)
 
 - **GeoCard 1.1 sections: `composition` / `params` / `recipe_ref`** — a card can
   now describe a *whole solution* without containing one.
@@ -194,6 +192,53 @@ project uses Semantic Versioning.
   link and in-repo path reference exists. `tests/test_docs_consistency.py`
   proves the checker can fail (one fake of each kind).
   New: `docs/MIGRATION.md` (old `TaskManager` / `federation` users).
+
+### Changed
+
+- **`examples/flightway_wetland` rebuilt on the paper's own data and method**
+  (breaking: recipe `1.0.0 → 2.0.0`, deliverables changed). The worked example
+  previously demonstrated a synthetic NDWI water-change pipeline with eight
+  invented sites — which is **not** what the cited study does. It now
+  reproduces Crosby et al. 2026 (*Scientific Reports* 16:1916,
+  DOI 10.1038/s41598-025-31727-2) as published:
+  - **Data**: `extract_supp_table3.py` parses Supplementary Table 3 into
+    `data/rfi/*.csv` — the 147 priority wetlands with their real names, real
+    central coordinates, PC1 scores, the species reaching 1%, Ramsar/flyway
+    designations and the paper's bold *"overlaps a protected area"* marker.
+    Parsing is validated against every published figure (147 sites; per-country
+    counts; coastal 91 / inland 56; the paper's own χ² = 8.33 / 32.39 / 72.53).
+    `data/rfi/PROVENANCE.md` records the DOI, the CC-BY licence, the source
+    PDF checksums and the fields this case infers rather than reads.
+  - **Method**: five steps matching the paper's workflow (framework review →
+    site data → PC1 selection with the regional calibration of 10 for PRC and
+    Mongolia / 1 elsewhere plus the three named expert exceptions →
+    characterisation → report). The count-level data behind PC1 is
+    licence-restricted and not public, so the case says so instead of
+    recomputing it, and keeps a `--counts` import path (fields per
+    Supplementary Table 1). The fourth step — expert boundary delineation — is
+    honestly left as a human step rather than faked with a skill.
+  - **Honest reporting**: two places where the paper's own published material
+    disagrees are reported rather than smoothed over — the supplementary bold
+    marker covers 117 sites while Table 4 counts 108 protected, and a strict
+    application of the stated threshold yields 145 sites against the published
+    147 (two PRC sites score below 10 yet appear in the list). Both numbers
+    appear in the report, with the deltas listed per site.
+  - **Extension**: the synthetic NDWI demo moves to
+    `extensions/habitat_change/`, whose README states in its first sentence
+    that remote-sensing habitat-change is one of the paper's *future*
+    directions, not the paper's method.
+  - `export_geojson.py` now emits the 147 real site features (plus per-country
+    subsets and a legend) instead of vectorised synthetic rasters.
+  - `tests/test_flightway_case.py` (18 tests) pins the dataset against the
+    published tables, the two documented discrepancies, the reproduction of the
+    paper's χ² values, and the visibility inheritance from the restricted
+    counts component.
+
+- `docs/case-template.md` (v1.1) gained a section on **reproducing a published
+  study**: data split into public results / restricted raw / our inferences,
+  what to do when two published sources disagree, proving the method ran by
+  recomputing a published statistic, and keeping the paper's own "future work"
+  in `extensions/`.
 
 ### Changed
 
