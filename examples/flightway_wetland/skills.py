@@ -419,9 +419,18 @@ def pc1_priority_score_handler(params: dict[str, Any], context: Any) -> dict[str
 # s5：报告
 # --------------------------------------------------------------------------- #
 def _fmt(value: Any, digits: int = 2) -> str:
+    """报告里的数字格式化：整数不带小数，布尔说人话。
+
+    排名显示成 "1.00"、是否优先显示成 "1.00" —— 这种"技术正确但读不懂"的输出
+    会让人怀疑整份报告；报告是交付物，不是调试输出。
+    """
     if value is None:
         return "—"
-    if isinstance(value, (int, float)):
+    if isinstance(value, bool):
+        return "是" if value else "否"
+    if isinstance(value, int):
+        return f"{value:,}"
+    if isinstance(value, float):
         return f"{value:,.{digits}f}"
     return str(value)
 
@@ -495,8 +504,8 @@ def report_handler(params: dict[str, Any], context: Any) -> dict[str, Any]:
       净变化 <strong>{_fmt(change.get('net_change_km2'), 3)} km²</strong>
       （损失率 <strong>{_fmt(change.get('loss_rate_pct'))}%</strong>）。</li>
   <li>优先地点：PC1 阈值 <strong>{_fmt(threshold)}</strong> 下，
-      {_fmt(priority.get('site_count'), 0)} 个评估地点中有
-      <strong>{_fmt(priority.get('priority_count'), 0)} 个</strong>达到入选标准。</li>
+      {_fmt(priority.get('site_count'))} 个评估地点中有
+      <strong>{_fmt(priority.get('priority_count'))} 个</strong>达到入选标准。</li>
   <li>水体提取：目标年水面占比 <strong>{_fmt((water or {}).get('water_fraction') and (water or {}).get('water_fraction') * 100)}%</strong>，
       NDWI 阈值 <strong>{_fmt((water or {}).get('threshold'))}</strong>。</li>
 </ul>
