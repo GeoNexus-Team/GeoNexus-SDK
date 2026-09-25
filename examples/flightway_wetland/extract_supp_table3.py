@@ -47,6 +47,10 @@ except ImportError:  # pragma: no cover - 运行环境提示
     sys.exit(3)
 
 BOLD_FONT = re.compile(r'Bold', re.I)
+#: 原文把**学名排成斜体**（Arial-ItalicMT），英文名是正体。
+#: 这是切分"英文名 / 学名"最可靠的依据 —— 靠"取最后两个词"会毁在三段学名（亚种）
+#: 和折行的英文名上，靠 x 间距也不行（同一行的两个片段可以几乎没有间隙）。
+ITALIC_FONT = re.compile(r'Italic|Oblique', re.I)
 COORD = re.compile(r'\(\s*(-?\d+(?:\.\d+)?)\s*([NS])\s*,\s*(-?\d+(?:\.\d+)?)\s*([EW])')
 SCORE = re.compile(r'^\d+(?:\.\d+)?$')
 PAGE_NO = re.compile(r'^\d{1,3}$')
@@ -125,6 +129,7 @@ def page_rows(page) -> list[dict]:
             return
         frags.append({'t': text, 'x': float(tm[4]), 'y': round(float(tm[5]), 1),
                       'bold': bool(BOLD_FONT.search(font)), 'size': size,
+                      'italic': bool(ITALIC_FONT.search(font)),
                       'w': len(text) * size * 0.52})
 
     page.extract_text(visitor_text=visit)
@@ -167,26 +172,32 @@ def join(items: list[dict]) -> str:
     return re.sub(r'\s+', ' ', out).strip()
 
 
-def split_species(text: str) -> dict:
-    """'Masked Finfoot Heliopais personatus* (CR)' → 英文名/学名/IUCN/超量标记。"""
-    s = text.strip().rstrip(',')
+def parse_marks(text: str) -> dict:
+    """解析 IUCN 等级与原文的超量标记（* = >10%、** = >50%；脚注数字 = 接近 1%）。"""
+    text = (text or '').strip()
     iucn = None
-    m = re.search(r'\((CR|EN|VU|NT|LC|DD|NE)\)', s)
+    m = re.search(r'\((CR|EN|VU|NT|LC|DD|NE)\)', text)
     if m:
         iucn = m.group(1)
-        s = (s[:m.start()] + s[m.end():]).strip()
-    stars = ''
-    m2 = re.search(r'(\*{1,2})\s*$', s)
-    if m2:
-        stars = m2.group(1)
-        s = s[:m2.start()].strip()
-    nearly = bool(re.search(r'\d$', s))       # 脚注 1：CSR1 分值 0.90–0.99，接近 1%
-    s = re.sub(r'\d$', '', s).strip(' ,')
-    toks = s.split()
-    scientific = ' '.join(toks[-2:]) if len(toks) >= 2 else s
-    english = ' '.join(toks[:-2]) if len(toks) > 2 else ''
-    return {'english': english, 'scientific': scientific, 'iucn': iucn,
-            'over_10pct': stars == '*', 'over_50pct': stars == '**', 'nearly_1pct': nearly}
+    stars = '**' if '**' in text else ('*' if '*' in text else '')
+    return {'iucn': iucn, 'over_10pct': stars == '*', 'over_50pct': stars == '**',
+            'nearly_1pct': bool(re.search(r'\d', text))}
+
+
+def split_species(english: str, scientific: str, marks: str = '') -> dict:
+    """把一格物种信息组装成一条记录。
+
+    英文名与学名**由字体区分**（学名斜体），不再从一串文本里猜：靠"取最后两个词"会
+    把三段学名（`Grus antigone sharpii`）切错，也会把折行的英文名（`Spoon-billed` /
+    `Sandpiper` 分两行）当成两个物种。
+    """
+    english = re.sub(r'\s+', ' ', (english or '')).strip(' ,')
+    scientific = re.sub(r'\s+', ' ', (scientific or '')).strip(' ,')
+    tail = re.search(r'\s*(\*{1,2}|\d+)$', scientific)
+    if tail:                      # 原文的 * / ** / 脚注数字紧跟在学名后面
+        marks = f"{marks} {tail.group(1)}".strip()
+        scientific = scientific[:tail.start()].strip(' ,')
+    return {'english': english, 'scientific': scientific, **parse_marks(marks)}
 
 
 def classify_section(section: str, prev_basin: str | None) -> tuple[str | None, str | None]:
@@ -220,6 +231,7 @@ def parse_pdf(path: str | Path) -> list[dict]:
     cur: dict | None = None
     section, country, wtype, prev_basin, table_kind = None, None, None, None, 'score'
     pending_desig = ''            # R/F 上标排在站点名**上一行**，先挂起给下一个站点
+    pending_english = ''          # 英文名被折行时，前半截先挂起
 
     def flush():
         if cur and cur.get('name'):
@@ -297,6 +309,7 @@ def parse_pdf(path: str | Path) -> list[dict]:
                 # "是否与保护地重叠"看的是**站点名本身**的粗体（名称后的省名片段往往不是粗体，
                 # 不能要求整行都粗）。名称片段以 x≈78 开头。
                 name_head = [i for i in name_items if i['x'] < 100]
+                pending_english = ''          # 换站点：折行片段不跨站点合并
                 cur = {'country': country, 'section': section, 'wetland_type': wtype,
                        'name': name_txt, 'lat': None, 'lon': None, 'pc1': None, 'rank': None,
                        'overlaps_protected_bold': any(i['bold'] for i in (name_head or name_items)),
@@ -326,7 +339,25 @@ def parse_pdf(path: str | Path) -> list[dict]:
                 if table_kind == 'importance':
                     cur['importance'] = (cur['importance'] + ' ' + mid_txt).strip()
                 elif not mid_txt.startswith('EAAF SPECIES') and not re.fullmatch(r'\d+', mid_txt):
-                    cur['species'].append(split_species(mid_txt))
+                    italic = [i for i in mid_nb if i.get('italic')]
+                    plain = [i for i in mid_nb if not i.get('italic')]
+                    if italic:
+                        x0 = min(i['x'] for i in italic)
+                        x1 = max(i['x'] for i in italic)
+                        english = join([i for i in plain if i['x'] < x0])
+                        marks = join([i for i in plain if i['x'] > x1])
+                        if pending_english:
+                            english = (pending_english + ' ' + english).strip()
+                            pending_english = ''
+                        sci = ' '.join(i['t'].strip() for i in italic if i['t'].strip())
+                        entry = split_species(english, sci, marks)
+                        if entry['scientific']:
+                            cur['species'].append(entry)
+                    else:
+                        # 没有斜体 ⇒ 这一格是折行的上半截（只有英文名），挂起等下半截
+                        frag = join(plain)
+                        if re.search(r'[A-Za-z]', frag) and ')' not in frag and len(frag) <= 40:
+                            pending_english = (pending_english + ' ' + frag).strip(' ,')
 
             # 分值 / 名次
             if right_txt:

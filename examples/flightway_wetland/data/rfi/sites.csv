@@ -7,7 +7,7 @@ rf005,Bangladesh,Bangladesh,"Hakaluki Haor , Sylhet",24.65,92.08,inland,inferred
 rf006,Bangladesh,Bangladesh,"Sonadia Island , Chittagong",21.5,91.88,coastal,inferred,True,F,False,True,4.9,,2,False,False,CR,,11
 rf007,Bangladesh,Bangladesh,"Central Meghna Delta, Barisal",21.93,90.62,coastal,inferred,True,F,False,True,3.5,,3,False,False,,,12
 rf008,Bangladesh,Bangladesh,"Hail Haor (including Bakka Beel), Sylhet",24.37,91.68,inland,inferred,True,,False,False,1.1,,1,False,False,,,12
-rf009,Cambodia,Cambodia,"Prek Toal (part of Tonle Sap Biosphere Reserve), Battambang",13.12,103.65,coastal,inferred,True,,False,False,250.7,,6,False,True,"CR,EN",,12
+rf009,Cambodia,Cambodia,"Prek Toal (part of Tonle Sap Biosphere Reserve), Battambang",13.12,103.65,coastal,inferred,True,,False,False,250.7,,5,False,True,"CR,EN",,12
 rf010,Cambodia,Cambodia,"Ang Tropeang Thmor (Sarus Crane Reserve), Siem Reap",13.82,103.31,inland,inferred,True,,False,False,33.3,,5,True,False,VU,,12
 rf011,Cambodia,Cambodia,"Boeung Prek Lapouv (Sarus Crane Reserve), Takeo",10.72,105.03,inland,inferred,True,F,False,True,30.4,,2,True,False,VU,,12
 rf012,Cambodia,Cambodia,"Anlung Pring (Sarus Crane Reserve), Kampot",10.48,104.53,inland,inferred,True,R,True,False,21.3,,2,True,False,VU,,12
@@ -32,10 +32,10 @@ rf030,PRC,Shandong Province,Laizhou Bay,37.1,119.4,coastal,paper-section,True,,F
 rf031,PRC,Shandong Province,Wudi-Zhanhua-Hekou coast,38.13,118.2,coastal,paper-section,True,F,False,True,15.63,,6,False,False,"EN,VU",,21
 rf032,PRC,Shandong Province,Rongcheng Swan Nature Reserve,37.25,122.57,coastal,paper-section,True,,False,False,11.85,,1,True,False,,,22
 rf033,PRC,Jiangsu Province,Lianyungang coast,34.62,119.52,coastal,paper-section,False,,False,False,344.15,,30,True,True,"EN,VU",,22
-rf034,PRC,Jiangsu Province,Tiaozini (Dongtai coast,32.75,120.97,coastal,paper-section,True,FR,True,True,318.33,,26,True,True,"CR,EN,VU",,23
-rf035,PRC,Jiangsu Province,Yancheng National Nature Reserve,33.72,120.52,coastal,paper-section,True,,False,False,195.7,,30,True,True,"CR,EN,VU",,23
+rf034,PRC,Jiangsu Province,Tiaozini (Dongtai coast,32.75,120.97,coastal,paper-section,True,FR,True,True,318.33,,25,True,True,"CR,EN,VU",,23
+rf035,PRC,Jiangsu Province,Yancheng National Nature Reserve,33.72,120.52,coastal,paper-section,True,,False,False,195.7,,29,True,True,"CR,EN,VU",,23
 rf036,PRC,Jiangsu Province,Ganyu coast,34.97,119.2,coastal,paper-section,True,,False,False,194.23,,21,True,True,"EN,VU",,24
-rf037,PRC,Jiangsu Province,Dongling coast,32.15,121.45,coastal,paper-section,True,,False,False,126.56,,21,True,False,"CR,EN,VU",,25
+rf037,PRC,Jiangsu Province,Dongling coast,32.15,121.45,coastal,paper-section,True,,False,False,126.56,,20,True,False,"CR,EN,VU",,25
 rf038,PRC,Jiangsu Province,Rudong coast,32.52,121.17,coastal,paper-section,True,,False,False,84.02,,24,True,False,"CR,EN,VU",,26
 rf039,PRC,Jiangsu Province,"Dongsha shoals , PRC",33.0,121.23,coastal,paper-section,True,,False,False,41.72,,11,True,False,EN,,26
 rf040,PRC,Shanghai Municipality,Chongming Dongtan National Nature Reserve,31.48,122.0,coastal,paper-section,True,,False,False,43.36,,14,True,False,"CR,EN,VU",,27
@@ -129,7 +129,7 @@ rf127,Thailand,Thailand,"Pak Thale-Laem Phak Bia coast, Phetchaburi",13.07,100.0
 rf128,Thailand,Thailand,"Bueng Boraphet , Nakhon Sawan",15.7,100.24,coastal,inferred,True,,False,False,24.6,,6,True,False,,,50
 rf129,Thailand,Thailand,"Pak Nam Prasae, Rayong",12.7,101.71,coastal,inferred,False,,False,False,6.1,,2,False,False,EN,,50
 rf130,Thailand,Thailand,"Huai Chorakhe Mak Reservoir, Buriram",14.9,103.03,inland,inferred,True,FR,True,True,5.0,,1,False,False,VU,,50
-rf131,Thailand,Thailand,"Krabi River Mouth, Krabi",8.02,98.93,inland,inferred,True,,False,False,4.0,,2,False,False,EN,,50
+rf131,Thailand,Thailand,"Krabi River Mouth, Krabi",8.02,98.93,inland,inferred,True,,False,False,4.0,,2,False,False,,,50
 rf132,Thailand,Thailand,"Khlong Tamru (Bang Pakong), Chachoengsao",13.48,100.94,coastal,inferred,False,,False,False,3.5,,2,False,False,,,50
 rf133,Thailand,Thailand,"Khlong Yai, Trat",11.78,102.88,coastal,inferred,False,,False,False,2.8,,2,False,False,EN,,50
 rf134,Thailand,Thailand,"Sanam Bin Reservoir, Buriram",14.64,103.08,inland,inferred,True,,False,False,2.5,,1,False,False,VU,,50
