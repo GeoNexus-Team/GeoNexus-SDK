@@ -1,0 +1,40 @@
+{
+  "case": "geocard.case.eaaf-wetland-priority",
+  "synthetic": true,
+  "crs": "EPSG:4326",
+  "note": "全部几何来自合成/示意数据，仅用于平台可视化与教学演示",
+  "files": {
+    "water_change": {
+      "path": "/Volumes/mac/Users/mac/Repos/GeoNexus/core/examples/flightway_wetland/output/geometry/water_change.geojson",
+      "features": 2,
+      "classes": [
+        "loss",
+        "gain"
+      ]
+    },
+    "water_baseline": {
+      "path": "/Volumes/mac/Users/mac/Repos/GeoNexus/core/examples/flightway_wetland/output/geometry/water_baseline.geojson",
+      "features": 1
+    },
+    "sites": {
+      "path": "/Volumes/mac/Users/mac/Repos/GeoNexus/core/examples/flightway_wetland/output/geometry/sites.geojson",
+      "features": 8,
+      "legend": {
+        "pc1_bands": [
+          {
+            "min": 0.5,
+            "band": "high"
+          },
+          {
+            "min": 0.25,
+            "band": "medium"
+          },
+          {
+            "min": 0.0,
+            "band": "low"
+          }
+        ]
+      }
+    }
+  }
+}
