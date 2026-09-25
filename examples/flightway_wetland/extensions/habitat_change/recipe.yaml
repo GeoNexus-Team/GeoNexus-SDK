@@ -1,0 +1,174 @@
+recipe_version: "1.0"
+id: recipe://geonexus/eaaf-habitat-change@1.0.0
+name: 扩展演示 · 湿地水面变化（NDWI，原文建议的后续方向，非论文方法）
+description: >-
+  2 份数据 + 3 个算子 + 1 份报告：遥感水面变化（NDWI）与水鸟优先分值（PC1，含 1%
+  规则）合成一条可复用的评估链路。研究区、年份、阈值都可改；1% 规则不可改。
+license: CC-BY-4.0
+tags: [eaaf, wetland, ndwi, habitat-change, synthetic-sample, extension]
+
+params:
+  - name: region
+    type: enum
+    enum: [yellow-sea, yangtze, sanjiang]
+    default: yellow-sea
+    target: s1.params.region
+    description: 研究区（示意窗口）；数据按 data/<region>/ 取。
+  - name: baseline_year
+    type: integer
+    default: 2010
+    minimum: 1990
+    maximum: 2020
+    target: s1.params.year
+  - name: target_year
+    type: integer
+    default: 2024
+    minimum: 2000
+    maximum: 2030
+    target: s2.params.year
+  - name: ndwi_threshold
+    type: number
+    default: 0.0
+    minimum: -1.0
+    maximum: 1.0
+    target: s1.params.threshold
+  - name: pc1_threshold
+    type: number
+    default: 0.2
+    minimum: 0.0
+    maximum: 20.0
+    target: s4.params.threshold
+    description: >-
+      样例数据默认 0.2；论文的区域校准是中国/蒙古 10、其余八国 1（那是 270+ 种群
+      尺度上的阈值）。接入真实种群量后改回 10。
+  - name: one_percent_rule
+    type: boolean
+    scope: fixed
+    default: true
+    target: s4.params.one_percent
+    description: 1% 规则是不可调的定义，不是参数。
+  - name: min_count
+    type: integer
+    default: 0
+    minimum: 0
+    target: s4.params.min_count
+  - name: report_format
+    type: enum
+    enum: [html]
+    default: html
+    target: s5.params.format
+
+requires:
+  - geocard.eaaf.wetland-imagery-sample
+  - geocard.eaaf.waterbird-counts-sample
+  # 精确点位是**本案的组成项**，即使当前的可执行链路只算到"每个地点的分值"：
+  # 分值要落到地图上就要用到坐标表。把它写进 requires 还有第二个作用 ——
+  # 它受限，于是引用它的组合案例对访客也不可见（可见性继承）。
+  - geocard.eaaf.priority-sites-restricted
+
+steps:
+  - id: s1
+    kind: skill
+    uses: wetland-water-extent
+    description: 基线年水面提取（NDWI = Green−NIR / Green+NIR）。
+    params:
+      stack: data/${params.region}/stack_${params.baseline_year}.tif
+      year: ${params.baseline_year}
+      threshold: ${params.ndwi_threshold}
+    outputs:
+      water_mask: 基线年水面掩膜（uint8，1=水）
+      stats_json: 基线年水面统计（面积/占比/阈值）
+    resources: {cpu: 1, memory_mb: 1024}
+    timeout_seconds: 600
+
+  - id: s2
+    kind: skill
+    uses: wetland-water-extent
+    description: 目标年水面提取（同一阈值，保证两期可比）。
+    params:
+      stack: data/${params.region}/stack_${params.target_year}.tif
+      year: ${params.target_year}
+      threshold: ${params.ndwi_threshold}
+    outputs:
+      water_mask: 目标年水面掩膜（uint8，1=水）
+      stats_json: 目标年水面统计
+
+  - id: s3
+    kind: skill
+    uses: wetland-water-change
+    depends_on: [s1, s2]
+    description: 两期水面逐像元对比：损失 / 增加 / 净变化 / 损失率。
+    params:
+      baseline_year: ${params.baseline_year}
+      target_year: ${params.target_year}
+    inputs:
+      baseline_mask: step://s1/water_mask
+      target_mask: step://s2/water_mask
+    outputs:
+      change_raster: 变化栅格（-1 损失 / 0 稳定 / 1 增加）
+      summary_json: 变化统计（km² 与损失率）
+    resources: {cpu: 1, memory_mb: 1024}
+
+  - id: s4
+    kind: skill
+    uses: waterbird-priority-score
+    description: >-
+      PC1 优先分值：对每个达到国际重要数量（≥ 种群 1%）的种群，累加「本地点个体数 ÷
+      种群总量」，再按阈值判定优先地点。
+    params:
+      counts: data/${params.region}/waterbird_counts.csv
+      populations: data/${params.region}/species_populations.csv
+      threshold: ${params.pc1_threshold}
+      one_percent: ${params.one_percent_rule}
+      min_count: ${params.min_count}
+    outputs:
+      priority_table: 优先地点表（PC1、达标种群数、是否优先）
+      scores_json: 完整分值（含各达标种群的比例）
+    resources: {cpu: 1, memory_mb: 512}
+
+  - id: s5
+    kind: skill
+    uses: wetland-report
+    depends_on: [s2, s3, s4]
+    description: 渲染结论报告（结论/方法/优先地点/来源/局限）。
+    params:
+      region: ${params.region}
+      baseline_year: ${params.baseline_year}
+      target_year: ${params.target_year}
+      threshold: ${params.pc1_threshold}
+      synthetic: true
+      source:
+        citation: "Identifying priority wetland sites in the East Asian–Australasian Flyway for migratory bird conservation"
+        doi: "10.1038/s41598-025-31727-2"
+      data_snapshot:
+        sample_data: synthetic-20260925
+    inputs:
+      water: step://s2/stats_json
+      change: step://s3/summary_json
+      priority: step://s4/scores_json
+    outputs:
+      report: 结论报告（HTML）
+    timeout_seconds: 300
+
+entrypoint: s1
+
+outputs:
+  - name: water_change_map
+    from: s3.change_raster
+    role: data
+    media_type: image/tiff
+    description: 水面变化栅格——损失/增加的空间形态。
+  - name: priority_sites
+    from: s4.priority_table
+    role: data
+    media_type: text/csv
+    description: 优先地点表——PC1 分值可逐项核对。
+  - name: report
+    from: s5.report
+    role: knowledge
+    media_type: text/html
+    description: 评估报告——结论、方法与局限。
+
+data_snapshot:
+  sample_data: synthetic-20260925
+  method: "Scientific Reports 2026 (DOI 10.1038/s41598-025-31727-2)"

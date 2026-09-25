@@ -1,119 +1,117 @@
 geocard_version: "1.0"
 id: geocard.case.eaaf-wetland-priority
 type: workflow
-name: 东亚—澳大利亚迁飞区 · 湿地水面变化与优先地点评估（可复用案例）
+name: 东亚—澳大利亚迁飞区 · 优先湿地识别（按原文五步复现）
 description: >-
-  把一个横跨 10 国的候鸟保护研究，组织成一条能跑的案例：遥感水面变化（NDWI）
-  加上水鸟优先分值（PC1，含 1% 规则），产出可下载的结论报告。数据为合成样例，
-  真实数据按 README 的「数据槽位」表替换。
+  严格按原论文的方法组织：比较 Ramsar / EAAFP / IBA-KBA 三套框架 → 汇集站点与水鸟数据 →
+  用 CSR1 的 1% 阈值与 PC1（区域校准阈值 10/1）取舍 → 与各国专家核定边界 → 刻画沿海/内陆、
+  保护状态与 HDI 并做 χ² 检验。站点级数据取自论文公开的补充材料 Table 3（147 处、真实坐标与分值）；
+  支撑 PC1 的逐笔计数数据受许可限制未公开，案例如实标注，并留导入接口。
 tags:
   - eaaf
   - waterbird
   - wetland
   - flyway
-  - synthetic-sample
+  - rfi
+  - pc1
+  - real-data
 
 spatial:
-  bbox: [120.30, 32.60, 121.40, 33.40]
+  # 迁飞区范围（10 国）：与论文 Figure 2 的作图范围一致
+  bbox: [68.0, -12.0, 155.0, 55.0]
   crs: "EPSG:4326"
 
-# 案例自己的档位是 public（案例简介本来就是给人看的）；
-# 但它引用了受限的精确点位，于是**组合后的可见性**取最严值 = restricted。
-# 这正是可见性继承要解决的情形：公开的壳 + 受限的内容。
+# 案例自己的档位是 public（论文的站点表本来就公开发表）；
+# 但它引用了**受限**的逐笔计数数据，于是组合后的可见性取最严值 = restricted。
+# 这正是可见性继承要解决的情形：公开的内容 + 受限的内容。
 compliance:
   sensitivity: public
 temporal:
-  start: "2010-01-01"
-  end: "2024-12-31"
+  start: "1987-01-01"      # 亚洲水鸟普查的历史数据起点
+  end: "2023-09-12"        # 论文统计截止日（Table 3/4 脚注）
 
-# 组成 = 这个案例由哪些资产与算子构成（**引用**，不复制任何数据）。
-# 注意其中一项是受限的（精确点位），它的可见性会决定整个案例对外是否可见：
-# 见 docs/cases/flightway-wetland.md 的「可见性分层」一节。
 composition:
   components:
-    - id: geocard.eaaf.wetland-imagery-sample
+    - id: geocard.eaaf.rfi-priority-sites
       role: data
-      step: s1
-      alias: imagery
-    - id: geocard.eaaf.waterbird-counts-sample
+      step: s2
+      alias: priority_sites
+    - id: geocard.eaaf.rfi-country-summary
       role: data
       step: s4
+      alias: country_summary
+    # 这一项是**受限**的：支撑 PC1 的逐笔水鸟计数（Wetlands International 许可，未公开）。
+    # required=true（默认）意味着：拿不到它的人，也拿不到这个案例（平台返回 404）——
+    # 用"案例简介是公开的"绕过受限内容是行不通的。
+    - id: geocard.eaaf.waterbird-counts-restricted
+      role: data
+      step: s3
       alias: counts
-    # 这一项是**受限**的：它是本案例可见性的关键组成项。
-    # required=true（默认）意味着：看不见它的人，也看不见这个案例（平台返回 404）；
-    # 这是刻意的 —— 精确点位会指向可被干扰的停歇地，不能靠"案例简介是公开的"绕过。
-    - id: geocard.eaaf.priority-sites-restricted
-      role: data
-      step: s4
-      alias: precise_sites
-    - id: wetland-water-extent
+    - id: rfi-framework-review
       role: skill
       step: s1
-    - id: wetland-water-change
+    - id: rfi-site-data
+      role: skill
+      step: s2
+    - id: rfi-pc1-select
       role: skill
       step: s3
-    - id: waterbird-priority-score
+    - id: rfi-characterise
       role: skill
       step: s4
-    - id: wetland-report
+    - id: rfi-report
       role: skill
       step: s5
 
-# 参数契约：哪些能改、范围多少、哪些是作者钉死的。
-# 与 recipe.yaml 的 params 是**同一份定义**（ParamSpec），不另立一套。
+# 参数契约：与 recipe.yaml 的 params 是**同一份定义**，不另立一套。
 params:
   params:
-    - name: region
-      type: enum
-      enum: [yellow-sea, yangtze, sanjiang]
-      default: yellow-sea
-      target: s1.params.region
-      description: 研究区（示意窗口）。方案里的数据路径按 region 取子目录。
-    - name: baseline_year
-      type: integer
-      default: 2010
-      minimum: 1990
-      maximum: 2020
-      target: s1.params.year
-      description: 基线年。原文引用的沿海湿地损失窗口是 2000–2015。
-    - name: target_year
-      type: integer
-      default: 2024
-      minimum: 2000
-      maximum: 2030
-      target: s2.params.year
-      description: 目标年（对比期）。
-    - name: ndwi_threshold
+    - name: data_dir
+      type: string
+      default: data/rfi
+      target: s1.params.data_dir
+      description: 站点级结果数据集目录（由 extract_supp_table3.py 从论文补充材料生成）。
+    - name: threshold_prc_mongolia
       type: number
-      default: 0.0
-      minimum: -1.0
-      maximum: 1.0
-      target: s1.params.threshold
-      description: NDWI 水体判定阈值。论文未给出遥感产品与阈值，因此这是案例参数。
-    - name: pc1_threshold
-      type: number
-      default: 0.2
+      default: 10.0
       minimum: 0.0
-      maximum: 20.0
-      target: s4.params.threshold
+      maximum: 200.0
+      target: s3.params.threshold_prc_mongolia
       description: >-
-        PC1 入选阈值。论文按区域校准：中国与蒙古用 10、其余八国用 1；那是在 270+
-        个种群的迁飞区尺度上校准的。样例数据只有 20 个种群，PC1 量级天然在 0–1，
-        所以样例配置默认 0.2。接入真实种群量后应改回 10。
+        原文第七节的区域校准：中国与蒙古 PC1 入选阈值取 10。这是**可改**的 ——
+        改成 1 就能看到"取消区域校准"会把哪些北方站点纳进来（敏感性分析）。
+    - name: threshold_others
+      type: number
+      default: 1.0
+      minimum: 0.0
+      maximum: 200.0
+      target: s3.params.threshold_others
+      description: 其余八国的 PC1 入选阈值（原文取 1）。
+    - name: include_expert_exceptions
+      type: boolean
+      default: true
+      target: s3.params.include_expert_exceptions
+      description: 是否纳入原文点名的三处蒙古专家例外（Tolbo 9.4 / Terkhiin Tsagaan 6.0 / Buir 8.0）。
+    - name: include_published_sites
+      type: boolean
+      default: true
+      target: s3.params.include_published_sites
+      description: >-
+        公开结果为准：补充材料已列为优先站点、但按公开分值严格套阈值应落选的站点是否保留
+        （中国有 2 处：Danzhou-Lingao coast 9.29、Fangcheng coast 8.49）。关掉它得到纯规则结果。
     - name: one_percent_rule
       type: boolean
       scope: fixed
       default: true
-      target: s4.params.one_percent
+      target: s3.params.one_percent
       description: >-
         1% 规则（Ramsar 第 6 条标准）。**作者钉死**：这是该指标的定义，不是可调参数 ——
         关掉它算出来的就不是 PC1。
-    - name: min_count
-      type: integer
-      default: 0
-      minimum: 0
-      target: s4.params.min_count
-      description: 计数低于该值不计入（用于剔除明显不完整的单次记录）。
+    - name: counts
+      type: string
+      default: ""
+      target: s3.params.counts
+      description: 可选：受限的逐笔计数数据集（字段见补充材料 Table 1）；给了它才走完整计算。
     - name: report_format
       type: enum
       enum: [html]
@@ -122,16 +120,17 @@ params:
       description: 报告格式（当前只支持 html）。
 
 recipe_ref:
-  recipe_id: recipe://geonexus/eaaf-wetland-priority@1.0.0
-  version: "1.0.0"
+  recipe_id: recipe://geonexus/eaaf-wetland-priority@2.0.0
+  version: "2.0.0"
   entrypoint: s1
   data_snapshot:
-    sample_data: synthetic-20260925
-    method: "Scientific Reports 2026 (DOI 10.1038/s41598-025-31727-2)"
+    site_level: supplementary-table-3
+    counts: restricted-not-public
+    method: "Scientific Reports 16:1916 (2026), DOI 10.1038/s41598-025-31727-2"
 
 license:
   name: CC-BY-4.0
 provenance:
   provider: GeoNexus 案例库
-  source: https://mp.weixin.qq.com/s/G97nAGpTjEG8BNmsczERmg
-  lineage: 科普文章 → 案例（原文事实 + 合成数据 + 待补槽位）
+  source: https://doi.org/10.1038/s41598-025-31727-2
+  lineage: 论文（CC-BY）→ 补充材料 Table 3 解析 → 站点级数据集 → 五步复现 Recipe → 报告

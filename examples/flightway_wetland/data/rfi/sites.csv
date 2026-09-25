@@ -1,0 +1,148 @@
+site_id,country,section,name,lat,lon,wetland_type,type_source,overlaps_protected_bold,designations,has_ramsar,has_flyway_network,pc1,rank,species_count,over_10pct,over_50pct,threatened,importance,page
+rf001,Bangladesh,Bangladesh,"Eastern Sundarbans, Khulna",22.0,89.7,coastal,inferred,True,,False,False,42.0,,3,True,False,CR,,11
+rf002,Bangladesh,Bangladesh,"Eastern Meghna Delta, Chittagong",22.47,91.27,coastal,inferred,True,,False,False,30.3,,4,True,False,"CR,EN",,11
+rf003,Bangladesh,Bangladesh,"Hatia Island (including Nijhum Dwip National Park), Chittagong",22.08,91.07,coastal,inferred,True,FR,True,True,16.9,,3,True,False,EN,,11
+rf004,Bangladesh,Bangladesh,"Tanguar Haor and Panabeel, Sylhet",25.13,91.03,inland,inferred,True,,False,False,16.2,,5,False,False,,,11
+rf005,Bangladesh,Bangladesh,"Hakaluki Haor , Sylhet",24.65,92.08,inland,inferred,True,F,False,True,7.6,,4,False,False,,,11
+rf006,Bangladesh,Bangladesh,"Sonadia Island , Chittagong",21.5,91.88,coastal,inferred,True,F,False,True,4.9,,2,False,False,CR,,11
+rf007,Bangladesh,Bangladesh,"Central Meghna Delta, Barisal",21.93,90.62,coastal,inferred,True,F,False,True,3.5,,3,False,False,,,12
+rf008,Bangladesh,Bangladesh,"Hail Haor (including Bakka Beel), Sylhet",24.37,91.68,inland,inferred,True,,False,False,1.1,,1,False,False,,,12
+rf009,Cambodia,Cambodia,"Prek Toal (part of Tonle Sap Biosphere Reserve), Battambang",13.12,103.65,coastal,inferred,True,,False,False,250.7,,6,False,True,"CR,EN",,12
+rf010,Cambodia,Cambodia,"Ang Tropeang Thmor (Sarus Crane Reserve), Siem Reap",13.82,103.31,inland,inferred,True,,False,False,33.3,,5,True,False,VU,,12
+rf011,Cambodia,Cambodia,"Boeung Prek Lapouv (Sarus Crane Reserve), Takeo",10.72,105.03,inland,inferred,True,F,False,True,30.4,,2,True,False,VU,,12
+rf012,Cambodia,Cambodia,"Anlung Pring (Sarus Crane Reserve), Kampot",10.48,104.53,inland,inferred,True,R,True,False,21.3,,2,True,False,VU,,12
+rf013,Cambodia,Cambodia,"Boeng Chhmar Ramsar Site, Kampong Thom",12.83,104.29,inland,inferred,True,,False,False,19.4,,3,True,False,EN,,13
+rf014,Cambodia,Cambodia,"Chi Kreng, Siem Reap",13.01,104.42,inland,inferred,True,,False,False,5.4,,2,False,False,VU,,13
+rf015,Cambodia,Cambodia,"Kulen Promtep Wildlife Sanctuary (Memey River), Preah Vihear",14.02,104.52,inland,inferred,True,R,True,False,4.7,,1,False,False,CR,,13
+rf016,Cambodia,Cambodia,"Koh Kapik (Peam Krasop Wildlife Sanctuary), Koh Kong",11.54,102.97,inland,inferred,True,,False,False,3.2,,2,False,False,EN,,13
+rf017,Cambodia,Cambodia,"Stoung, Kampong Thom",12.99,104.47,inland,inferred,False,,False,False,1.0,,1,False,False,VU,,13
+rf018,PRC,Liaoning Province,Yalu Jiang estuary,39.83,124.1,coastal,paper-section,True,,False,False,308.66,,31,True,True,"CR,EN,VU",,13
+rf019,PRC,Liaoning Province,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,40.9,121.78,coastal,paper-section,True,,False,False,272.71,,31,True,True,"CR,EN,VU",,14
+rf020,PRC,Liaoning Province,Zhuanghe coast,39.67,123.03,coastal,paper-section,True,FR,True,True,30.44,,11,False,False,"EN,VU",,15
+rf021,PRC,Liaoning Province,"Pulandian-Jinzhou east coast, including Changshan Islands",39.37,122.3,coastal,paper-section,True,,False,False,27.0,,6,False,False,EN,,15
+rf022,PRC,Liaoning Province,"Jinzhou Bay, Dalian",39.17,121.6,coastal,paper-section,True,,False,False,19.8,,2,False,False,,,16
+rf023,PRC,Hebei Province,Luannan-Zuidong coast,39.1,118.2,coastal,paper-section,True,,False,False,199.05,,22,True,True,"EN,VU",,16
+rf024,PRC,Hebei Province,Huanghua-Cangzhou coast,38.43,117.67,coastal,paper-section,True,,False,False,84.61,,30,False,False,"CR,EN,VU",,16
+rf025,PRC,Hebei Province,Laoting-Caofeidian coast,39.02,118.73,coastal,paper-section,True,,False,False,17.08,,8,False,False,EN,,17
+rf026,PRC,Tianjin Municipality,Tianjin coastal mudflats,38.92,117.75,coastal,paper-section,True,R,True,False,174.14,,34,True,True,"EN,VU",,18
+rf027,PRC,Tianjin Municipality,Beidagang Wetland Nature Reserve,38.75,117.38,coastal,paper-section,True,,False,False,81.19,,14,True,False,"CR,EN",,19
+rf028,PRC,Shandong Province,Yellow River Delta National Nature Reserve,37.97,118.97,coastal,paper-section,True,,False,False,595.48,,53,True,True,"CR,EN,VU",,19
+rf029,PRC,Shandong Province,Qingdao coast and Jiaozhou Bay,36.18,120.2,coastal,paper-section,True,,False,False,78.15,,13,True,False,"CR,EN,VU",,21
+rf030,PRC,Shandong Province,Laizhou Bay,37.1,119.4,coastal,paper-section,True,,False,False,24.16,,6,False,False,,,21
+rf031,PRC,Shandong Province,Wudi-Zhanhua-Hekou coast,38.13,118.2,coastal,paper-section,True,F,False,True,15.63,,6,False,False,"EN,VU",,21
+rf032,PRC,Shandong Province,Rongcheng Swan Nature Reserve,37.25,122.57,coastal,paper-section,True,,False,False,11.85,,1,True,False,,,22
+rf033,PRC,Jiangsu Province,Lianyungang coast,34.62,119.52,coastal,paper-section,False,,False,False,344.15,,30,True,True,"EN,VU",,22
+rf034,PRC,Jiangsu Province,Tiaozini (Dongtai coast,32.75,120.97,coastal,paper-section,True,FR,True,True,318.33,,26,True,True,"CR,EN,VU",,23
+rf035,PRC,Jiangsu Province,Yancheng National Nature Reserve,33.72,120.52,coastal,paper-section,True,,False,False,195.7,,30,True,True,"CR,EN,VU",,23
+rf036,PRC,Jiangsu Province,Ganyu coast,34.97,119.2,coastal,paper-section,True,,False,False,194.23,,21,True,True,"EN,VU",,24
+rf037,PRC,Jiangsu Province,Dongling coast,32.15,121.45,coastal,paper-section,True,,False,False,126.56,,21,True,False,"CR,EN,VU",,25
+rf038,PRC,Jiangsu Province,Rudong coast,32.52,121.17,coastal,paper-section,True,,False,False,84.02,,24,True,False,"CR,EN,VU",,26
+rf039,PRC,Jiangsu Province,"Dongsha shoals , PRC",33.0,121.23,coastal,paper-section,True,,False,False,41.72,,11,True,False,EN,,26
+rf040,PRC,Shanghai Municipality,Chongming Dongtan National Nature Reserve,31.48,122.0,coastal,paper-section,True,,False,False,43.36,,14,True,False,"CR,EN,VU",,27
+rf041,PRC,Shanghai Municipality,Nanhui coast (including Nanhui Wetlands Park,30.93,121.97,coastal,paper-section,True,,False,False,15.72,,6,False,False,,,27
+rf042,PRC,Zhejiang Province,Wenzhou Bay,27.92,120.88,coastal,paper-section,True,,False,False,94.14,,19,True,False,"CR,EN,VU",,27
+rf043,PRC,Zhejiang Province,Hangzhou Bay,30.33,121.0,coastal,paper-section,True,,False,False,43.8,,16,False,False,"CR,VU",,28
+rf044,PRC,Fujian Province,Min Jiang estuary,26.12,119.63,coastal,paper-section,True,,False,False,52.36,,15,True,False,"CR,EN,VU",,29
+rf045,PRC,Fujian Province,"Quanzhou Bay, including Jin Jiang estuary",24.85,118.67,coastal,paper-section,True,,False,False,24.77,,12,False,False,VU,,29
+rf046,PRC,Fujian Province,Xiamen coast,24.57,118.08,coastal,paper-section,True,,False,False,13.49,,6,False,False,"EN,VU",,29
+rf047,PRC,Fujian Province,Xinghua Bay,25.45,119.18,coastal,paper-section,False,,False,False,12.94,,5,False,False,"EN,VU",,30
+rf048,PRC,Guangdong Province,Inner Deep Bay and Shenzhen River catchment,22.5,114.02,coastal,paper-section,True,R,True,False,68.84,,24,True,False,"CR,EN",,30
+rf049,PRC,Guangdong Province,Haifeng wetlands,22.83,115.22,coastal,paper-section,True,R,True,False,12.78,,6,False,False,EN,,31
+rf050,PRC,Guangdong Province,Zhanjiang-Leizhou Peninsula coast,20.85,110.2,coastal,paper-section,True,,False,False,12.62,,7,False,False,"CR,EN,VU",,31
+rf051,PRC,Hainan Province,Dongzhaigang Nature Reserve,20.02,110.57,coastal,paper-section,True,,False,False,16.69,,4,False,False,,,31
+rf052,PRC,Hainan Province,Danzhou-Lingao coast,19.73,109.23,coastal,paper-section,False,,False,False,9.29,,1,False,False,,,31
+rf053,PRC,Guangxi Province,Beihai coast,21.45,109.32,coastal,paper-section,False,R,True,False,11.01,,5,False,False,CR,,32
+rf054,PRC,Guangxi Province,Fangcheng coast,21.57,108.15,coastal,paper-section,False,R,True,False,8.49,,3,False,False,CR,,32
+rf055,PRC,Heilongjiang Province,Zhalong National Nature Reserve,47.2,124.2,inland,paper-section,True,FR,True,True,,,0,False,False,,"Zhalong NNR comprises extensive reedbeds, pools and marshland that supports large numbers of breeding and migrating waterbirds, notably an important breeding population of Red-crowned Crane (VU). The wetlands there have experienced serious ecological problems and lost some of their value for migratory waterbirds, but measures are underway to reverse the trends of increasing ecological degradation (Su et al.2011).",32
+rf056,PRC,Heilongjiang Province,Xingkai Lake National Nature Reserve,45.3,132.57,inland,paper-section,True,FR,True,True,,,0,False,False,,"Xingkai Lake (Lake Khanka) is a large transboundary freshwater lake on the border between the PRCand the Russian Federation The extensive floodplain wetlands around the lake provide stopover and breeding habitats for up to two million waterbirds, notably large congregations of Red-crowned Crane (VU) and Oriental Stork (EN). 32 At least 14 waterbird species have internationally important populations in the national nature reserve (RIS)",32
+rf057,PRC,Heilongjiang Province,Sanjiang National Nature Reserve,47.9,134.5,inland,paper-section,True,,False,False,,,0,False,False,,"The Sanjiang Plain is an extensive delta alluvial plain where the Heilongjiang and Wusuli (Ussuri) Rivers converge. It supports 50,000-100,000 geese and ducks during the migration seasons, including up to 24,000 Swan Goose (VU), and also supports breeding populations of Red-crowned Crane (VU), White Crane (VU) and Oriental Stork (EN) (RIS).",33
+rf058,PRC,Jilin Province,Momoge National Nature Reserve,46.0,123.75,inland,paper-section,True,FR,True,True,,,0,False,False,,"Momoge NNR comprises extensive marshlands, grasslands and agricultural land that support more than 100,000 waterbirds during the migration seasons, including Anatidae, cranes and Oriental Stork (EN). Most notably, approximately 95% of the global population of Siberian Crane (CR) stops over there on migration (Wang et al.2022).",33
+rf059,PRC,Jilin Province,Xianghai National Nature Reserve,45.08,122.33,inland,paper-section,True,,False,False,,,0,False,False,,"Xianghai NNR is located at the western edge of the Songnen Plain, and the numerous lakes and extensive marshlands there are an important breeding and staging area for migratory waterbirds, including Anatidae, cranes and Oriental Stork (EN) (RIS). 33",33
+rf060,PRC,Inner Mongolia,Dalai Lake National Nature Reserve,49.0,117.33,inland,inferred,True,,False,False,,,0,False,False,,"Dalai Hu is one of the five largest freshwater lakes (by area) in PRC and is surrounded by vast areas of marshland and arid steppes. Hundreds of thousands of waterbirds stage or breed there every year, including at least 11 species that occur in internationally important numbers (RIS, SIS).",34
+rf061,PRC,Inner Mongolia,Wuliangsuhai National Nature Reserve,41.1,108.83,inland,inferred,True,,False,False,,,0,False,False,,"Wuliangsuhai is a large lake with extensive emergent vegetation, that is an important breeding and staging area for waterbirds in a vast arid region of northwest PRC . A waterbird survey in 2011 counted more than 165,900 individual birds there, including 19 species that exceeded 1% of flyway population thresholds, notably Swan Goose (VU), Far Eastern Curlew (EN) and Relict Gull (VU) (Zhang et al.2017).",34
+rf062,PRC,Yellow River Basin,Hebei Hengshui Lake National Nature Reserve,37.6,115.6,inland,paper-section,True,F,False,True,,,0,False,False,,"Hengshui Lake NNR is an important breeding and stopover site for waterbirds in the arid North China Plain region. Nineteen waterbird species have occurred there in internationally important numbers, most notably around 15% of the global population of Baer’ Pochard (CR) and 30% of the flyway population of Bean Goose (Guo et al.2021). 34",34
+rf063,PRC,Qinghai Province,"Zhaling Lake-Er’ling, Lake National Nature Reserve",34.93,97.45,inland,paper-section,True,,False,False,,,0,False,False,,"Zhaling Lake-Er’ling Lake NNR includes two high-altitude lakes that are important for migratory waterbirds, including at least five species that exceed 1% of flyway population thresholds there, notably Black-necked Crane (VU) (Sun et al.2020, Gong 2022).",35
+rf064,PRC,Gansu Province,Gahai-Zecha National Nature Reserve,34.23,102.32,inland,paper-section,True,,False,False,,,0,False,False,,"Gahai-Zecha NNR is a high-altitude wetland in arid Gansu Province, where at least four migratory waterbird species exceed 1% of flyway population thresholds, notably a large breeding population of Common Redshank and Black-necked Crane (VU) (RIS).",35
+rf065,PRC,Ningxia Province,Shahu Lake National Wetland Park,38.82,106.35,inland,paper-section,True,,False,False,,,0,False,False,,"Shahu Lake National Wetland Park is one of the few extensive wetlands in arid Ningxia Province. Based on the habitats present it is considered likely to support significant populations of migratory waterbirds, but no surveys are known to have been conducte investigate their status. 35",35
+rf066,PRC,Ningxia Province,Sh aanxi Province Hongjianlao National Nature Reserve,39.08,109.92,inland,paper-section,True,,False,False,,,0,False,False,,"Hongjianlao NNR is a wetland in an arid region of Shaanxi Province that in recent years has supported more than half of the global population of Relict Gull (VU), which nests on islands in the lake. At least three other migratory waterbird species exceed 1% of flyway population thresholds there, but the wetlands are subject to shrinkage linked to water extraction (Liang & Yan 2017, Liu 2017).",36
+rf067,PRC,Ningxia Province,Shan xi Province Yuncheng Yellow River Wetland Provincial Nature Reserve,35.03,110.98,inland,paper-section,True,,False,False,,,0,False,False,,"Yuncheng Yellow River Wetland Provincial NR is the largest wetland nature reserve in Shanxi Province. It supports an important population of Whooper Swan, with more than 10,000 individuals estimated to spend the non-breeding period, and several other migratory waterbird species have exceeded 1% of flyway population thresholds there. 36",36
+rf068,PRC,Henan Province,Yellow River Wetland National Nature Reserve,34.87,112.5,inland,paper-section,True,R,True,False,,,0,False,False,,"Yellow River Wetland NNR is an extensive area of riverine floodplain wetlands that is a demonstration site for ADB’s Yellow River Project. It supports a large non-breedingpopulation of Whooper Swan, and several other migratory waterbird species have exceeded 1% of flyway population thresholds there.",37
+rf069,PRC,Henan Province,Minquan Yellow River Old Riverway National Wetland Park,34.65,115.32,inland,paper-section,True,,False,False,,,0,False,False,,"Minquan Yellow River Old Riverway National Wetland Park comprises wetlands in the old channel of the Yellow River and is important for the conservation of migratory waterbirds (Li Changkan et al.2019). Waterbird surveys in 2017-2019 counted up to 60,000 individual birds there, including six species that exceeded 1% of flyway population thresholds, most notably around 12.5% of the global population of Baer’s Pochard (CR) (RIS).",37
+rf070,PRC,Jiangxi Province,Poyang Lake National Nature Reserve,29.17,115.97,inland,paper-section,True,FR,True,True,825.49,,18,True,True,"CR,EN,VU",,37
+rf071,PRC,Jiangxi Province,Nanjishan Wetland Nature Reserve,29.0,116.28,inland,paper-section,True,,False,False,134.9,,14,True,True,"CR,EN,VU",,38
+rf072,PRC,Hunan Province,East Dongting Lake National Nature Reserve,29.33,112.92,inland,paper-section,True,R,True,False,134.53,,15,True,False,VU,,38
+rf073,PRC,Hunan Province,West Dongting Lake National Nature Reserve,28.82,112.2,inland,paper-section,True,,False,False,13.88,,4,False,False,,,39
+rf074,PRC,Anhui Province,Shengjin Lake Nature Reserve,30.38,117.07,inland,paper-section,True,F,False,True,99.59,,9,True,False,VU,,39
+rf075,PRC,Anhui Province,Anqing Yangtze Riverine Wetland Nature Reserve,30.53,116.9,inland,paper-section,True,,False,False,71.32,,11,True,False,"EN,VU",,39
+rf076,PRC,Hubei Province,Wanghu Lake National Nature Reserve,29.87,115.33,inland,paper-section,True,R,True,False,21.11,,6,False,False,,,40
+rf077,PRC,Hubei Province,Chenhu Lake Provincial Nature Reserve,30.3,113.82,inland,paper-section,True,,False,False,13.92,,5,False,False,,,40
+rf078,Indonesia,Indonesia,"Batu Bara coast, North Sumatra",3.38,99.43,coastal,inferred,False,FR,True,True,44.9,,13,False,False,EN,,40
+rf079,Indonesia,Indonesia,"Banyuasin Peninsula and Berbak, -Sembilang National Park South Sumatra",-1.89,104.61,coastal,inferred,True,,False,False,27.1,,5,False,False,EN,,41
+rf080,Indonesia,Indonesia,"Deli-Serdang , North Sumatra",3.73,98.79,coastal,inferred,True,FR,True,True,17.4,,7,False,False,EN,,41
+rf081,Indonesia,Indonesia,"Wasur National Park, SouthPapua",-8.6,140.8,coastal,inferred,True,,False,False,10.4,,1,True,False,,,41
+rf082,Indonesia,Indonesia,"Middle Mahakam Lakes, EastKalimantan",-0.36,116.2,inland,inferred,True,,False,False,7.7,,1,False,False,,,41
+rf083,Indonesia,Indonesia,"Sungai Progo Delta, -Trisik Beach, Yogyakarta",-7.98,110.2,coastal,inferred,True,,False,False,7.4,,2,False,False,,,41
+rf084,Indonesia,Indonesia,"Cemara Beach , Jambi",-1.42,104.46,coastal,inferred,True,,False,False,7.1,,5,False,False,EN,,41
+rf085,Indonesia,Indonesia,"East Aceh coast, Aceh",4.68,97.96,coastal,inferred,True,,False,False,5.3,,1,False,False,,,42
+rf086,Indonesia,Indonesia,"North Aceh coast, Aceh",5.22,97.45,coastal,inferred,True,,False,False,4.7,,2,False,False,,,42
+rf087,Indonesia,Indonesia,"Kupang Bay, East, Nusa Tenggara",-10.05,123.78,coastal,inferred,True,,False,False,3.5,,1,False,False,,,42
+rf088,Indonesia,Indonesia,"Sekopong Bay, Way Kambas National Park, Lampung",-4.9,105.88,coastal,inferred,True,,False,False,2.2,,1,False,False,,,42
+rf089,Indonesia,Indonesia,"Benoa Bay – Serangan Island, Bali",-8.74,115.22,coastal,inferred,True,,False,False,2.1,,1,False,False,,,42
+rf090,Indonesia,Indonesia,"Gresik and Surabaya coast (incl., Ujung Pangkah) , EastJava",-6.92,112.62,coastal,inferred,True,,False,False,1.9,,1,False,False,,,42
+rf091,Indonesia,Indonesia,"Asahan coast, North Sumatra",3.03,99.87,coastal,inferred,False,,False,False,1.4,,1,False,False,,,42
+rf092,Indonesia,Indonesia,"North Labuhan Batu coast, North Sumatra",2.77,99.99,coastal,inferred,False,,False,False,1.4,,1,False,False,,,42
+rf093,Indonesia,Indonesia,"Labuhan Batu coast, North Sumatra",2.7,100.16,coastal,inferred,False,,False,False,1.4,,1,False,False,,,42
+rf094,Indonesia,Indonesia,"North Seram coast (partly in Manusela National Park), Maluku",-2.95,129.12,coastal,inferred,True,,False,False,1.0,,1,False,False,CR,,42
+rf095,Lao PDR,Lao People’s Democratic Republic,Xe Pian NBCA (including Bueng Kiat Ngong wetlands) Champasak,14.56,106.06,inland,paper-section,True,,False,False,4.5,,2,False,False,CR,,43
+rf096,Lao PDR,Lao People’s Democratic Republic,"Mekong River from Luang Prabang to Vientiane, Vientiane, - Xayabury",18.32,101.52,inland,paper-section,False,,False,False,2.2,,1,False,False,,,43
+rf097,Lao PDR,Lao People’s Democratic Republic,Dong Kanthung Protected Forest (proposed NBCA) Champasak,14.4,105.43,inland,paper-section,True,,False,False,2.0,,1,False,False,CR,,43
+rf098,Malaysia,Malaysia,"North-Central Selangor Coast, Selangor",3.24,101.3,coastal,inferred,True,,False,False,14.1,,6,False,False,EN,,43
+rf099,Malaysia,Malaysia,"Sadong-Saribas Coast, Sarawak",1.68,111.05,coastal,inferred,False,,False,False,13.2,,4,False,False,VU,,43
+rf100,Malaysia,Malaysia,"Buntal Bay , Sarawak",1.69,110.39,coastal,inferred,True,F,False,True,9.2,,6,False,False,EN,,44
+rf101,Malaysia,Malaysia,"Teluk Air Tawar-Kuala Muda IBA, Pulau Pinang",5.53,100.37,coastal,inferred,False,,False,False,8.4,,3,False,False,EN,,44
+rf102,Malaysia,Malaysia,"Mersing-Endau Coast, Johor",2.64,103.71,coastal,inferred,False,,False,False,2.2,,1,False,False,,,44
+rf103,Malaysia,Malaysia,"Pulau Bruit, Sarawak",2.58,111.29,coastal,inferred,False,,False,False,1.8,,1,False,False,VU,,44
+rf104,Mongolia,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",47.75,92.17,inland,paper-section,True,FR,True,True,,1,27,False,True,VU,,44
+rf105,Mongolia,Mongolia,"Khurkh Khuiten, Khentii Aimag",48.32,110.37,inland,paper-section,True,FR,True,True,,2,10,False,True,VU,,45
+rf106,Mongolia,Mongolia,"Mongol Daguur IBA including Ulz River and Khukh Lake (include SPA) , Dornod, Aimag",49.72,115.25,inland,paper-section,True,,False,False,,3,16,True,False,VU,,45
+rf107,Mongolia,Mongolia,"Uvs Lake , Uvs Aimag",50.2,92.28,inland,paper-section,True,FR,True,True,,4,6,False,False,,,46
+rf108,Mongolia,Mongolia,"Tolbo Lake, Bayan, -Olgii Aimag",48.53,90.1,inland,paper-section,True,,False,False,,5,3,False,False,,,46
+rf109,Mongolia,Mongolia,"Airag Lake , Uvs Aimag",48.9,93.43,inland,paper-section,True,FR,True,True,,6,8,False,False,,,46
+rf110,Mongolia,Mongolia,"Tashgain Tavan Lakes, Dornod Aimag",47.37,118.45,inland,paper-section,False,FR,True,True,,7,8,False,False,VU,,46
+rf111,Mongolia,Mongolia,"Terkhiin Tsagaan Lake, Arkhangai Aimag",48.17,99.75,inland,paper-section,True,,False,False,,8,6,False,False,,,47
+rf112,Mongolia,Mongolia,"Ogii Lake , Arkhangai Aimag",47.77,102.7,inland,paper-section,True,FR,True,True,,9,9,False,False,VU,,47
+rf113,Mongolia,Mongolia,"Buir Lake , Dornod Aimag, (transboundary to Hulun Lake, PRC",47.77,117.8,inland,paper-section,True,FR,True,True,,10,4,False,False,VU,,47
+rf114,Mongolia,Mongolia,"Valley of lakes (including Boon Tsagaan, Orog Lake and Taatsiin Tsagaan, Bayan-Khongor Aimag",45.3,100.12,inland,paper-section,True,R,True,False,,11,6,True,False,,,47
+rf115,Philippines,Philippines,"North Manila Bay (Bulacan) (includes Pampanga River East Bank, - Santa Cruz-Caliligawan, -Pamawaran-Navotas-Taliptip-Tanza",14.77,120.79,coastal,inferred,False,FR,True,True,24.6,,8,False,False,,,48
+rf116,Philippines,Philippines,"Olango Island Wildlife Sanctuary, Cebu",10.25,124.05,coastal,inferred,True,,False,False,24.6,,7,True,False,,,48
+rf117,Philippines,Philippines,"Bangrin Marine Protected Area, Pangasinan",16.25,119.93,coastal,inferred,True,,False,False,21.1,,2,True,False,,,48
+rf118,Philippines,Philippines,"Negros Occidental Coastal Wetlands Conservation Area (NOCWCA) , Negros Occidental",10.27,122.84,coastal,inferred,True,,False,False,14.8,,9,False,False,"EN,VU",,48
+rf119,Philippines,Philippines,"Lake Mainit, Agusan del Norte",9.46,125.52,inland,inferred,False,FR,True,True,13.8,,1,True,False,,,49
+rf120,Philippines,Philippines,"North Manila Bay (Pampanga), (includes Pampanga River Westbank-Sasmuan Pampanga Coastal Wetlands",14.83,120.59,coastal,inferred,True,R,True,False,12.2,,5,False,False,,,49
+rf121,Philippines,Philippines,"Agusan Marsh Wildlife Sanctuary, Agusan del Sur",8.31,125.9,inland,inferred,True,,False,False,6.9,,1,False,False,,,49
+rf122,Philippines,Philippines,"Candaba Wetlands, Pampanga",15.07,120.88,coastal,inferred,False,F,False,True,5.2,,1,False,False,,,49
+rf123,Philippines,Philippines,"Kabasalan-Siay Wetland Area, (also known as Sibugay Wetlands) Zamboanga-Sibugay",7.71,122.81,coastal,inferred,False,,False,False,3.1,,3,True,False,,,49
+rf124,Philippines,Philippines,"Panabo Coast, Davao del Norte",7.29,125.7,coastal,inferred,False,,False,False,3.0,,1,False,False,CR,,49
+rf125,Philippines,Philippines,"North Manila Bay (Bataan), – Balanga Wetlands Park-Pilar Wetlands",14.69,120.57,coastal,inferred,True,FR,True,True,2.6,,2,False,False,,,49
+rf126,Philippines,Philippines,"Tubbataha Reef Natural Park, Palawan",8.89,120.06,inland,inferred,True,,False,False,1.5,,2,False,False,,,49
+rf127,Thailand,Thailand,"Pak Thale-Laem Phak Bia coast, Phetchaburi",13.07,100.07,coastal,inferred,True,,False,False,26.1,,8,True,False,EN,,50
+rf128,Thailand,Thailand,"Bueng Boraphet , Nakhon Sawan",15.7,100.24,coastal,inferred,True,,False,False,24.6,,6,True,False,,,50
+rf129,Thailand,Thailand,"Pak Nam Prasae, Rayong",12.7,101.71,coastal,inferred,False,,False,False,6.1,,2,False,False,EN,,50
+rf130,Thailand,Thailand,"Huai Chorakhe Mak Reservoir, Buriram",14.9,103.03,inland,inferred,True,FR,True,True,5.0,,1,False,False,VU,,50
+rf131,Thailand,Thailand,"Krabi River Mouth, Krabi",8.02,98.93,inland,inferred,True,,False,False,4.0,,2,False,False,EN,,50
+rf132,Thailand,Thailand,"Khlong Tamru (Bang Pakong), Chachoengsao",13.48,100.94,coastal,inferred,False,,False,False,3.5,,2,False,False,,,50
+rf133,Thailand,Thailand,"Khlong Yai, Trat",11.78,102.88,coastal,inferred,False,,False,False,2.8,,2,False,False,EN,,50
+rf134,Thailand,Thailand,"Sanam Bin Reservoir, Buriram",14.64,103.08,inland,inferred,True,,False,False,2.5,,1,False,False,VU,,50
+rf135,Thailand,Thailand,"Ko Libong Non-Hunting Area and Hat Chao Mai National Park, Trang",7.29,99.44,coastal,inferred,True,F,False,True,2.2,,2,False,False,EN,,51
+rf136,Thailand,Thailand,"Khok Kham salt pans, Samut Sakhon",13.51,100.35,coastal,inferred,True,,False,False,1.9,,1,False,False,EN,,51
+rf137,Thailand,Thailand,"Phang-nga Bay , Phang Nga",8.32,98.52,coastal,inferred,True,R,True,False,1.5,,1,False,False,,,51
+rf138,Thailand,Thailand,"Bang Pu coast and fish ponds, Samut Prakan",13.5,100.74,coastal,inferred,False,,False,False,1.1,,1,False,False,,,51
+rf139,Viet Nam,Viet Nam,"Tram Chim National Park, Dong Thap",10.72,105.51,coastal,inferred,True,,False,False,7.8,,3,False,False,VU,,51
+rf140,Viet Nam,Viet Nam,"Thai Thuy (including Thai Binh Wetland Protected Area), Thai Binh",20.61,106.66,coastal,inferred,True,,False,False,6.3,,2,False,False,,,51
+rf141,Viet Nam,Viet Nam,"Can Gio (incl. Can Gio Biosphere Reserve, Ly Nhon & Can Thanh salt pans, and coastal flats), Ho Chi Minh City",10.39,106.93,coastal,inferred,True,R,True,False,4.0,,2,False,False,,,51
+rf142,Viet Nam,Viet Nam,"Xuan Thuy National Park, Nam Dinh",20.21,106.55,coastal,inferred,True,,False,False,2.8,,2,False,False,EN,,52
+rf143,Viet Nam,Viet Nam,"Binh Dai IBA, Ben Tre",10.08,106.76,coastal,inferred,False,,False,False,2.7,,1,False,False,,,52
+rf144,Viet Nam,Viet Nam,"Tan Thanh-Con Ngang coast, Tien Giang",10.26,106.76,coastal,inferred,False,,False,False,2.6,,1,False,False,,,52
+rf145,Viet Nam,Viet Nam,"Ba Tri IBA, Ben Tre",10.01,106.69,coastal,inferred,False,,False,False,2.4,,1,False,False,,,52
+rf146,Viet Nam,Viet Nam,"Do Son coast, Hai Phong",20.7,106.77,coastal,inferred,False,,False,False,1.8,,1,False,False,VU,,52
+rf147,Viet Nam,Viet Nam,"An Hai (Cat Hai) IBA, Hai Phong",20.79,106.78,inland,inferred,False,,False,False,1.3,,1,False,False,,,52

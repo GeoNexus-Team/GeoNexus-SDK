@@ -1,0 +1,964 @@
+site_id,country,site_name,english,scientific,iucn,over_10pct,over_50pct,nearly_1pct
+rf001,Bangladesh,"Eastern Sundarbans, Khulna",Ruddy Shelduck,Tadorna ferruginea,,False,False,False
+rf001,Bangladesh,"Eastern Sundarbans, Khulna",Masked Finfoot,Heliopais personatus,CR,True,False,False
+rf001,Bangladesh,"Eastern Sundarbans, Khulna",Lesser Sandplover,Charadrius mongolus,,False,False,False
+rf002,Bangladesh,"Eastern Meghna Delta, Chittagong",Indian Skimmer,Rynchops albicollis,EN,True,False,False
+rf002,Bangladesh,"Eastern Meghna Delta, Chittagong",Lesser Sandplover,Charadrius mongolus,,False,False,False
+rf002,Bangladesh,"Eastern Meghna Delta, Chittagong",Spoon-billed Sandpiper,Calidris pygmaea,CR,False,False,False
+rf002,Bangladesh,"Eastern Meghna Delta, Chittagong",Broad-billed Sandpiper,Calidris falcinellus,,False,False,False
+rf003,Bangladesh,"Hatia Island (including Nijhum Dwip National Park), Chittagong",Indian Skimmer,Rynchops albicollis,EN,True,False,False
+rf003,Bangladesh,"Hatia Island (including Nijhum Dwip National Park), Chittagong",Lesser Sandplover,Charadrius mongolus,,False,False,False
+rf003,Bangladesh,"Hatia Island (including Nijhum Dwip National Park), Chittagong",Black-headed Ibis,Threskiornis melanocephalus,,False,False,False
+rf004,Bangladesh,"Tanguar Haor and Panabeel, Sylhet",Ferruginous Duck,Aythya nyroca,,False,False,False
+rf004,Bangladesh,"Tanguar Haor and Panabeel, Sylhet",Garganey,Spatula querquedula,,False,False,False
+rf004,Bangladesh,"Tanguar Haor and Panabeel, Sylhet",Black-tailed Godwit,Limosa limosa,,False,False,False
+rf004,Bangladesh,"Tanguar Haor and Panabeel, Sylhet",Gadwall,Mareca strepera,,False,False,False
+rf004,Bangladesh,"Tanguar Haor and Panabeel, Sylhet",Common Teal,Anas crecca,,False,False,False
+rf005,Bangladesh,"Hakaluki Haor , Sylhet",Fulvous Whistling-duck,Dendrocygna bicolor,,False,False,False
+rf005,Bangladesh,"Hakaluki Haor , Sylhet",Ferruginous Duck,Aythya nyroca,,False,False,False
+rf005,Bangladesh,"Hakaluki Haor , Sylhet",Black-headed,Ibis Threskiornismelanocephalus,,False,False,False
+rf005,Bangladesh,"Hakaluki Haor , Sylhet",Asian Openbill,Anastomus oscitans,,False,False,False
+rf006,Bangladesh,"Sonadia Island , Chittagong",Lesser Sandplover,Charadrius mongolus,,False,False,False
+rf006,Bangladesh,"Sonadia Island , Chittagong",Spoon-billed Sandpiper,Calidris pygmaea,CR,False,False,False
+rf007,Bangladesh,"Central Meghna Delta, Barisal",Black-headed Ibis,Threskiornis melanocephalus,,False,False,False
+rf007,Bangladesh,"Central Meghna Delta, Barisal",Lesser Sandplover,Charadrius mongolus,,False,False,False
+rf007,Bangladesh,"Central Meghna Delta, Barisal",Common Shelduck,Tadorna tadorna,,False,False,False
+rf008,Bangladesh,"Hail Haor (including Bakka Beel), Sylhet",Pacific Golden Plover,Pluvialis fulva,,False,False,False
+rf009,Cambodia,"Prek Toal (part of Tonle Sap Biosphere Reserve), Battambang",Spot-billed Pelican,Pelecanus philippensis,,False,True,False
+rf009,Cambodia,"Prek Toal (part of Tonle Sap Biosphere Reserve), Battambang",Painted Stork,Mycteria leucocephala,,False,True,False
+rf009,Cambodia,"Prek Toal (part of Tonle Sap Biosphere Reserve), Battambang",Greater Adjutant,Leptoptilos dubius,EN,False,True,False
+rf009,Cambodia,"Prek Toal (part of Tonle Sap Biosphere Reserve), Battambang",Asian Openbill,Anastomus oscitans,,False,False,False
+rf009,Cambodia,"Prek Toal (part of Tonle Sap Biosphere Reserve), Battambang",Masked Finfoot Heliopais,personatus (estimates,CR,False,False,False
+rf009,Cambodia,"Prek Toal (part of Tonle Sap Biosphere Reserve), Battambang",,only),,False,False,False
+rf010,Cambodia,"Ang Tropeang Thmor (Sarus Crane Reserve), Siem Reap",Sarus Crane Grus,antigone sharpii,VU,True,False,False
+rf010,Cambodia,"Ang Tropeang Thmor (Sarus Crane Reserve), Siem Reap",Garganey,Spatula querquedula,,False,False,False
+rf010,Cambodia,"Ang Tropeang Thmor (Sarus Crane Reserve), Siem Reap",Spot-billed,PelicanPelecanus philippensis,,False,False,False
+rf010,Cambodia,"Ang Tropeang Thmor (Sarus Crane Reserve), Siem Reap",Painted,StorkMycteria leucocephala,,False,False,False
+rf010,Cambodia,"Ang Tropeang Thmor (Sarus Crane Reserve), Siem Reap",Black-headed,IbisThreskiornis melanocephalus,,False,False,False
+rf011,Cambodia,"Boeung Prek Lapouv (Sarus Crane Reserve), Takeo",Sarus Crane Grus,antigone sharpii,VU,True,False,False
+rf011,Cambodia,"Boeung Prek Lapouv (Sarus Crane Reserve), Takeo",Painted Stork,Mycteria leucocephala,,False,False,False
+rf012,Cambodia,"Anlung Pring (Sarus Crane Reserve), Kampot",Sarus Crane Grus,antigone sharpii,VU,True,False,False
+rf012,Cambodia,"Anlung Pring (Sarus Crane Reserve), Kampot",Black-tailed,GodwitLimosa limosa,,False,False,False
+rf013,Cambodia,"Boeng Chhmar Ramsar Site, Kampong Thom",Painted Stork,Mycteria leucocephala,,True,False,False
+rf013,Cambodia,"Boeng Chhmar Ramsar Site, Kampong Thom",Greater Adjutant,Leptoptilos dubius,EN,False,False,False
+rf013,Cambodia,"Boeng Chhmar Ramsar Site, Kampong Thom",Spot-billed Pelican,Pelecanus philippensis,,False,False,False
+rf014,Cambodia,"Chi Kreng, Siem Reap",Painted,StorkMycteria leucocephala,,False,False,False
+rf014,Cambodia,"Chi Kreng, Siem Reap",Sarus Crane Grus,antigone sharpii,VU,False,False,False
+rf015,Cambodia,"Kulen Promtep Wildlife Sanctuary (Memey River), Preah Vihear",Masked Finfoot,Heliopais personatus,CR,False,False,False
+rf016,Cambodia,"Koh Kapik (Peam Krasop Wildlife Sanctuary), Koh Kong",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf016,Cambodia,"Koh Kapik (Peam Krasop Wildlife Sanctuary), Koh Kong",Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf017,Cambodia,"Stoung, Kampong Thom",Sarus Crane Grus,antigone sharpii,VU,False,False,False
+rf018,PRC,Yalu Jiang estuary,Swan Goose,Anser cygnoid,VU,False,False,False
+rf018,PRC,Yalu Jiang estuary,Greater White-fronted Goose,Anser albifrons,,False,False,False
+rf018,PRC,Yalu Jiang estuary,Goosander,Mergus merganser,,False,False,False
+rf018,PRC,Yalu Jiang estuary,Common Shelduck,Tadorna tadorna,,False,False,False
+rf018,PRC,Yalu Jiang estuary,Mandarin Duck,Aix galericulata,,False,False,False
+rf018,PRC,Yalu Jiang estuary,Tufted Duck,Aythya fuligula,,False,False,False
+rf018,PRC,Yalu Jiang estuary,Hooded Crane,Grus monacha,VU,True,False,False
+rf018,PRC,Yalu Jiang estuary,Chinese Egret,Egretta eulophotes,VU,False,False,False
+rf018,PRC,Yalu Jiang estuary,Eurasian Oystercatcher,Haematopus ostralegus,,True,False,False
+rf018,PRC,Yalu Jiang estuary,Grey Plover,Pluvialis squatarola,,False,False,False
+rf018,PRC,Yalu Jiang estuary,Kentish Plover,Charadrius alexandrinus,,True,False,False
+rf018,PRC,Yalu Jiang estuary,Lesser,SandploverCharadrius mongolus,,False,False,False
+rf018,PRC,Yalu Jiang estuary,Whimbrel,Numenius phaeopus,,False,False,False
+rf018,PRC,Yalu Jiang estuary,Eurasian Curlew,Numenius arquata,,False,False,False
+rf018,PRC,Yalu Jiang estuary,Far Eastern Curlew,Numenius madagascariensis,EN,True,False,False
+rf018,PRC,Yalu Jiang estuary,Bar-tailed Godwit,Limosa lapponica,,False,True,False
+rf018,PRC,Yalu Jiang estuary,Black-tailed Godwit,Limosa limosa,,False,False,False
+rf018,PRC,Yalu Jiang estuary,Ruddy Turnstone,Arenaria interpres,,False,False,False
+rf018,PRC,Yalu Jiang estuary,Great Knot,Calidris tenuirostris,EN,True,False,False
+rf018,PRC,Yalu Jiang estuary,Broad-billed Sandpiper,Calidris falcinellus,,False,False,False
+rf018,PRC,Yalu Jiang estuary,Sharp-tailed Sandpiper,Calidris acuminata,VU,False,False,False
+rf018,PRC,Yalu Jiang estuary,Curlew Sandpiper,Calidris ferruginea,,True,False,False
+rf018,PRC,Yalu Jiang estuary,Spoon-billed Sandpiper,Calidris pygmaea,CR,False,False,False
+rf018,PRC,Yalu Jiang estuary,Dunlin,Calidris alpina,,False,False,False
+rf018,PRC,Yalu Jiang estuary,Terek Sandpiper,Xenus cinereus,,False,False,False
+rf018,PRC,Yalu Jiang estuary,Spotted Redshank,Tringa erythropus,,False,False,False
+rf018,PRC,Yalu Jiang estuary,Common Greenshank,Tringa nebularia,,False,False,False
+rf018,PRC,Yalu Jiang estuary,Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf018,PRC,Yalu Jiang estuary,Saunders's Gull,Saundersilarus saundersi,VU,False,False,False
+rf018,PRC,Yalu Jiang estuary,Relict Gull,Larus relictus,VU,True,False,False
+rf018,PRC,Yalu Jiang estuary,Mew Gull,Larus canus,,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Bean Goose,Anser fabalis,,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Common Shelduck,Tadorna tadorna,,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Falcated Duck,Mareca falcata,,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Siberian Crane,Leucogeranus leucogeranus,CR,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Red-crowned Crane,Grus japonensis,VU,False,True,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Hooded Crane,Grus monacha,VU,True,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Oriental Stork,Ciconia boyciana,EN,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Eurasian,SpoonbillPlatalea leucorodia,,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Great Cormorant,Phalacrocorax carbo,,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Eurasian Oystercatcher,Haematopus ostralegus,,True,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Black-winged,StiltHimantopus himantopus,,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Grey Plover,Pluvialis squatarola,,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Kentish,PloverCharadrius alexandrinus,,True,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Lesser,SandploverCharadrius mongolus,,True,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Eurasian Curlew,Numenius arquata,,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Far Eastern Curlew,Numenius madagascariensis,EN,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Ruddy Turnstone,Arenaria interpres,,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Great Knot,Calidris tenuirostris,EN,True,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Red Knot,Calidris canutus,,True,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Sharp-tailed Sandpiper,Calidris acuminata,VU,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Dunlin,Calidris alpina,,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Terek Sandpiper,Xenus cinereus,,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Spotted Redshank,Tringa erythropus,,True,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Common Greenshank,Tringa nebularia,,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Common Redshank,Tringa totanus,,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Marsh Sandpiper,Tringa stagnatilis,,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Saunders's Gull,Saundersilarus saundersi,VU,True,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Relict Gull,Larus relictus,VU,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Mew Gull,Larus canus,,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Little Tern,Sternula albifrons,,False,False,False
+rf020,PRC,Zhuanghe coast,Black-faced Spoonbill,Platalea minor,EN,False,False,False
+rf020,PRC,Zhuanghe coast,Chinese Egret,Egretta eulophotes,VU,False,False,False
+rf020,PRC,Zhuanghe coast,Whimbrel,Numenius phaeopus,,False,False,False
+rf020,PRC,Zhuanghe coast,Little,CurlewNumenius minutus,,False,False,False
+rf020,PRC,Zhuanghe coast,Eurasian Curlew,Numenius arquata,,False,False,False
+rf020,PRC,Zhuanghe coast,Far Eastern Curlew,Numenius madagascariensis,EN,False,False,False
+rf020,PRC,Zhuanghe coast,Bar-tailed Godwit,Limosa lapponica,,False,False,False
+rf020,PRC,Zhuanghe coast,Black-tailed Godwit,Limosa limosa,,False,False,False
+rf020,PRC,Zhuanghe coast,Relict Gull,Larus relictus,VU,False,False,False
+rf020,PRC,Zhuanghe coast,Black-tailed Gull,Larus crassirostris,,False,False,False
+rf020,PRC,Zhuanghe coast,Mew Gull,Larus canus,,False,False,False
+rf021,PRC,"Pulandian-Jinzhou east coast, including Changshan Islands",Whimbrel,Numenius phaeopus,,False,False,False
+rf021,PRC,"Pulandian-Jinzhou east coast, including Changshan Islands",Eurasian Curlew,Numenius arquata,,False,False,False
+rf021,PRC,"Pulandian-Jinzhou east coast, including Changshan Islands",Far Eastern Curlew,Numenius madagascariensis,EN,False,False,False
+rf021,PRC,"Pulandian-Jinzhou east coast, including Changshan Islands",Bar-tailed Godwit,Limosa lapponica,,False,False,False
+rf021,PRC,"Pulandian-Jinzhou east coast, including Changshan Islands",Great Knot,Calidris tenuirostris,EN,False,False,False
+rf021,PRC,"Pulandian-Jinzhou east coast, including Changshan Islands",Dunlin,Calidris alpina,,False,False,False
+rf022,PRC,"Jinzhou Bay, Dalian",Bar-tailed Godwit,Limosa lapponica,,False,False,False
+rf022,PRC,"Jinzhou Bay, Dalian",Spotted Redshank,Tringa erythropus,,False,False,False
+rf023,PRC,Luannan-Zuidong coast,Common Shelduck,Tadorna tadorna,,False,False,False
+rf023,PRC,Luannan-Zuidong coast,Pied Avocet,Recurvirostra avosetta,,True,False,False
+rf023,PRC,Luannan-Zuidong coast,Black-winged Stilt,Himantopus himantopus,,False,False,False
+rf023,PRC,Luannan-Zuidong coast,Grey Plover,Pluvialis squatarola,,False,False,False
+rf023,PRC,Luannan-Zuidong coast,Kentish Plover,Charadrius alexandrinus,,False,False,False
+rf023,PRC,Luannan-Zuidong coast,Eurasian Curlew,Numenius arquata,,False,False,False
+rf023,PRC,Luannan-Zuidong coast,Far Eastern Curlew,Numenius madagascariensis,EN,False,False,False
+rf023,PRC,Luannan-Zuidong coast,Black-tailed Godwit,Limosa limosa,,True,False,False
+rf023,PRC,Luannan-Zuidong coast,Great Knot,Calidris tenuirostris,EN,False,False,False
+rf023,PRC,Luannan-Zuidong coast,Red Knot,Calidris canutus,,False,True,False
+rf023,PRC,Luannan-Zuidong coast,Broad-billed,SandpiperCalidris falcinellus,,False,False,False
+rf023,PRC,Luannan-Zuidong coast,Sharp-tailed Sandpiper,Calidris acuminata,VU,False,False,False
+rf023,PRC,Luannan-Zuidong coast,Curlew Sandpiper,Calidris ferruginea,,False,False,False
+rf023,PRC,Luannan-Zuidong coast,Red-necked Stint,Calidris ruficollis,,False,False,False
+rf023,PRC,Luannan-Zuidong coast,Sanderling,Calidris alba,,True,False,False
+rf023,PRC,Luannan-Zuidong coast,Dunlin,Calidris alpina,,False,False,False
+rf023,PRC,Luannan-Zuidong coast,Asian Dowitcher,Limnodromus semipalmatus,,False,False,False
+rf023,PRC,Luannan-Zuidong coast,Spotted Redshank,Tringa erythropus,,False,False,False
+rf023,PRC,Luannan-Zuidong coast,Marsh Sandpiper,Tringa stagnatilis,,False,False,False
+rf023,PRC,Luannan-Zuidong coast,Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf023,PRC,Luannan-Zuidong coast,Relict Gull,Larus relictus,VU,False,False,False
+rf023,PRC,Luannan-Zuidong coast,White-winged Tern,Chlidonias leucopterus,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Greylag Goose,Anser anser,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Bean Goose,Anser fabalis,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Smew,Mergellus albellus,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Common Shelduck,Tadorna tadorna,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Ruddy Shelduck,Tadorna ferruginea,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Baer's Pochard,Aythya baeri,CR,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Falcated,DuckMareca falcata,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Great Crested,GrebePodiceps cristatus,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,White-naped Crane,Grus vipio,VU,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Common Crane,Grus grus,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Oriental Stork,Ciconia boyciana,EN,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Dalmatian,PelicanPelecanus crispus,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Eurasian,OystercatcherHaematopus ostralegus,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Pied,AvocetRecurvirostra avosetta,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Black-winged,StiltHimantopus himantopus,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Grey,PloverPluvialis squatarola,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Little Ringed Plover,Charadrius dubius,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Kentish Plover,Charadrius alexandrinus,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Whimbrel,Numenius phaeopus,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Eurasian Curlew,Numenius arquata,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Far Eastern Curlew,Numenius madagascariensis,EN,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Bar-tailed Godwit,Limosa lapponica,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Black-tailed Godwit,Limosa limosa,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Red Knot,Calidris canutus,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Sharp-tailed Sandpiper,Calidris acuminata,VU,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Curlew Sandpiper,Calidris ferruginea,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Spotted Redshank,Tringa erythropus,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Marsh Sandpiper,Tringa stagnatilis,,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Relict Gull,Larus relictus,VU,False,False,False
+rf024,PRC,Huanghua-Cangzhou coast,Mew Gull,Larus canus,,False,False,False
+rf025,PRC,Laoting-Caofeidian coast,Smew,Mergellus albellus,,False,False,False
+rf025,PRC,Laoting-Caofeidian coast,Pied,AvocetRecurvirostra avosetta,,False,False,False
+rf025,PRC,Laoting-Caofeidian coast,Kentish Plover,Charadrius alexandrinus,,False,False,False
+rf025,PRC,Laoting-Caofeidian coast,Eurasian Curlew,Numenius arquata,,False,False,False
+rf025,PRC,Laoting-Caofeidian coast,Far Eastern Curlew,Numenius madagascariensis,EN,False,False,False
+rf025,PRC,Laoting-Caofeidian coast,Black-tailed Godwit,Limosa limosa,,False,False,False
+rf025,PRC,Laoting-Caofeidian coast,Dunlin,Calidris alpina,,False,False,False
+rf025,PRC,Laoting-Caofeidian coast,Marsh,SandpiperTringa stagnatilis,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Whooper Swan,Cygnus cygnus,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Tundra Swan,Cygnus columbianus,,True,False,False
+rf026,PRC,Tianjin coastal mudflats,Greylag Goose,Anser anser,,True,False,False
+rf026,PRC,Tianjin coastal mudflats,Bean Goose,Anser fabalis,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Smew,Mergellus albellus,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Goosander,Mergus merganser,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Common Shelduck,Tadorna tadorna,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Common Pochard,Aythya ferina,VU,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Northern Shoveler,Spatula clypeata,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Falcated Duck,Mareca falcata,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Oriental Stork,Ciconia boyciana,EN,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Pied Avocet,Recurvirostra avosetta,,True,False,False
+rf026,PRC,Tianjin coastal mudflats,Black-winged Stilt,Himantopus himantopus,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Grey Plover,Pluvialis squatarola,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Little Ringed Plover,Charadrius dubius,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Kentish Plover,Charadrius alexandrinus,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Lesser Sandplover,Charadrius mongolus,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Eurasian Curlew,Numenius arquata,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Far Eastern Curlew,Numenius madagascariensis,EN,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Bar-tailed Godwit,Limosa lapponica,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Black-tailed Godwit,Limosa limosa,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Great Knot,Calidris tenuirostris,EN,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Red Knot,Calidris canutus,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Curlew Sandpiper,Calidris ferruginea,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Red-necked Stint,Calidris ruficollis,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,,DunlinCalidris alpina,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Asian Dowitcher,Limnodromus semipalmatus,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Spotted Redshank,Tringa erythropus,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Common Greenshank,Tringa nebularia,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Marsh Sandpiper,Tringa stagnatilis,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Saunders's Gull,Saundersilarus saundersi,VU,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Relict Gull,Larus relictus,VU,False,True,False
+rf026,PRC,Tianjin coastal mudflats,Little Tern,Sternula albifrons,,False,False,False
+rf026,PRC,Tianjin coastal mudflats,Caspian Tern,Hydroprogne caspia,,False,False,False
+rf027,PRC,Beidagang Wetland Nature Reserve,Tundra Swan,Cygnus columbianus,,False,False,False
+rf027,PRC,Beidagang Wetland Nature Reserve,Greylag Goose,Anser anser,,False,False,False
+rf027,PRC,Beidagang Wetland Nature Reserve,Common Shelduck,Tadorna tadorna,,False,False,False
+rf027,PRC,Beidagang Wetland Nature Reserve,Baer’s Pochard,Aythya baeri,CR,False,False,False
+rf027,PRC,Beidagang Wetland Nature Reserve,Falcated,DuckMareca falcata,,False,False,False
+rf027,PRC,Beidagang Wetland Nature Reserve,Gadwall,Mareca strepera,,False,False,False
+rf027,PRC,Beidagang Wetland Nature Reserve,Dalmatian,PelicanPelecanus crispus,,True,False,False
+rf027,PRC,Beidagang Wetland Nature Reserve,Pied,AvocetRecurvirostra avosetta,,False,False,False
+rf027,PRC,Beidagang Wetland Nature Reserve,Black-winged,StiltHimantopus himantopus,,False,False,False
+rf027,PRC,Beidagang Wetland Nature Reserve,Grey,PloverPluvialis squatarola,,False,False,False
+rf027,PRC,Beidagang Wetland Nature Reserve,Little Ringed,PloverCharadrius dubius,,False,False,False
+rf027,PRC,Beidagang Wetland Nature Reserve,Kentish,PloverCharadrius alexandrinus,,False,False,False
+rf027,PRC,Beidagang Wetland Nature Reserve,Eurasian Curlew,Numenius arquata,,False,False,False
+rf027,PRC,Beidagang Wetland Nature Reserve,Far Eastern Curlew,Numenius madagascariensis,EN,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Mute Swan,Cygnus olor,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Whooper Swan,Cygnus cygnus,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Tundra Swan,Cygnus columbianus,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Greylag Goose,Anser anser,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Swan Goose,Anser cygnoid,VU,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Bean Goose,Anser fabalis,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Smew,Mergellus albellus,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Goosander,Mergus merganser,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Common Shelduck,Tadorna tadorna,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Ruddy Shelduck,Tadorna ferruginea,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Mandarin Duck,Aix galericulata,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Common Pochard,Aythya ferina,VU,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Baer’s Pochard,Aythya baeri,CR,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Falcated,DuckMareca falcata,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Gadwall,Mareca strepera,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Chinese Spot-billed Duck,Anas zonorhyncha,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Northern,PintailAnas acuta,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Great Crested Grebe,Podiceps cristatus,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Siberian Crane,Leucogeranus leucogeranus,CR,True,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,White-naped Crane,Grus vipio,VU,True,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Red-crowned Crane,Grus japonensis,VU,True,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Common Crane,Grus grus,,False,True,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Hooded Crane,Grus monacha,VU,True,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Black,StorkCiconia nigra,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Oriental Stork,Ciconia boyciana,EN,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Eurasian Spoonbill,Platalea leucorodia,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Dalmatian,PelicanPelecanus crispus,,False,True,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Great Cormorant,Phalacrocorax carbo,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Eurasian Oystercatcher,Haematopus ostralegus,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Pied Avocet,Recurvirostra avosetta,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Black-winged Stilt,Himantopus himantopus,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Grey Plover,Pluvialis squatarola,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Little Ringed Plover,Charadrius dubius,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Kentish Plover,Charadrius alexandrinus,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Lesser Sandplover,Charadrius mongolus,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Whimbrel,Numenius phaeopus,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Little Curlew,Numenius minutus,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Eurasian Curlew,Numenius arquata,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Far Eastern Curlew,Numenius madagascariensis,EN,True,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Bar-tailed Godwit,Limosa lapponica,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Black-tailed Godwit,Limosa limosa,,True,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Great Knot,Calidris tenuirostris,EN,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Red Knot,Calidris canutus,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Sharp-tailed Sandpiper,Calidris acuminata,VU,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Dunlin,Calidris alpina,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Spotted Redshank,Tringa erythropus,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Common Greenshank,Tringa nebularia,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Saunders’s Gull,Saundersilarus saundersi,VU,True,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Relict Gull,Larus relictus,VU,True,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Common Gull-billed Tern,Gelochelidon nilotica,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Caspian Tern,Hydroprogne caspia,,False,False,False
+rf028,PRC,Yellow River Delta National Nature Reserve,Common Tern,Sterna hirundo,,False,False,False
+rf029,PRC,Qingdao coast and Jiaozhou Bay,Common Shelduck,Tadorna tadorna,,False,False,False
+rf029,PRC,Qingdao coast and Jiaozhou Bay,Eurasian Oystercatcher,Haematopus ostralegus,,False,False,False
+rf029,PRC,Qingdao coast and Jiaozhou Bay,Pied Avocet,Recurvirostra avosetta,,False,False,False
+rf029,PRC,Qingdao coast and Jiaozhou Bay,Grey Plover,Pluvialis squatarola,,False,False,False
+rf029,PRC,Qingdao coast and Jiaozhou Bay,Kentish Plover,Charadrius alexandrinus,,False,False,False
+rf029,PRC,Qingdao coast and Jiaozhou Bay,Lesser Sandplover,Charadrius mongolus,,False,False,False
+rf029,PRC,Qingdao coast and Jiaozhou Bay,Eurasian Curlew,Numenius arquata,,False,False,False
+rf029,PRC,Qingdao coast and Jiaozhou Bay,Dunlin,Calidris alpina,,False,False,False
+rf029,PRC,Qingdao coast and Jiaozhou Bay,Spotted Redshank,Tringa erythropus,,False,False,False
+rf029,PRC,Qingdao coast and Jiaozhou Bay,Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf029,PRC,Qingdao coast and Jiaozhou Bay,Saunders’s Gull,Saundersilarus saundersi,VU,False,False,False
+rf029,PRC,Qingdao coast and Jiaozhou Bay,Caspian Tern,Hydroprogne caspia,,False,False,False
+rf029,PRC,Qingdao coast and Jiaozhou Bay,Chinese Crested Tern,Thalasseus bernsteini,CR,True,False,False
+rf030,PRC,Laizhou Bay,Mute Swan,Cygnus olor,,False,False,False
+rf030,PRC,Laizhou Bay,Smew,Mergellus albellus,,False,False,False
+rf030,PRC,Laizhou Bay,Goosander,Mergus merganser,,False,False,False
+rf030,PRC,Laizhou Bay,Falcated Duck,Mareca falcata,,False,False,False
+rf030,PRC,Laizhou Bay,Northern Pintail,Anas acuta,,False,False,False
+rf030,PRC,Laizhou Bay,Eurasian Curlew,Numenius arquata,,False,False,False
+rf031,PRC,Wudi-Zhanhua-Hekou coast,Kentish Plover,Charadrius alexandrinus,,False,False,False
+rf031,PRC,Wudi-Zhanhua-Hekou coast,Eurasian Curlew,Numenius arquata,,False,False,False
+rf031,PRC,Wudi-Zhanhua-Hekou coast,Far Eastern Curlew,Numenius madagascariensis,EN,False,False,False
+rf031,PRC,Wudi-Zhanhua-Hekou coast,Red Knot,Calidris canutus,,False,False,False
+rf031,PRC,Wudi-Zhanhua-Hekou coast,Common Greenshank,Tringa nebularia,,False,False,False
+rf031,PRC,Wudi-Zhanhua-Hekou coast,Relict Gull,Larus relictus,VU,False,False,False
+rf032,PRC,Rongcheng Swan Nature Reserve,Whooper Swan,Cygnus cygnus,,True,False,False
+rf033,PRC,Lianyungang coast,Common Shelduck,Tadorna tadorna,,False,False,False
+rf033,PRC,Lianyungang coast,Falcated Duck,Mareca falcata,,False,False,False
+rf033,PRC,Lianyungang coast,Red-crowned Crane,Grus japonensis,VU,True,False,False
+rf033,PRC,Lianyungang coast,Dalmatian,PelicanPelecanus crispus,,False,True,False
+rf033,PRC,Lianyungang coast,Eurasian,OystercatcherHaematopus ostralegus,,True,False,False
+rf033,PRC,Lianyungang coast,Pied Avocet,Recurvirostra avosetta,,True,False,False
+rf033,PRC,Lianyungang coast,Grey Plover,Pluvialis squatarola,,True,False,False
+rf033,PRC,Lianyungang coast,Kentish Plover,Charadrius alexandrinus,,False,False,False
+rf033,PRC,Lianyungang coast,Lesser Sandplover,Charadrius mongolus,,True,False,False
+rf033,PRC,Lianyungang coast,Eurasian Curlew,Numenius arquata,,False,False,False
+rf033,PRC,Lianyungang coast,Far Eastern Curlew,Numenius madagascariensis,EN,False,False,False
+rf033,PRC,Lianyungang coast,Bar-tailed Godwit,Limosa lapponica,,False,False,False
+rf033,PRC,Lianyungang coast,Black-tailed Godwit,Limosa limosa,,True,False,False
+rf033,PRC,Lianyungang coast,Great Knot,Calidris tenuirostris,EN,False,False,False
+rf033,PRC,Lianyungang coast,Red Knot,Calidris canutus,,False,False,False
+rf033,PRC,Lianyungang coast,Broad-billed Sandpiper,Calidris falcinellus,,True,False,False
+rf033,PRC,Lianyungang coast,Sharp-tailed Sandpiper,Calidris acuminata,VU,True,False,False
+rf033,PRC,Lianyungang coast,Curlew Sandpiper,Calidris ferruginea,,False,False,False
+rf033,PRC,Lianyungang coast,Long-toed Stint,Calidris subminuta,,False,False,False
+rf033,PRC,Lianyungang coast,Red-necked Stint,Calidris ruficollis,,False,False,False
+rf033,PRC,Lianyungang coast,,DunlinCalidris alpina,,False,False,False
+rf033,PRC,Lianyungang coast,Asian Dowitcher,Limnodromus semipalmatus,,False,True,False
+rf033,PRC,Lianyungang coast,Terek Sandpiper,Xenus cinereus,,False,False,False
+rf033,PRC,Lianyungang coast,Spotted Redshank,Tringa erythropus,,False,False,False
+rf033,PRC,Lianyungang coast,Marsh Sandpiper,Tringa stagnatilis,,False,False,False
+rf033,PRC,Lianyungang coast,Spotted Greenshank,Tringa guttifer,EN,True,False,False
+rf033,PRC,Lianyungang coast,Saunders’s Gull,Saundersilarus saundersi,VU,False,False,False
+rf033,PRC,Lianyungang coast,Black-headed Gull,Larus ridibundus,,False,False,False
+rf033,PRC,Lianyungang coast,Relict Gull,Larus relictus,VU,False,False,False
+rf033,PRC,Lianyungang coast,Caspian,TernHydroprogne caspia,,False,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Falcated,DuckMareca falcata,,False,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Black-faced Spoonbill,Platalea minor,EN,False,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Dalmatian,PelicanPelecanus crispus,,False,True,False
+rf034,PRC,Tiaozini (Dongtai coast,Great Cormorant,Phalacrocorax carbo,,True,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Eurasian,OystercatcherHaematopus ostralegus,,False,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Pied Avocet,Recurvirostra avosetta,,False,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Grey Plover,Pluvialis squatarola,,False,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Kentish Plover,Charadrius alexandrines,,True,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Lesser Sandplover,Charadrius mongolus,,True,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Greater Sandplover,Charadrius leschenaultii,,False,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Eurasian Curlew,Numenius arquata,,False,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Far Eastern Curlew,Numenius madagascariensis,,False,False,False
+rf034,PRC,Tiaozini (Dongtai coast,,,EN,False,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Bar-tailed Godwit,Limosa lapponica,,False,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Black-tailed Godwit,Limosa limosa,,False,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Great Knot,Calidris tenuirostris,EN,False,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Broad-billed Sandpiper,Calidris falcinellus,,False,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Sharp-tailed Sandpiper,Calidris acuminata,VU,False,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Spoon-billed Sandpiper,Calidris pygmaea,CR,True,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Red-necked Stint,Calidris ruficollis,,False,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Sanderling,Calidris alba,,False,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Dunlin,Calidris alpina,,False,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Terek,SandpiperXenus cinereus,,False,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Spotted Greenshank,Tringa guttifer,EN,False,True,False
+rf034,PRC,Tiaozini (Dongtai coast,Saunders’s Gull,Saundersilarus saundersi,VU,False,False,False
+rf034,PRC,Tiaozini (Dongtai coast,Common Tern,Sterna hirundo,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Goosander,Mergus merganser,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Red-crowned Crane,Grus japonensis,VU,False,True,False
+rf035,PRC,Yancheng National Nature Reserve,Common Crane,Grus grus,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Hooded Crane,Grus monacha,VU,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Black-faced Spoonbill,Platalea minor,EN,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Black-crowned Night-heron,Nycticorax nycticorax,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Great,CormorantPhalacrocorax carbo,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Eurasian,OystercatcherHaematopus ostralegus,,True,False,False
+rf035,PRC,Yancheng National Nature Reserve,Pied Avocet,Recurvirostra avosetta,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Black-winged,StiltHimantopus himantopus,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Grey Plover,Pluvialis squatarola,,True,False,False
+rf035,PRC,Yancheng National Nature Reserve,Pacific Golden,PloverPluvialis fulva,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Little Ringed,PloverCharadrius dubius,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Kentish,PloverCharadrius alexandrinus,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Lesser,SandploverCharadrius mongolus,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Eurasian Curlew,Numenius arquata,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Bar-tailed Godwit,Limosa lapponica,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Black-tailed Godwit,Limosa limosa,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Ruddy Turnstone,Arenaria interpres,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Great Knot,Calidris tenuirostris,EN,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Red Knot,Calidris canutus,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Spoon-billed Sandpiper,Calidris pygmaea,CR,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Red-necked Stint,Calidris ruficollis,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Sanderling,Calidris alba,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Dunlin,Calidris alpina,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Terek,SandpiperXenus cinereus,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Spotted Redshank,Tringa erythropus,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Common Redshank,Tringa totanus,,False,False,False
+rf035,PRC,Yancheng National Nature Reserve,Saunders’s Gull,Saundersilarus saundersi,VU,True,False,False
+rf035,PRC,Yancheng National Nature Reserve,Common Tern,Sterna hirundo,,True,False,False
+rf036,PRC,Ganyu coast,Red-crowned Crane,Grus japonensis,VU,False,False,False
+rf036,PRC,Ganyu coast,Eurasian Spoonbill,Platalea leucorodia,,False,False,False
+rf036,PRC,Ganyu coast,Dalmatian,PelicanPelecanus crispus,,False,False,False
+rf036,PRC,Ganyu coast,Eurasian,OystercatcherHaematopus ostralegus,,True,False,False
+rf036,PRC,Ganyu coast,Pied Avocet,Recurvirostra avosetta,,False,False,False
+rf036,PRC,Ganyu coast,Grey Plover,Pluvialis squatarola,,False,False,False
+rf036,PRC,Ganyu coast,Kentish,PloverCharadrius alexandrinus,,False,False,False
+rf036,PRC,Ganyu coast,Lesser,SandploverCharadrius mongolus,,False,False,False
+rf036,PRC,Ganyu coast,Eurasian Curlew,Numenius arquata,,False,False,False
+rf036,PRC,Ganyu coast,Bar-tailed Godwit,Limosa lapponica,,False,False,False
+rf036,PRC,Ganyu coast,Black-tailed Godwit,Limosa limosa,,False,False,False
+rf036,PRC,Ganyu coast,Great Knot,Calidris tenuirostris,EN,False,False,False
+rf036,PRC,Ganyu coast,Red Knot,Calidris canutus,,False,False,False
+rf036,PRC,Ganyu coast,Broad-billed Sandpiper,Calidris falcinellus,,True,False,False
+rf036,PRC,Ganyu coast,Sharp-tailed Sandpiper,Calidris acuminata,VU,True,False,False
+rf036,PRC,Ganyu coast,Curlew,SandpiperCalidris ferruginea,,False,False,False
+rf036,PRC,Ganyu coast,Red-necked,StintCalidris ruficollis,,False,False,False
+rf036,PRC,Ganyu coast,,DunlinCalidris alpina,,False,False,False
+rf036,PRC,Ganyu coast,Asian,DowitcherLimnodromus semipalmatus,,False,True,False
+rf036,PRC,Ganyu coast,Terek,SandpiperXenus cinereus,,False,False,False
+rf036,PRC,Ganyu coast,Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf037,PRC,Dongling coast,Eurasian,OystercatcherHaematopus ostralegus,,True,False,False
+rf037,PRC,Dongling coast,Pied Avocet,Recurvirostra avosetta,,False,False,False
+rf037,PRC,Dongling coast,Grey Plover,Pluvialis squatarola,,False,False,False
+rf037,PRC,Dongling coast,Kentish,PloverCharadrius alexandrinus,,False,False,False
+rf037,PRC,Dongling coast,Lesser,SandploverCharadrius mongolus,,True,False,False
+rf037,PRC,Dongling coast,Eurasian Curlew,Numenius arquata,,False,False,False
+rf037,PRC,Dongling coast,Far Eastern Curlew,Numenius madagascariensis,,False,False,False
+rf037,PRC,Dongling coast,,,EN,False,False,False
+rf037,PRC,Dongling coast,Bar-tailed Godwit,Limosa lapponica,,False,False,False
+rf037,PRC,Dongling coast,Black-tailed Godwit,Limosa limosa,,False,False,False
+rf037,PRC,Dongling coast,Great Knot,Calidris tenuirostris,EN,False,False,False
+rf037,PRC,Dongling coast,Red Knot,Calidris canutus,,False,False,False
+rf037,PRC,Dongling coast,Broad-billed Sandpiper,Calidris falcinellusSpoon-billed,,False,False,False
+rf037,PRC,Dongling coast,Sandpiper,Calidris pygmaea,CR,False,False,False
+rf037,PRC,Dongling coast,Red-necked,StintCalidris ruficollis,,False,False,False
+rf037,PRC,Dongling coast,Sanderling,Calidris alba,,False,False,False
+rf037,PRC,Dongling coast,Dunlin,Calidris alpina,,False,False,False
+rf037,PRC,Dongling coast,Terek,SandpiperXenus cinereus,,False,False,False
+rf037,PRC,Dongling coast,Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf037,PRC,Dongling coast,Saunders’s Gull,Saundersilarus saundersi,VU,False,False,False
+rf037,PRC,Dongling coast,Little,Tern Sternulaalbifrons,,False,False,False
+rf038,PRC,Rudong coast,Black-faced Spoonbill,Platalea minor,EN,False,False,False
+rf038,PRC,Rudong coast,Eurasian,OystercatcherHaematopus ostralegusGrey,,False,False,False
+rf038,PRC,Rudong coast,Plover,Pluvialis squatarola,,True,False,False
+rf038,PRC,Rudong coast,Kentish,PloverCharadrius alexandrinus,,True,False,False
+rf038,PRC,Rudong coast,Lesser SandploverCharadrius,mongolus Greater,,False,False,False
+rf038,PRC,Rudong coast,,SandploverCharadrius leschenaultii,,False,False,False
+rf038,PRC,Rudong coast,Whimbrel,Numenius phaeopus,,False,False,False
+rf038,PRC,Rudong coast,Eurasian Curlew,Numenius arquata,,False,False,False
+rf038,PRC,Rudong coast,Far Eastern Curlew,Numenius madagascariensis,EN,False,False,False
+rf038,PRC,Rudong coast,Bar-tailed Godwit,Limosa lapponica,,False,False,False
+rf038,PRC,Rudong coast,Black-tailed Godwit,Limosa limosa,,False,False,False
+rf038,PRC,Rudong coast,Great Knot,Calidris tenuirostris,EN,False,False,False
+rf038,PRC,Rudong coast,Red Knot,Calidris canutus,,False,False,False
+rf038,PRC,Rudong coast,Broad-billed Sandpiper,Calidris falcinellusLong-toed,,False,False,False
+rf038,PRC,Rudong coast,,StintCalidris subminuta,,False,False,False
+rf038,PRC,Rudong coast,Spoon-billed Sandpiper,Calidris pygmaea,CR,False,False,False
+rf038,PRC,Rudong coast,Red-necked,StintCalidris ruficollis,,False,False,False
+rf038,PRC,Rudong coast,Sanderling,Calidris alba,,False,False,False
+rf038,PRC,Rudong coast,Dunlin,Calidris alpina,,False,False,False
+rf038,PRC,Rudong coast,Terek,SandpiperXenus cinereus,,False,False,False
+rf038,PRC,Rudong coast,Spotted Redshank,Tringa erythropus,,False,False,False
+rf038,PRC,Rudong coast,Spotted Greenshank,Tringa guttifer,EN,True,False,False
+rf038,PRC,Rudong coast,Saunders’s Gull,Saundersilarus saundersi,VU,False,False,False
+rf038,PRC,Rudong coast,Common Tern,Sterna hirundo,,False,False,False
+rf039,PRC,"Dongsha shoals , PRC",Goosander,Mergus merganser,,False,False,False
+rf039,PRC,"Dongsha shoals , PRC",Common Shelduck,Tadorna tadorna,,False,False,False
+rf039,PRC,"Dongsha shoals , PRC",Eurasian,OystercatcherHaematopus ostralegus,,False,False,False
+rf039,PRC,"Dongsha shoals , PRC",Kentish,PloverCharadrius alexandrinus,,False,False,False
+rf039,PRC,"Dongsha shoals , PRC",Far Eastern Curlew,Numenius madagascariensis,EN,False,False,False
+rf039,PRC,"Dongsha shoals , PRC",Bar-tailed Godwit,Limosa lapponica,,False,False,False
+rf039,PRC,"Dongsha shoals , PRC",Red Knot,Calidris canutus,,True,False,False
+rf039,PRC,"Dongsha shoals , PRC",Broad-billed Sandpiper,Calidris falcinellusDunlin,,False,False,False
+rf039,PRC,"Dongsha shoals , PRC",,Calidris alpina,,False,False,False
+rf039,PRC,"Dongsha shoals , PRC",Asian,DowitcherLimnodromus semipalmatus,,False,False,False
+rf039,PRC,"Dongsha shoals , PRC",Wood Sandpiper,Tringa glareola,,False,False,False
+rf040,PRC,Chongming Dongtan National Nature Reserve,Baikal Teal,Sibirionetta formosa,,False,False,False
+rf040,PRC,Chongming Dongtan National Nature Reserve,Hooded Crane,Grus monacha,VU,True,False,False
+rf040,PRC,Chongming Dongtan National Nature Reserve,Black-faced Spoonbill,Platalea minor,EN,False,False,False
+rf040,PRC,Chongming Dongtan National Nature Reserve,Dalmatian,PelicanPelecanus crispus,,False,False,False
+rf040,PRC,Chongming Dongtan National Nature Reserve,Pied,AvocetRecurvirostra avosetta,,False,False,False
+rf040,PRC,Chongming Dongtan National Nature Reserve,Black-winged,StiltHimantopus himantopus,,False,False,False
+rf040,PRC,Chongming Dongtan National Nature Reserve,Kentish,PloverCharadrius alexandrinus,,False,False,False
+rf040,PRC,Chongming Dongtan National Nature Reserve,Eurasian Curlew,Numenius arquata,,False,False,False
+rf040,PRC,Chongming Dongtan National Nature Reserve,Black-tailed Godwit,Limosa limosa,,False,False,False
+rf040,PRC,Chongming Dongtan National Nature Reserve,Spoon-billed Sandpiper,Calidris pygmaea,CR,False,False,False
+rf040,PRC,Chongming Dongtan National Nature Reserve,Red-necked,StintCalidris ruficollis,,False,False,False
+rf040,PRC,Chongming Dongtan National Nature Reserve,Dunlin,Calidris alpina,,False,False,False
+rf040,PRC,Chongming Dongtan National Nature Reserve,Spotted Redshank,Tringa erythropus,,False,False,False
+rf040,PRC,Chongming Dongtan National Nature Reserve,Marsh Sandpiper,Tringa stagnatilis,,False,False,False
+rf041,PRC,Nanhui coast (including Nanhui Wetlands Park,Falcated,DuckMareca falcata,,False,False,False
+rf041,PRC,Nanhui coast (including Nanhui Wetlands Park,Kentish,PloverCharadrius alexandrinus,,False,False,False
+rf041,PRC,Nanhui coast (including Nanhui Wetlands Park,Lesser,SandploverCharadrius mongolus,,False,False,False
+rf041,PRC,Nanhui coast (including Nanhui Wetlands Park,Long-toed Stint,Calidris subminuta,,False,False,False
+rf041,PRC,Nanhui coast (including Nanhui Wetlands Park,Red-necked,StintCalidris ruficollis,,False,False,False
+rf041,PRC,Nanhui coast (including Nanhui Wetlands Park,Spotted Redshank,Tringa erythropus,,False,False,False
+rf042,PRC,Wenzhou Bay,Common Shelduck,Tadorna tadorna,,False,False,False
+rf042,PRC,Wenzhou Bay,Common Pochard,Aythya ferina,VU,False,False,False
+rf042,PRC,Wenzhou Bay,Tufted Duck,Aythya fuligula,,False,False,False
+rf042,PRC,Wenzhou Bay,Black-faced Spoonbill,Platalea minor,EN,False,False,False
+rf042,PRC,Wenzhou Bay,Dalmatian Pelican,Pelecanus crispus,,True,False,False
+rf042,PRC,Wenzhou Bay,Great,CormorantPhalacrocorax carbo,,False,False,False
+rf042,PRC,Wenzhou Bay,Pied,AvocetRecurvirostra avosetta,,False,False,False
+rf042,PRC,Wenzhou Bay,Grey Plover,Pluvialis squatarola,,False,False,False
+rf042,PRC,Wenzhou Bay,Kentish,PloverCharadrius alexandrinus,,False,False,False
+rf042,PRC,Wenzhou Bay,Lesser,SandploverCharadrius mongolus,,False,False,False
+rf042,PRC,Wenzhou Bay,Eurasian Curlew,Numenius arquata,,False,False,False
+rf042,PRC,Wenzhou Bay,Far Eastern Curlew,Numenius madagascariensis,EN,False,False,False
+rf042,PRC,Wenzhou Bay,Black-tailed Godwit,Limosa limosa,,False,False,False
+rf042,PRC,Wenzhou Bay,Red Knot,Calidris canutus,,False,False,False
+rf042,PRC,Wenzhou Bay,Broad-billed Sandpiper,Calidris falcinellus,,False,False,False
+rf042,PRC,Wenzhou Bay,Sharp-tailed Sandpiper,Calidris acuminata,VU,False,False,False
+rf042,PRC,Wenzhou Bay,Long-toed,StintCalidris subminuta,,False,False,False
+rf042,PRC,Wenzhou Bay,Spoon-billed Sandpiper,Calidris pygmaea,CR,False,False,False
+rf042,PRC,Wenzhou Bay,Saunders’s Gull,Saundersilarus saundersi,VU,False,False,False
+rf043,PRC,Hangzhou Bay,Baer’s Pochard,Aythya baeri,CR,False,False,False
+rf043,PRC,Hangzhou Bay,Falcated Duck,Mareca falcata,,False,False,False
+rf043,PRC,Hangzhou Bay,Great Crested Grebe,Podiceps cristatus,,False,False,False
+rf043,PRC,Hangzhou Bay,Dalmatian,PelicanPelecanus crispus,,False,False,False
+rf043,PRC,Hangzhou Bay,Grey,PloverPluvialis squatarola,,False,False,False
+rf043,PRC,Hangzhou Bay,Kentish,PloverCharadrius alexandrinus,,False,False,False
+rf043,PRC,Hangzhou Bay,Lesser,SandploverCharadrius mongolus,,False,False,False
+rf043,PRC,Hangzhou Bay,Bar-tailed,GodwitLimosa lapponica,,False,False,False
+rf043,PRC,Hangzhou Bay,Black-tailed,GodwitLimosa limosa,,False,False,False
+rf043,PRC,Hangzhou Bay,Sharp-tailed Sandpiper,Calidris acuminata,VU,False,False,False
+rf043,PRC,Hangzhou Bay,Long-toed,StintCalidris subminuta,,False,False,False
+rf043,PRC,Hangzhou Bay,,DunlinCalidris alpina,,False,False,False
+rf043,PRC,Hangzhou Bay,Spotted Redshank,Tringa erythropus,,False,False,False
+rf043,PRC,Hangzhou Bay,Common Greenshank,Tringa nebularia,,False,False,False
+rf043,PRC,Hangzhou Bay,Common Redshank,Tringa totanus,,False,False,False
+rf043,PRC,Hangzhou Bay,Saunders's Gull,Saundersilarus saundersi,VU,False,False,False
+rf044,PRC,Min Jiang estuary,Swan Goose,Anser cygnoid,VU,False,False,False
+rf044,PRC,Min Jiang estuary,Black-faced Spoonbill,Platalea minor,EN,False,False,False
+rf044,PRC,Min Jiang estuary,Dalmatian,PelicanPelecanus crispus,,True,False,False
+rf044,PRC,Min Jiang estuary,Pied,AvocetRecurvirostra avosetta,,False,False,False
+rf044,PRC,Min Jiang estuary,Kentish,PloverCharadrius alexandrines,,False,False,False
+rf044,PRC,Min Jiang estuary,Lesser,SandploverCharadrius mongolus,,False,False,False
+rf044,PRC,Min Jiang estuary,Greater,SandploverCharadrius leschenaultii,,False,False,False
+rf044,PRC,Min Jiang estuary,Eurasian,CurlewNumenius arquata,,False,False,False
+rf044,PRC,Min Jiang estuary,Ruddy Turnstone,Arenaria interpres,,False,False,False
+rf044,PRC,Min Jiang estuary,Spoon-billed Sandpiper,Calidris pygmaea,CR,False,False,False
+rf044,PRC,Min Jiang estuary,,SanderlingCalidris alba,,False,False,False
+rf044,PRC,Min Jiang estuary,Terek,SandpiperXenus cinereus,,False,False,False
+rf044,PRC,Min Jiang estuary,Spotted Redshank,Tringa erythropus,,False,False,False
+rf044,PRC,Min Jiang estuary,Common Tern,Sterna hirundo,,False,False,False
+rf044,PRC,Min Jiang estuary,Chinese Crested Tern,Thalasseus bernsteini,CR,False,False,False
+rf045,PRC,"Quanzhou Bay, including Jin Jiang estuary",Dalmatian Pelican,Pelecanus crispus,,False,False,False
+rf045,PRC,"Quanzhou Bay, including Jin Jiang estuary",Pied,AvocetRecurvirostra avosetta,,False,False,False
+rf045,PRC,"Quanzhou Bay, including Jin Jiang estuary",Grey,PloverPluvialis squatarola,,False,False,False
+rf045,PRC,"Quanzhou Bay, including Jin Jiang estuary",Kentish,PloverCharadrius alexandrines,,False,False,False
+rf045,PRC,"Quanzhou Bay, including Jin Jiang estuary",Lesser Sandplover,Charadrius mongolus,,False,False,False
+rf045,PRC,"Quanzhou Bay, including Jin Jiang estuary",Whimbrel,Numenius phaeopus,,False,False,False
+rf045,PRC,"Quanzhou Bay, including Jin Jiang estuary",Eurasian,CurlewNumenius arquata,,False,False,False
+rf045,PRC,"Quanzhou Bay, including Jin Jiang estuary",Curlew Sandpiper,Calidris ferruginea,,False,False,False
+rf045,PRC,"Quanzhou Bay, including Jin Jiang estuary",,SanderlingCalidris alba,,False,False,False
+rf045,PRC,"Quanzhou Bay, including Jin Jiang estuary",,DunlinCalidris alpina,,False,False,False
+rf045,PRC,"Quanzhou Bay, including Jin Jiang estuary",Terek Sandpiper,Xenus cinereus,,False,False,False
+rf045,PRC,"Quanzhou Bay, including Jin Jiang estuary",Saunders’s Gull,Saundersilarus saundersi,VU,False,False,False
+rf046,PRC,Xiamen coast,Great,CormorantPhalacrocorax carbo,,False,False,False
+rf046,PRC,Xiamen coast,Kentish,PloverCharadrius alexandrines,,False,False,False
+rf046,PRC,Xiamen coast,Whimbrel,Numenius phaeopus,,False,False,False
+rf046,PRC,Xiamen coast,Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf046,PRC,Xiamen coast,Saunders’s Gull,Saundersilarus saundersi,VU,False,False,False
+rf046,PRC,Xiamen coast,Caspian Tern,Hydroprogne caspia,,False,False,False
+rf047,PRC,Xinghua Bay,Black-faced Spoonbill,Platalea minor,EN,False,False,False
+rf047,PRC,Xinghua Bay,Great,CormorantPhalacrocorax carbo,,False,False,False
+rf047,PRC,Xinghua Bay,Kentish,PloverCharadrius alexandrines,,False,False,False
+rf047,PRC,Xinghua Bay,,DunlinCalidris alpina,,False,False,False
+rf047,PRC,Xinghua Bay,Saunders’s Gull,Saundersilarus saundersi,VU,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Tufted Duck,Aythya fuligula,,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Northern Shoveler,Spatula clypeata,,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Northern Pintail,Anas acuta,,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Great Crested Grebe,Podiceps cristatus,,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Black-faced Spoonbill,Platalea minor,EN,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Great White Egret,Ardea alba,,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Dalmatian,PelicanPelecanus crispus,,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Great,CormorantPhalacrocorax carbo,,True,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Pied,AvocetRecurvirostra avosetta,,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Black-winged Stilt,Himantopus himantopus,,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Pacific Golden Plover,Pluvialis fulva,,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Little Ringed Plover,Charadrius dubius,,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Kentish,PloverCharadrius alexandrines,,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Eurasian,CurlewNumenius arquata,,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Black-tailed,GodwitLimosa limosa,,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Curlew,SandpiperCalidris ferruginea,,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Spoon-billed Sandpiper,Calidris pygmaea,CR,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Asian Dowitcher,Limnodromus semipalmatus,,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Terek,SandpiperXenus cinereus,,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Spotted Redshank,Tringa erythropus,,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Common Greenshank,Tringa nebularia,,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Common Redshank,Tringa totanus,,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Marsh Sandpiper,Tringa stagnatilis,,False,False,False
+rf048,PRC,Inner Deep Bay and Shenzhen River catchment,Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf049,PRC,Haifeng wetlands,Northern Pintail,Anas acuta,,False,False,False
+rf049,PRC,Haifeng wetlands,Black-faced Spoonbill,Platalea minor,EN,False,False,False
+rf049,PRC,Haifeng wetlands,Great White,EgretArdea alba,,False,False,False
+rf049,PRC,Haifeng wetlands,Dalmatian,PelicanPelecanus crispus,,False,False,False
+rf049,PRC,Haifeng wetlands,Great,CormorantPhalacrocorax carbo,,False,False,False
+rf049,PRC,Haifeng wetlands,Spotted Redshank,Tringa erythropus,,False,False,False
+rf050,PRC,Zhanjiang-Leizhou Peninsula coast,Black-faced Spoonbill,Platalea minor,EN,False,False,False
+rf050,PRC,Zhanjiang-Leizhou Peninsula coast,Kentish,PloverCharadrius alexandrines,,False,False,False
+rf050,PRC,Zhanjiang-Leizhou Peninsula coast,Lesser,SandploverCharadrius mongolus,,False,False,False
+rf050,PRC,Zhanjiang-Leizhou Peninsula coast,Broad-billed,SandpiperCalidris falcinellus,,False,False,False
+rf050,PRC,Zhanjiang-Leizhou Peninsula coast,Spoon-billed Sandpiper,Calidris pygmaea,CR,False,False,False
+rf050,PRC,Zhanjiang-Leizhou Peninsula coast,Saunders’s,GullSaundersilarus saundersi,VU,False,False,False
+rf050,PRC,Zhanjiang-Leizhou Peninsula coast,Caspian,TernHydroprogne caspia,,False,False,False
+rf051,PRC,Dongzhaigang Nature Reserve,Pied,AvocetRecurvirostra avosetta,,False,False,False
+rf051,PRC,Dongzhaigang Nature Reserve,Kentish,PloverCharadrius alexandrines,,False,False,False
+rf051,PRC,Dongzhaigang Nature Reserve,Whimbrel,Numenius phaeopus,,False,False,False
+rf051,PRC,Dongzhaigang Nature Reserve,Sanderling,Calidris alba,,False,False,False
+rf052,PRC,Danzhou-Lingao coast,Lesser,SandploverCharadrius mongolus,,False,False,False
+rf053,PRC,Beihai coast,Little Ringed Plover,Charadrius dubius,,False,False,False
+rf053,PRC,Beihai coast,Kentish,PloverCharadrius alexandrines,,False,False,False
+rf053,PRC,Beihai coast,Lesser,SandploverCharadrius mongolus,,False,False,False
+rf053,PRC,Beihai coast,Spoon-billed Sandpiper,Calidris pygmaea,CR,False,False,False
+rf053,PRC,Beihai coast,,SanderlingCalidris alba,,False,False,False
+rf054,PRC,Fangcheng coast,Kentish,PloverCharadrius alexandrines,,False,False,False
+rf054,PRC,Fangcheng coast,Lesser,SandploverCharadrius mongolus,,False,False,False
+rf054,PRC,Fangcheng coast,Spoon-billed Sandpiper,Calidris pygmaea,CR,False,False,False
+rf070,PRC,Poyang Lake National Nature Reserve,Tundra Swan,Cygnus columbianus,,True,False,False
+rf070,PRC,Poyang Lake National Nature Reserve,Swan Goose,Anser cygnoid,VU,False,True,False
+rf070,PRC,Poyang Lake National Nature Reserve,Bean Goose,Anser fabalis,,False,True,False
+rf070,PRC,Poyang Lake National Nature Reserve,Greater White-fronted Goose,Anser albifrons,,False,True,False
+rf070,PRC,Poyang Lake National Nature Reserve,Lesser White-fronted Goose,Anser erythropus,VU,False,False,False
+rf070,PRC,Poyang Lake National Nature Reserve,Falcated Duck,Mareca falcata,,False,False,False
+rf070,PRC,Poyang Lake National Nature Reserve,Great Crested Grebe,Podiceps cristatus,,False,False,False
+rf070,PRC,Poyang Lake National Nature Reserve,Siberian Crane,Leucogeranus leucogeranus,CR,False,True,False
+rf070,PRC,Poyang Lake National Nature Reserve,White-naped Crane,Grus vipio,VU,True,False,False
+rf070,PRC,Poyang Lake National Nature Reserve,Red-crowned Crane,Grus japonensis,VU,False,True,False
+rf070,PRC,Poyang Lake National Nature Reserve,Common Crane,Grus grus,,True,False,False
+rf070,PRC,Poyang Lake National Nature Reserve,Hooded Crane,Grus monacha,VU,True,False,False
+rf070,PRC,Poyang Lake National Nature Reserve,Black Stork,Ciconia nigra,,False,False,False
+rf070,PRC,Poyang Lake National Nature Reserve,Oriental Stork,Ciconia boyciana,EN,True,False,False
+rf070,PRC,Poyang Lake National Nature Reserve,Eurasian Spoonbill,Platalea leucorodia,,True,False,False
+rf070,PRC,Poyang Lake National Nature Reserve,Pied Avocet,Recurvirostra avosetta,,True,False,False
+rf070,PRC,Poyang Lake National Nature Reserve,Black-tailed Godwit,Limosa limosa,,False,True,False
+rf070,PRC,Poyang Lake National Nature Reserve,Spotted Redshank,Tringa erythropus,,False,False,False
+rf071,PRC,Nanjishan Wetland Nature Reserve,Tundra Swan,Cygnus columbianus,,False,False,False
+rf071,PRC,Nanjishan Wetland Nature Reserve,Swan Goose,Anser cygnoid,VU,False,False,False
+rf071,PRC,Nanjishan Wetland Nature Reserve,Bean Goose,Anser fabalis,,True,False,False
+rf071,PRC,Nanjishan Wetland Nature Reserve,Greater White-fronted Goose,Anser albifrons,,True,False,False
+rf071,PRC,Nanjishan Wetland Nature Reserve,Great Crested Grebe,Podiceps cristatus,,False,False,False
+rf071,PRC,Nanjishan Wetland Nature Reserve,Siberian Crane,Leucogeranus leucogeranus,CR,False,False,False
+rf071,PRC,Nanjishan Wetland Nature Reserve,White-naped Crane,Grus vipio,VU,False,True,False
+rf071,PRC,Nanjishan Wetland Nature Reserve,Common Crane,Grus grus,,False,False,False
+rf071,PRC,Nanjishan Wetland Nature Reserve,Hooded Crane,Grus monacha,VU,False,False,False
+rf071,PRC,Nanjishan Wetland Nature Reserve,Oriental Stork,Ciconia boyciana,EN,False,False,False
+rf071,PRC,Nanjishan Wetland Nature Reserve,Eurasian Spoonbill,Platalea leucorodia,,False,False,False
+rf071,PRC,Nanjishan Wetland Nature Reserve,Pied Avocet,Recurvirostra avosetta,,False,False,False
+rf071,PRC,Nanjishan Wetland Nature Reserve,Black-tailed Godwit,Limosa limosa,,False,False,False
+rf071,PRC,Nanjishan Wetland Nature Reserve,Spotted Redshank,Tringa erythropus,,False,False,False
+rf072,PRC,East Dongting Lake National Nature Reserve,Tundra Swan,Cygnus columbianus,,False,False,False
+rf072,PRC,East Dongting Lake National Nature Reserve,Greylag Goose,Anser anser,,False,False,False
+rf072,PRC,East Dongting Lake National Nature Reserve,Swan Goose,Anser cygnoid,VU,True,False,False
+rf072,PRC,East Dongting Lake National Nature Reserve,Bean Goose,Anser fabalis,,True,False,False
+rf072,PRC,East Dongting Lake National Nature Reserve,Greater White-fronted Goose,Anser albifrons,,True,False,False
+rf072,PRC,East Dongting Lake National Nature Reserve,Lesser White-fronted Goose,Anser erythropus,VU,True,False,False
+rf072,PRC,East Dongting Lake National Nature Reserve,Ruddy Shelduck,Tadorna ferruginea,,False,False,False
+rf072,PRC,East Dongting Lake National Nature Reserve,Falcated Duck,Mareca falcata,,True,False,False
+rf072,PRC,East Dongting Lake National Nature Reserve,Black,StorkCiconia nigra,,False,False,False
+rf072,PRC,East Dongting Lake National Nature Reserve,Eurasian,SpoonbillPlatalea leucorodia,,True,False,False
+rf072,PRC,East Dongting Lake National Nature Reserve,Great White Egret,Ardea alba,,False,False,False
+rf072,PRC,East Dongting Lake National Nature Reserve,Dalmatian,PelicanPelecanus crispus,,False,False,False
+rf072,PRC,East Dongting Lake National Nature Reserve,Great Cormorant,Phalacrocorax carbo,,False,False,False
+rf072,PRC,East Dongting Lake National Nature Reserve,Pied,AvocetRecurvirostra avosetta,,False,False,False
+rf072,PRC,East Dongting Lake National Nature Reserve,Spotted Redshank,Tringa erythropus,,False,False,False
+rf073,PRC,West Dongting Lake National Nature Reserve,Tundra Swan,Cygnus columbianus,,False,False,False
+rf073,PRC,West Dongting Lake National Nature Reserve,Falcated Duck,Mareca falcata,,False,False,False
+rf073,PRC,West Dongting Lake National Nature Reserve,Eurasian,SpoonbillPlatalea leucorodia,,False,False,False
+rf073,PRC,West Dongting Lake National Nature Reserve,Great Cormorant,Phalacrocorax carbo,,False,False,False
+rf074,PRC,Shengjin Lake Nature Reserve,Swan Goose,Anser cygnoid,VU,True,False,False
+rf074,PRC,Shengjin Lake Nature Reserve,Bean Goose,Anser fabalis,,True,False,False
+rf074,PRC,Shengjin Lake Nature Reserve,Greater White-fronted,GooseAnser albifrons,,True,False,False
+rf074,PRC,Shengjin Lake Nature Reserve,Lesser White-fronted Goose,Anser erythropus,VU,True,False,False
+rf074,PRC,Shengjin Lake Nature Reserve,Falcated,DuckMareca falcata,,False,False,False
+rf074,PRC,Shengjin Lake Nature Reserve,Hooded Crane,Grus monacha,VU,True,False,False
+rf074,PRC,Shengjin Lake Nature Reserve,Eurasian,SpoonbillPlatalea leucorodia,,False,False,False
+rf074,PRC,Shengjin Lake Nature Reserve,Dalmatian,PelicanPelecanus crispus,,False,False,False
+rf074,PRC,Shengjin Lake Nature Reserve,Great,CormorantPhalacrocorax carbo,,False,False,False
+rf075,PRC,Anqing Yangtze Riverine Wetland Nature Reserve,Tundra Swan,Cygnus columbianus,,True,False,False
+rf075,PRC,Anqing Yangtze Riverine Wetland Nature Reserve,Swan Goose,Anser cygnoid,VU,False,False,False
+rf075,PRC,Anqing Yangtze Riverine Wetland Nature Reserve,Bean Goose,Anser fabalis,,False,False,False
+rf075,PRC,Anqing Yangtze Riverine Wetland Nature Reserve,Greater White-fronted,GooseAnser albifrons,,False,False,False
+rf075,PRC,Anqing Yangtze Riverine Wetland Nature Reserve,Lesser White-fronted Goose,Anser erythropus,VU,False,False,False
+rf075,PRC,Anqing Yangtze Riverine Wetland Nature Reserve,Smew,Mergellus albellus,,False,False,False
+rf075,PRC,Anqing Yangtze Riverine Wetland Nature Reserve,Great Crested,GrebePodiceps cristatus,,False,False,False
+rf075,PRC,Anqing Yangtze Riverine Wetland Nature Reserve,Hooded Crane,Grus monacha,VU,False,False,False
+rf075,PRC,Anqing Yangtze Riverine Wetland Nature Reserve,Oriental,StorkCiconia boyciana,EN,False,False,False
+rf075,PRC,Anqing Yangtze Riverine Wetland Nature Reserve,Eurasian,SpoonbillPlatalea leucorodia,,False,False,False
+rf075,PRC,Anqing Yangtze Riverine Wetland Nature Reserve,Great,CormorantPhalacrocorax carbo,,False,False,False
+rf076,PRC,Wanghu Lake National Nature Reserve,Tundra Swan,Cygnus columbianus,,False,False,False
+rf076,PRC,Wanghu Lake National Nature Reserve,Bean Goose,Anser fabalis,,False,False,False
+rf076,PRC,Wanghu Lake National Nature Reserve,Great Crested,GrebePodiceps cristatus,,False,False,False
+rf076,PRC,Wanghu Lake National Nature Reserve,Black,StorkCiconia nigra,,False,False,False
+rf076,PRC,Wanghu Lake National Nature Reserve,Eurasian,SpoonbillPlatalea leucorodia,,False,False,False
+rf076,PRC,Wanghu Lake National Nature Reserve,Great,CormorantPhalacrocorax carbo,,False,False,False
+rf077,PRC,Chenhu Lake Provincial Nature Reserve,Bean Goose,Anser fabalis,,False,False,False
+rf077,PRC,Chenhu Lake Provincial Nature Reserve,Falcated,DuckMareca falcata,,False,False,False
+rf077,PRC,Chenhu Lake Provincial Nature Reserve,Eurasian,SpoonbillPlatalea leucorodia,,False,False,False
+rf077,PRC,Chenhu Lake Provincial Nature Reserve,Dalmatian,PelicanPelecanus crispus,,False,False,False
+rf077,PRC,Chenhu Lake Provincial Nature Reserve,Great,CormorantPhalacrocorax carbo,,False,False,False
+rf078,Indonesia,"Batu Bara coast, North Sumatra",Asian Dowitcher,Limnodromus semipalmatus,,False,False,False
+rf078,Indonesia,"Batu Bara coast, North Sumatra",Lesser Sandplover,Charadrius mongolus,,False,False,False
+rf078,Indonesia,"Batu Bara coast, North Sumatra",Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf078,Indonesia,"Batu Bara coast, North Sumatra",Black-tailed,GodwitLimosa limosa,,False,False,False
+rf078,Indonesia,"Batu Bara coast, North Sumatra",Terek Sandpiper,Xenus cinereus,,False,False,False
+rf078,Indonesia,"Batu Bara coast, North Sumatra",Common Redshank,Tringa totanus,,False,False,False
+rf078,Indonesia,"Batu Bara coast, North Sumatra",Curlew,SandpiperCalidris ferruginea,,False,False,False
+rf078,Indonesia,"Batu Bara coast, North Sumatra",Broad-billed,SandpiperCalidris falcinellus,,False,False,False
+rf078,Indonesia,"Batu Bara coast, North Sumatra",Bar-tailed,GodwitLimosa lapponica,,False,False,False
+rf078,Indonesia,"Batu Bara coast, North Sumatra",Eurasian,CurlewNumenius arquata,,False,False,False
+rf078,Indonesia,"Batu Bara coast, North Sumatra",Whimbrel,Numenius phaeopus,,False,False,False
+rf078,Indonesia,"Batu Bara coast, North Sumatra",Pacific Golden Plover,Pluvialis fulva,,False,False,False
+rf078,Indonesia,"Batu Bara coast, North Sumatra",Ruddy,TurnstoneArenaria interpres,,False,False,False
+rf079,Indonesia,"Banyuasin Peninsula and Berbak, -Sembilang National Park South Sumatra",Black-tailed,GodwitLimosa limosa,,False,False,False
+rf079,Indonesia,"Banyuasin Peninsula and Berbak, -Sembilang National Park South Sumatra",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf079,Indonesia,"Banyuasin Peninsula and Berbak, -Sembilang National Park South Sumatra",Bar-tailed,GodwitLimosa lapponica,,False,False,False
+rf079,Indonesia,"Banyuasin Peninsula and Berbak, -Sembilang National Park South Sumatra",Asian Dowitcher,Limnodromus semipalmatus,,False,False,False
+rf079,Indonesia,"Banyuasin Peninsula and Berbak, -Sembilang National Park South Sumatra",Far Eastern Curlew,Numenius madagascariensis,EN,False,False,False
+rf080,Indonesia,"Deli-Serdang , North Sumatra",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf080,Indonesia,"Deli-Serdang , North Sumatra",Eurasian,CurlewNumenius arquata,,False,False,False
+rf080,Indonesia,"Deli-Serdang , North Sumatra",Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf080,Indonesia,"Deli-Serdang , North Sumatra",,RuffCalidris pugnax,,False,False,False
+rf080,Indonesia,"Deli-Serdang , North Sumatra",Red Knot,Calidris canutus,,False,False,False
+rf080,Indonesia,"Deli-Serdang , North Sumatra",Ruddy Turnstone,Arenaria interpres,,False,False,False
+rf080,Indonesia,"Deli-Serdang , North Sumatra",Whimbrel,Numenius phaeopus,,False,False,False
+rf081,Indonesia,"Wasur National Park, SouthPapua",Lesser Sandplover,Charadrius mongolus,,True,False,False
+rf082,Indonesia,"Middle Mahakam Lakes, EastKalimantan",Wood Sandpiper,Tringa glareola,,False,False,False
+rf083,Indonesia,"Sungai Progo Delta, -Trisik Beach, Yogyakarta",Sanderling,Calidris alba,,False,False,False
+rf083,Indonesia,"Sungai Progo Delta, -Trisik Beach, Yogyakarta",Wood Sandpiper,Tringa glareola,,False,False,False
+rf084,Indonesia,"Cemara Beach , Jambi",Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf084,Indonesia,"Cemara Beach , Jambi",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf084,Indonesia,"Cemara Beach , Jambi",Black-tailed,GodwitLimosa limosa,,False,False,False
+rf084,Indonesia,"Cemara Beach , Jambi",Bar-tailed,GodwitLimosa lapponica,,False,False,False
+rf084,Indonesia,"Cemara Beach , Jambi",Asian Dowitcher,Limnodromus semipalmatus,,False,False,False
+rf085,Indonesia,"East Aceh coast, Aceh",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf086,Indonesia,"North Aceh coast, Aceh",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf086,Indonesia,"North Aceh coast, Aceh",Broad-billed,SandpiperCalidris falcinellus,,False,False,False
+rf087,Indonesia,"Kupang Bay, East, Nusa Tenggara",Australian Pratincole,Stiltia isabella,,False,False,False
+rf088,Indonesia,"Sekopong Bay, Way Kambas National Park, Lampung",Asian Dowitcher,Limnodromus semipalmatus,,False,False,False
+rf089,Indonesia,"Benoa Bay – Serangan Island, Bali",Whimbrel,Numenius phaeopus,,False,False,False
+rf090,Indonesia,"Gresik and Surabaya coast (incl., Ujung Pangkah) , EastJava",Red Knot,Calidris canutus,,False,False,False
+rf091,Indonesia,"Asahan coast, North Sumatra",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf092,Indonesia,"North Labuhan Batu coast, North Sumatra",Common Redshank,Tringa totanus,,False,False,False
+rf093,Indonesia,"Labuhan Batu coast, North Sumatra",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf094,Indonesia,"North Seram coast (partly in Manusela National Park), Maluku",Chinese Crested Tern,Thalasseus bernsteini,CR,False,False,False
+rf095,Lao PDR,Xe Pian NBCA (including Bueng Kiat Ngong wetlands) Champasak,Masked Finfoot,Heliopais personatus,CR,False,False,False
+rf095,Lao PDR,Xe Pian NBCA (including Bueng Kiat Ngong wetlands) Champasak,Asian Openbill,Anastomus oscitans,,False,False,False
+rf096,Lao PDR,"Mekong River from Luang Prabang to Vientiane, Vientiane, - Xayabury",Little Ringed,PloverCharadrius dubius,,False,False,False
+rf097,Lao PDR,Dong Kanthung Protected Forest (proposed NBCA) Champasak,Masked Finfoot,Heliopais personatus,CR,False,False,False
+rf098,Malaysia,"North-Central Selangor Coast, Selangor",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf098,Malaysia,"North-Central Selangor Coast, Selangor",Eurasian,CurlewNumenius arquata,,False,False,False
+rf098,Malaysia,"North-Central Selangor Coast, Selangor",Common Redshank,Tringa totanus,,False,False,False
+rf098,Malaysia,"North-Central Selangor Coast, Selangor",Whimbrel,Numenius phaeopus,,False,False,False
+rf098,Malaysia,"North-Central Selangor Coast, Selangor",Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf098,Malaysia,"North-Central Selangor Coast, Selangor",Painted,StorkMycteria leucocephala,,False,False,False
+rf099,Malaysia,"Sadong-Saribas Coast, Sarawak",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf099,Malaysia,"Sadong-Saribas Coast, Sarawak",Chinese Egret,Egretta eulophotes,VU,False,False,False
+rf099,Malaysia,"Sadong-Saribas Coast, Sarawak",Terek,SandpiperXenus cinereus,,False,False,False
+rf099,Malaysia,"Sadong-Saribas Coast, Sarawak",Whimbrel,Numenius phaeopus,,False,False,False
+rf100,Malaysia,"Buntal Bay , Sarawak",Far Eastern Curlew,Numenius madagascariensis,EN,False,False,False
+rf100,Malaysia,"Buntal Bay , Sarawak",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf100,Malaysia,"Buntal Bay , Sarawak",Whimbrel,Numenius phaeopus,,False,False,False
+rf100,Malaysia,"Buntal Bay , Sarawak",Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf100,Malaysia,"Buntal Bay , Sarawak",Red Knot,Calidris canutus,,False,False,False
+rf100,Malaysia,"Buntal Bay , Sarawak",Gull-billed Tern,Gelochelidon nilotica,,False,False,False
+rf101,Malaysia,"Teluk Air Tawar-Kuala Muda IBA, Pulau Pinang",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf101,Malaysia,"Teluk Air Tawar-Kuala Muda IBA, Pulau Pinang",Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf101,Malaysia,"Teluk Air Tawar-Kuala Muda IBA, Pulau Pinang",Broad-billed,SandpiperCalidris falcinellus,,False,False,False
+rf102,Malaysia,"Mersing-Endau Coast, Johor",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf103,Malaysia,"Pulau Bruit, Sarawak",Chinese Egret,Egretta eulophotes,VU,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Dalmatian Pelican,Pelecanus crispus,,False,True,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Great Crested Grebe,Podiceps cristatus,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Great Cormorant,Phalacrocorax carbo,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Greylag Goose,Anser anser,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Bar-headed Goose,Anser indicus,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Ruddy Shelduck,Tadorna ferruginea,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Common Goldeneye,Bucephala clangul,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Common Merganser,Mergus merganser,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Common Crane,Grus grus,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Northern Lapwing,Vanellus vanellus,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Caspian Tern,Hydroprogne caspia,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Great Egret,Egretta alba,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Whooper Swan,Cygnus cygnus,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Common Shelduck,Tadorna tadorna,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Mallard,Anas platyrhynchos,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Green-winged Teal,Anas crecca,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Gadwall,Anas strepera,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Eurasian Wigeon,Anas penelope,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Northern Pintail,Anas acuta,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Northern Shoveler,Anas clypeata,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Red-crested Pochard,Netta rufina,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Common Pochard,Aythya ferina,VU,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Tufted Duck,Aythya fuligula,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Temminck’s Stint,Calidris temminckii,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Great Black-headed Gull,Larus ichthyaetus,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",White Spoonbill,Platalea leucorodia,,False,False,False
+rf104,Mongolia,"Khar-Us Lake (including Khovd River Tributary and Khar Lake), Uvs Aimag",Swan Goose,Anser cygnoid,VU,False,False,False
+rf105,Mongolia,"Khurkh Khuiten, Khentii Aimag",Ruddy Shelduck,Tadorna ferruginea,,False,True,False
+rf105,Mongolia,"Khurkh Khuiten, Khentii Aimag",White-naped Crane,Grus vipio,VU,False,False,False
+rf105,Mongolia,"Khurkh Khuiten, Khentii Aimag",Great Crested,GrebePodiceps cristatus,,False,False,False
+rf105,Mongolia,"Khurkh Khuiten, Khentii Aimag",Black,StorkCiconia nigra,,False,False,False
+rf105,Mongolia,"Khurkh Khuiten, Khentii Aimag",Bean Goose,Anser fabalis,,False,False,False
+rf105,Mongolia,"Khurkh Khuiten, Khentii Aimag",Swan Goose,Anser cygnoid,VU,False,False,False
+rf105,Mongolia,"Khurkh Khuiten, Khentii Aimag",Whooper Swan,Cygnus cygnus,,False,False,False
+rf105,Mongolia,"Khurkh Khuiten, Khentii Aimag",Common Crane,Grus grus,,False,False,False
+rf105,Mongolia,"Khurkh Khuiten, Khentii Aimag",Demoiselle Crane,Anthropoides virgo,,False,False,False
+rf105,Mongolia,"Khurkh Khuiten, Khentii Aimag",Northern Lapwing,Vanellus vanellus,,False,False,False
+rf106,Mongolia,"Mongol Daguur IBA including Ulz River and Khukh Lake (include SPA) , Dornod, Aimag",Swan Goose,Anser cygnoid,VU,False,False,False
+rf106,Mongolia,"Mongol Daguur IBA including Ulz River and Khukh Lake (include SPA) , Dornod, Aimag",Ruddy Shelduck,Tadorna ferruginea,,False,False,False
+rf106,Mongolia,"Mongol Daguur IBA including Ulz River and Khukh Lake (include SPA) , Dornod, Aimag",Hooded Crane,Grus monacha,,True,False,False
+rf106,Mongolia,"Mongol Daguur IBA including Ulz River and Khukh Lake (include SPA) , Dornod, Aimag",Common Pochard,Aythya ferina,VU,False,False,False
+rf106,Mongolia,"Mongol Daguur IBA including Ulz River and Khukh Lake (include SPA) , Dornod, Aimag",Whooper Swan,Cygnus cygnus,,False,False,False
+rf106,Mongolia,"Mongol Daguur IBA including Ulz River and Khukh Lake (include SPA) , Dornod, Aimag",Swan Goose,Anser cygnoid,VU,False,False,False
+rf106,Mongolia,"Mongol Daguur IBA including Ulz River and Khukh Lake (include SPA) , Dornod, Aimag",Common Shelduck,Tadorna tadorna,,False,False,False
+rf106,Mongolia,"Mongol Daguur IBA including Ulz River and Khukh Lake (include SPA) , Dornod, Aimag",Pacific Golden,PloverPluvialis fulva,,False,False,False
+rf106,Mongolia,"Mongol Daguur IBA including Ulz River and Khukh Lake (include SPA) , Dornod, Aimag",Spotted Redshank,Tringa erythropus,,False,False,False
+rf106,Mongolia,"Mongol Daguur IBA including Ulz River and Khukh Lake (include SPA) , Dornod, Aimag",Pied Avocet,Recurvirostra avosetta,,False,False,False
+rf106,Mongolia,"Mongol Daguur IBA including Ulz River and Khukh Lake (include SPA) , Dornod, Aimag",Great Crested Grebe,Podiceps cristatus,,False,False,False
+rf106,Mongolia,"Mongol Daguur IBA including Ulz River and Khukh Lake (include SPA) , Dornod, Aimag",Great Cormorant,Phalacrocorax carbo,,False,False,False
+rf106,Mongolia,"Mongol Daguur IBA including Ulz River and Khukh Lake (include SPA) , Dornod, Aimag",Bean Goose,Anser fabalis,,False,False,False
+rf106,Mongolia,"Mongol Daguur IBA including Ulz River and Khukh Lake (include SPA) , Dornod, Aimag",Common Crane,Grus grus,,False,False,False
+rf106,Mongolia,"Mongol Daguur IBA including Ulz River and Khukh Lake (include SPA) , Dornod, Aimag",White-naped Crane,Grus vipio,VU,False,False,False
+rf106,Mongolia,"Mongol Daguur IBA including Ulz River and Khukh Lake (include SPA) , Dornod, Aimag",Demoiselle Crane,Anthropoides virgo,,False,False,False
+rf107,Mongolia,"Uvs Lake , Uvs Aimag",Eurasian,SpoonbillPlatalea leucorodia,,False,False,False
+rf107,Mongolia,"Uvs Lake , Uvs Aimag",Great Crested,GrebePodiceps cristatus,,False,False,False
+rf107,Mongolia,"Uvs Lake , Uvs Aimag",Dalmatian,PelicanPelecanus crispus,,False,False,False
+rf107,Mongolia,"Uvs Lake , Uvs Aimag",Great,CormorantPhalacrocorax carbo,,False,False,False
+rf107,Mongolia,"Uvs Lake , Uvs Aimag",Greylag Goose,Anser anser,,False,False,False
+rf107,Mongolia,"Uvs Lake , Uvs Aimag",Ruddy Shelduck,Tadorna ferruginea,,False,False,False
+rf108,Mongolia,"Tolbo Lake, Bayan, -Olgii Aimag",Great,CormorantPhalacrocorax carbo,,False,False,False
+rf108,Mongolia,"Tolbo Lake, Bayan, -Olgii Aimag",Bar-headed Goose,Anser indicus,,False,False,False
+rf108,Mongolia,"Tolbo Lake, Bayan, -Olgii Aimag",Whooper Swan,Cygnus cygnus,,False,False,False
+rf109,Mongolia,"Airag Lake , Uvs Aimag",Great,CormorantPhalacrocorax carbo,,False,False,False
+rf109,Mongolia,"Airag Lake , Uvs Aimag",Pallas's,GullLarus ichthyaetus,,False,False,False
+rf109,Mongolia,"Airag Lake , Uvs Aimag",Great Crested,GrebePodiceps cristatus,,False,False,False
+rf109,Mongolia,"Airag Lake , Uvs Aimag",Dalmatian,PelicanPelecanus crispus,,False,False,False
+rf109,Mongolia,"Airag Lake , Uvs Aimag",Ruddy Shelduck,Tadorna ferruginea,,False,False,False
+rf109,Mongolia,"Airag Lake , Uvs Aimag",Common Goldeneye,Bucephala clangul,,False,False,False
+rf109,Mongolia,"Airag Lake , Uvs Aimag",Common Merganser,Mergus merganser,,False,False,False
+rf109,Mongolia,"Airag Lake , Uvs Aimag",Northern,LapwingVanellus vanellus,,False,False,False
+rf110,Mongolia,"Tashgain Tavan Lakes, Dornod Aimag",Great Crested,GrebePodiceps cristatus,,False,False,False
+rf110,Mongolia,"Tashgain Tavan Lakes, Dornod Aimag",Swan Goose,Anser cygnoid,VU,False,False,False
+rf110,Mongolia,"Tashgain Tavan Lakes, Dornod Aimag",Ruddy Shelduck,Tadorna ferruginea,,False,False,False
+rf110,Mongolia,"Tashgain Tavan Lakes, Dornod Aimag",Common Shelduck,Tadorna tadorna,,False,False,False
+rf110,Mongolia,"Tashgain Tavan Lakes, Dornod Aimag",Gadwall,Anas strepera,,False,False,False
+rf110,Mongolia,"Tashgain Tavan Lakes, Dornod Aimag",Common Pochard,Aythya ferina,VU,False,False,False
+rf110,Mongolia,"Tashgain Tavan Lakes, Dornod Aimag",White-naped Crane,Grus vipio,VU,False,False,False
+rf110,Mongolia,"Tashgain Tavan Lakes, Dornod Aimag",Demoiselle,CraneAnthropoides virgo,,False,False,False
+rf111,Mongolia,"Terkhiin Tsagaan Lake, Arkhangai Aimag",Great,CormorantPhalacrocorax carbo,,False,False,False
+rf111,Mongolia,"Terkhiin Tsagaan Lake, Arkhangai Aimag",Bar-headed Goose,Anser indicus,,False,False,False
+rf111,Mongolia,"Terkhiin Tsagaan Lake, Arkhangai Aimag",Ruddy Shelduck,Tadorna ferruginea,,False,False,False
+rf111,Mongolia,"Terkhiin Tsagaan Lake, Arkhangai Aimag",Common Goldeneye,Bucephala clangul,,False,False,False
+rf111,Mongolia,"Terkhiin Tsagaan Lake, Arkhangai Aimag",Common Merganser,Mergus merganser,,False,False,False
+rf111,Mongolia,"Terkhiin Tsagaan Lake, Arkhangai Aimag",Northern,LapwingVanellus vanellus,,False,False,False
+rf112,Mongolia,"Ogii Lake , Arkhangai Aimag",Swan Goose,Anser cygnoid,VU,False,False,False
+rf112,Mongolia,"Ogii Lake , Arkhangai Aimag",Great Crested,GrebePodiceps cristatus,,False,False,False
+rf112,Mongolia,"Ogii Lake , Arkhangai Aimag",Bar-headed Goose,Anser indicus,,False,False,False
+rf112,Mongolia,"Ogii Lake , Arkhangai Aimag",Whooper Swan,Cygnus cygnus,,False,False,False
+rf112,Mongolia,"Ogii Lake , Arkhangai Aimag",Ruddy Shelduck,Tadorna ferruginea,,False,False,False
+rf112,Mongolia,"Ogii Lake , Arkhangai Aimag",Common Goldeneye,Bucephala clangul,,False,False,False
+rf112,Mongolia,"Ogii Lake , Arkhangai Aimag",Common Crane,Grus grus,,False,False,False
+rf112,Mongolia,"Ogii Lake , Arkhangai Aimag",Northern,LapwingVanellus vanellus,,False,False,False
+rf112,Mongolia,"Ogii Lake , Arkhangai Aimag",Mute Swan,Cygnus olor,,False,False,False
+rf113,Mongolia,"Buir Lake , Dornod Aimag, (transboundary to Hulun Lake, PRC",Great Crested,GrebePodiceps cristatus,,False,False,False
+rf113,Mongolia,"Buir Lake , Dornod Aimag, (transboundary to Hulun Lake, PRC",Great,CormorantPhalacrocorax carbo,,False,False,False
+rf113,Mongolia,"Buir Lake , Dornod Aimag, (transboundary to Hulun Lake, PRC",Grey Heron,Ardea cinerea,,False,False,False
+rf113,Mongolia,"Buir Lake , Dornod Aimag, (transboundary to Hulun Lake, PRC",Swan Goose,Anser cygnoid,VU,False,False,False
+rf114,Mongolia,"Valley of lakes (including Boon Tsagaan, Orog Lake and Taatsiin Tsagaan, Bayan-Khongor Aimag",Mute Swan,Cygnus olor,,True,False,False
+rf114,Mongolia,"Valley of lakes (including Boon Tsagaan, Orog Lake and Taatsiin Tsagaan, Bayan-Khongor Aimag",Common Shelduck,Tadorna tadorna,,False,False,False
+rf114,Mongolia,"Valley of lakes (including Boon Tsagaan, Orog Lake and Taatsiin Tsagaan, Bayan-Khongor Aimag",Ruddy Shelduck,Tadorna ferruginea,,False,False,False
+rf114,Mongolia,"Valley of lakes (including Boon Tsagaan, Orog Lake and Taatsiin Tsagaan, Bayan-Khongor Aimag",Great,CormorantPhalacrocorax carbo,,False,False,False
+rf114,Mongolia,"Valley of lakes (including Boon Tsagaan, Orog Lake and Taatsiin Tsagaan, Bayan-Khongor Aimag",Great Crested,GrebePodiceps cristatus,,False,False,False
+rf114,Mongolia,"Valley of lakes (including Boon Tsagaan, Orog Lake and Taatsiin Tsagaan, Bayan-Khongor Aimag",Hooded Crane,Grus monachal,,False,False,False
+rf115,Philippines,"North Manila Bay (Bulacan) (includes Pampanga River East Bank, - Santa Cruz-Caliligawan, -Pamawaran-Navotas-Taliptip-Tanza",Kentish Plover,Charadrius alexandrinus,,False,False,False
+rf115,Philippines,"North Manila Bay (Bulacan) (includes Pampanga River East Bank, - Santa Cruz-Caliligawan, -Pamawaran-Navotas-Taliptip-Tanza",Pacific Golden Plover,Pluvialis fulva,,False,False,False
+rf115,Philippines,"North Manila Bay (Bulacan) (includes Pampanga River East Bank, - Santa Cruz-Caliligawan, -Pamawaran-Navotas-Taliptip-Tanza",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf115,Philippines,"North Manila Bay (Bulacan) (includes Pampanga River East Bank, - Santa Cruz-Caliligawan, -Pamawaran-Navotas-Taliptip-Tanza",Marsh Sandpiper,Tringa stagnatilis,,False,False,False
+rf115,Philippines,"North Manila Bay (Bulacan) (includes Pampanga River East Bank, - Santa Cruz-Caliligawan, -Pamawaran-Navotas-Taliptip-Tanza",Whiskered,TernChlidonias hybrida,,False,False,False
+rf115,Philippines,"North Manila Bay (Bulacan) (includes Pampanga River East Bank, - Santa Cruz-Caliligawan, -Pamawaran-Navotas-Taliptip-Tanza",Common Redshank,Tringa totanus,,False,False,False
+rf115,Philippines,"North Manila Bay (Bulacan) (includes Pampanga River East Bank, - Santa Cruz-Caliligawan, -Pamawaran-Navotas-Taliptip-Tanza",Curlew,SandpiperCalidris ferruginea,,False,False,False
+rf115,Philippines,"North Manila Bay (Bulacan) (includes Pampanga River East Bank, - Santa Cruz-Caliligawan, -Pamawaran-Navotas-Taliptip-Tanza",Caspian,TernHydroprogne caspia,,False,False,False
+rf116,Philippines,"Olango Island Wildlife Sanctuary, Cebu",Lesser Sandplover,Charadrius mongolus,,True,False,False
+rf116,Philippines,"Olango Island Wildlife Sanctuary, Cebu",Common Tern,Sterna hirundo,,False,False,False
+rf116,Philippines,"Olango Island Wildlife Sanctuary, Cebu",Grey-tailed Tattler,Tringa brevipes,NT,False,False,False
+rf116,Philippines,"Olango Island Wildlife Sanctuary, Cebu",Ruddy,TurnstoneArenaria interpres,,False,False,False
+rf116,Philippines,"Olango Island Wildlife Sanctuary, Cebu",Kentish Plover,Charadrius alexandrinus,,False,False,False
+rf116,Philippines,"Olango Island Wildlife Sanctuary, Cebu",Whimbrel,Numenius phaeopus,,False,False,False
+rf116,Philippines,"Olango Island Wildlife Sanctuary, Cebu",Red-necked Stint,Calidris ruficollis,NT,False,False,False
+rf117,Philippines,"Bangrin Marine Protected Area, Pangasinan",Intermediate Egret,Ardea intermedia,,True,False,False
+rf117,Philippines,"Bangrin Marine Protected Area, Pangasinan",Great White Egret,Ardea alba,,False,False,False
+rf118,Philippines,"Negros Occidental Coastal Wetlands Conservation Area (NOCWCA) , Negros Occidental",Little,EgretEgretta garzetta,,False,False,False
+rf118,Philippines,"Negros Occidental Coastal Wetlands Conservation Area (NOCWCA) , Negros Occidental",Black-tailed Godwit,Limosa limosa,NT,False,False,False
+rf118,Philippines,"Negros Occidental Coastal Wetlands Conservation Area (NOCWCA) , Negros Occidental",Kentish Plover,Charadrius alexandrinus,,False,False,False
+rf118,Philippines,"Negros Occidental Coastal Wetlands Conservation Area (NOCWCA) , Negros Occidental",Caspian Tern,Hydroprogne caspia,,False,False,False
+rf118,Philippines,"Negros Occidental Coastal Wetlands Conservation Area (NOCWCA) , Negros Occidental",Chinese Egret,Egretta eulophotes,VU,False,False,False
+rf118,Philippines,"Negros Occidental Coastal Wetlands Conservation Area (NOCWCA) , Negros Occidental",Broad-billed Sandpiper,Calidris falcinellus,,False,False,False
+rf118,Philippines,"Negros Occidental Coastal Wetlands Conservation Area (NOCWCA) , Negros Occidental",Great Knot,Calidris tenuirostris,EN,False,False,False
+rf118,Philippines,"Negros Occidental Coastal Wetlands Conservation Area (NOCWCA) , Negros Occidental",Pacific Golden Plover,Pluvialis fulva,,False,False,False
+rf118,Philippines,"Negros Occidental Coastal Wetlands Conservation Area (NOCWCA) , Negros Occidental",Intermediate Egret,Ardea intermedia,,False,False,False
+rf119,Philippines,"Lake Mainit, Agusan del Norte",Tufted,DuckAythya fuligula,,True,False,False
+rf120,Philippines,"North Manila Bay (Pampanga), (includes Pampanga River Westbank-Sasmuan Pampanga Coastal Wetlands",Kentish,PloverCharadrius alexandrinus,,False,False,False
+rf120,Philippines,"North Manila Bay (Pampanga), (includes Pampanga River Westbank-Sasmuan Pampanga Coastal Wetlands",Intermediate,EgretArdea intermedia,,False,False,False
+rf120,Philippines,"North Manila Bay (Pampanga), (includes Pampanga River Westbank-Sasmuan Pampanga Coastal Wetlands",Whiskered,TernChlidonias hybrida,,False,False,False
+rf120,Philippines,"North Manila Bay (Pampanga), (includes Pampanga River Westbank-Sasmuan Pampanga Coastal Wetlands",Great White,EgretArdea alba,,False,False,False
+rf120,Philippines,"North Manila Bay (Pampanga), (includes Pampanga River Westbank-Sasmuan Pampanga Coastal Wetlands",Black-headed,GullLarus ridibundus,,False,False,False
+rf121,Philippines,"Agusan Marsh Wildlife Sanctuary, Agusan del Sur",Intermediate Egret,Ardea intermedia,,False,False,False
+rf122,Philippines,"Candaba Wetlands, Pampanga",Garganey,Spatula querquedula,,False,False,False
+rf123,Philippines,"Kabasalan-Siay Wetland Area, (also known as Sibugay Wetlands) Zamboanga-Sibugay",Great White,EgretArdea alba,,False,False,False
+rf123,Philippines,"Kabasalan-Siay Wetland Area, (also known as Sibugay Wetlands) Zamboanga-Sibugay",Intermediate,EgretArdea intermedia,,False,False,False
+rf123,Philippines,"Kabasalan-Siay Wetland Area, (also known as Sibugay Wetlands) Zamboanga-Sibugay",Far-eastern,CurlewNumenius madagascariensis,,True,False,False
+rf124,Philippines,"Panabo Coast, Davao del Norte",Chinese Crested Tern,Thalasseus bernsteini,CR,False,False,False
+rf125,Philippines,"North Manila Bay (Bataan), – Balanga Wetlands Park-Pilar Wetlands",Kentish,PloverCharadrius alexandrinus,,False,False,False
+rf125,Philippines,"North Manila Bay (Bataan), – Balanga Wetlands Park-Pilar Wetlands",Great White,EgretArdea alba,,False,False,False
+rf126,Philippines,"Tubbataha Reef Natural Park, Palawan",Greater Crested,TernThalasseus bergii,,False,False,False
+rf126,Philippines,"Tubbataha Reef Natural Park, Palawan",Black Noddy,Anous minutus,,False,False,False
+rf127,Thailand,"Pak Thale-Laem Phak Bia coast, Phetchaburi",Spotted Greenshank,Tringa guttifer,EN,True,False,False
+rf127,Thailand,"Pak Thale-Laem Phak Bia coast, Phetchaburi",Lesser Sandplover,Charadrius mongolus,,False,False,False
+rf127,Thailand,"Pak Thale-Laem Phak Bia coast, Phetchaburi",Broad-billed Sandpiper,Calidris falcinellus,,False,False,False
+rf127,Thailand,"Pak Thale-Laem Phak Bia coast, Phetchaburi",Ruff,Calidris pugnax,,False,False,False
+rf127,Thailand,"Pak Thale-Laem Phak Bia coast, Phetchaburi",Black-tailed Godwit,Limosa limosa,,False,False,False
+rf127,Thailand,"Pak Thale-Laem Phak Bia coast, Phetchaburi",Great Knot,Calidris tenuirostris,EN,False,False,False
+rf127,Thailand,"Pak Thale-Laem Phak Bia coast, Phetchaburi",Caspian Tern,Hydroprogne caspia,,False,False,False
+rf127,Thailand,"Pak Thale-Laem Phak Bia coast, Phetchaburi",Curlew Sandpiper,Calidris ferruginea,,False,False,False
+rf128,Thailand,"Bueng Boraphet , Nakhon Sawan",Glossy,IbisPlegadis falcinellus,,True,False,False
+rf128,Thailand,"Bueng Boraphet , Nakhon Sawan",Asian Openbill,Anastomus oscitans,,False,False,False
+rf128,Thailand,"Bueng Boraphet , Nakhon Sawan",Intermediate Egret,Ardea intermedia,,False,False,False
+rf128,Thailand,"Bueng Boraphet , Nakhon Sawan",Great White Egret,Ardea alba,,False,False,False
+rf128,Thailand,"Bueng Boraphet , Nakhon Sawan",Garganey,Spatula querquedula,,False,False,False
+rf128,Thailand,"Bueng Boraphet , Nakhon Sawan",Black-winged Stilt,Himantopus himantopus,,False,False,False
+rf129,Thailand,"Pak Nam Prasae, Rayong",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf129,Thailand,"Pak Nam Prasae, Rayong",Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf130,Thailand,"Huai Chorakhe Mak Reservoir, Buriram",Sarus Crane Grus,antigone sharpii,VU,False,False,False
+rf131,Thailand,"Krabi River Mouth, Krabi",Lesser Sandplover,Charadrius mongolus,,False,False,False
+rf131,Thailand,"Krabi River Mouth, Krabi",Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf132,Thailand,"Khlong Tamru (Bang Pakong), Chachoengsao",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf132,Thailand,"Khlong Tamru (Bang Pakong), Chachoengsao",,RuffCalidris pugnax,,False,False,False
+rf133,Thailand,"Khlong Yai, Trat",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf133,Thailand,"Khlong Yai, Trat",Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf134,Thailand,"Sanam Bin Reservoir, Buriram",Sarus Crane Grus,antigone sharpii,VU,False,False,False
+rf135,Thailand,"Ko Libong Non-Hunting Area and Hat Chao Mai National Park, Trang",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf135,Thailand,"Ko Libong Non-Hunting Area and Hat Chao Mai National Park, Trang",Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf136,Thailand,"Khok Kham salt pans, Samut Sakhon",Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf137,Thailand,"Phang-nga Bay , Phang Nga",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf138,Thailand,"Bang Pu coast and fish ponds, Samut Prakan",Black-tailed,GodwitLimosa limosa,,False,False,False
+rf139,Viet Nam,"Tram Chim National Park, Dong Thap",Painted Stork,Mycteria leucocephala,,False,False,False
+rf139,Viet Nam,"Tram Chim National Park, Dong Thap",Asian Openbill,Anastomus oscitans,,False,False,False
+rf139,Viet Nam,"Tram Chim National Park, Dong Thap",Sarus Crane Grus,antigone sharpii,VU,False,False,False
+rf140,Viet Nam,"Thai Thuy (including Thai Binh Wetland Protected Area), Thai Binh",Common Tern,Sterna hirundo,,False,False,False
+rf140,Viet Nam,"Thai Thuy (including Thai Binh Wetland Protected Area), Thai Binh",Little Tern,Sterna albifrons,,False,False,False
+rf141,Viet Nam,"Can Gio (incl. Can Gio Biosphere Reserve, Ly Nhon & Can Thanh salt pans, and coastal flats), Ho Chi Minh City",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf141,Viet Nam,"Can Gio (incl. Can Gio Biosphere Reserve, Ly Nhon & Can Thanh salt pans, and coastal flats), Ho Chi Minh City",Painted Stork,Mycteria leucocephala,,False,False,False
+rf142,Viet Nam,"Xuan Thuy National Park, Nam Dinh",Spotted Greenshank,Tringa guttifer,EN,False,False,False
+rf142,Viet Nam,"Xuan Thuy National Park, Nam Dinh",Black-faced Spoonbill,Platalea minor,EN,False,False,False
+rf143,Viet Nam,"Binh Dai IBA, Ben Tre",Lesser Sandplover,Charadrius mongolus,,False,False,False
+rf144,Viet Nam,"Tan Thanh-Con Ngang coast, Tien Giang",Lesser Sandplover,Charadrius mongolus,,False,False,False
+rf145,Viet Nam,"Ba Tri IBA, Ben Tre",Lesser,SandploverCharadrius mongolus,,False,False,False
+rf146,Viet Nam,"Do Son coast, Hai Phong",Spotted Redshank,Tringa erythropus,VU,False,False,False
+rf147,Viet Nam,"An Hai (Cat Hai) IBA, Hai Phong",Broad-billed,SandpiperCalidris falcinellus,,False,False,False

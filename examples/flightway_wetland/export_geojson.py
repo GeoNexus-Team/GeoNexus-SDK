@@ -1,16 +1,15 @@
-"""把案例的栅格与表格转成 GeoJSON —— 地图可视化要的是几何，不是 GeoTIFF。
+"""把案例产物转成地图可用的 GeoJSON。
 
-平台侧（Cesium / MapLibre）只认 GeoJSON/矢量；GeoTIFF 要另配瓦片服务才上得了图。
-教学场景不需要那套基础设施，所以这里把样例产物**矢量化**成三份文件：
+平台侧（Cesium / MapLibre）只认 GeoJSON/矢量。案例主体这一版导出的是**真实站点**：
 
-    output/geometry/water_change.geojson   变化面：loss / gain / stable（分级配色）
-    output/geometry/water_baseline.geojson 基线水面范围（讲"两期对比"用）
-    output/geometry/sites.geojson          地点：PC1 分值、达标种群数、是否优先
+    output/geometry/priority_sites.geojson   147 处优先湿地（点，属性齐全）
+    output/geometry/priority_sites_by_country.geojson  同上的分国别子集（按国家拆文件，便于按需加载）
 
-坐标一律 EPSG:4326（WGS84），属性里带 `synthetic: true` —— 界面上的"合成为示意"
-标注靠它，不能靠人记得。
+属性里带 `synthetic: false` 与 `source`：坐标与分值来自论文补充材料 Table 3（CC-BY），
+**不是**合成数据。原 NDWI 变化面（合成样例）的导出已移到
+`extensions/habitat_change/export_change_geojson.py`。
 
-    python export_geojson.py            # 先跑 run_case.py 再用它
+    python run_case.py && python export_geojson.py
 """
 
 from __future__ import annotations
@@ -23,70 +22,25 @@ from typing import Any
 
 HERE = Path(__file__).resolve().parent
 
-#: 变化栅格的类别 → 属性（与 skills.water_change_handler 的约定一致）
-CHANGE_CLASSES: dict[int, str] = {-1: "loss", 0: "stable", 1: "gain"}
-
-#: PC1 分级：与前端图例共用一套（前端只负责画，不自己定义分数区间）
+#: PC1 分级：与前端图例共用一套（前端只负责画，不自己定义分数区间）。
+#: 依据是原文的区域校准阈值（中国与蒙古 10、其余八国 1）与分值量级。
 PC1_BANDS: list[tuple[float, str]] = [
-    (0.5, "high"),
-    (0.25, "medium"),
+    (100.0, "very-high"),   # 承载该地点所依赖种群 100% 以上的等价比例
+    (10.0, "high"),
+    (1.0, "medium"),
     (0.0, "low"),
 ]
+PC1_BAND_LABELS = {"very-high": "极高（≥100）", "high": "高（10–100）",
+                   "medium": "中（1–10）", "low": "低（<1 或未公布分值）"}
 
 
-def pc1_band(value: float) -> str:
+def pc1_band(value: float | None) -> str:
+    if value is None:
+        return "low"
     for threshold, label in PC1_BANDS:
         if value >= threshold:
             return label
     return "low"
-
-
-def _feature(geometry: dict[str, Any], properties: dict[str, Any]) -> dict[str, Any]:
-    return {"type": "Feature", "geometry": geometry, "properties": properties}
-
-
-def vectorize_raster(path: Path, *, keep: list[int] | None = None) -> dict[str, Any]:
-    """栅格 → MultiPolygon 分级要素（用 rasterio 的 shapes，不自造追踪算法）。"""
-    rasterio = __import__("rasterio")
-    from rasterio import features
-
-    with rasterio.open(path) as src:
-        # rasterio 的 shapes 不接受 int8（变化栅格就是 int8）：升到 int16 再矢量化
-        data = src.read(1).astype("int16")
-        transform = src.transform
-        crs = str(src.crs) if src.crs else None
-        count = src.count
-    if count != 1:
-        raise SystemExit(f"{path} 应为单波段，实际 {count} 波段")
-
-    wanted = set(keep) if keep is not None else set(CHANGE_CLASSES)
-    buckets: dict[int, list[list[list[list[float]]]]] = {}
-    for geometry, value in features.shapes(data, transform=transform):
-        value = int(value)
-        if value not in wanted or value not in CHANGE_CLASSES:
-            continue
-        buckets.setdefault(value, []).append(geometry["coordinates"])
-
-    out_features = []
-    for value, polygons in sorted(buckets.items()):
-        pixels = int((data == value).sum())
-        out_features.append(_feature(
-            {"type": "MultiPolygon", "coordinates": polygons},
-            {
-                "class": CHANGE_CLASSES[value],
-                "class_code": value,
-                "pixels": pixels,
-                "synthetic": True,
-            },
-        ))
-    # RFC 7946 已经不认 GeoJSON 里的 crs 成员（规定必须是 WGS84），而 Cesium 会把
-    # 字符串型的 crs 当对象解析并抛 "crs.properties is undefined"。
-    # 所以这里**不写 crs**，坐标一律 EPSG:4326，投影信息只放在 manifest.json 里。
-    del crs
-    return {
-        "type": "FeatureCollection",
-        "features": out_features,
-    }
 
 
 def _read_csv(path: Path) -> list[dict[str, str]]:
@@ -98,81 +52,108 @@ def _read_csv(path: Path) -> list[dict[str, str]]:
     return [dict(zip(header, row)) for row in rows[1:]]  # noqa: B905 (py3.9)
 
 
-def sites_features(sites_csv: Path, priority_csv: Path) -> dict[str, Any]:
-    """地点点要素：坐标来自 sites.csv，分值来自 priority_sites.csv（按 site_id 合并）。"""
-    sites = {row["site_id"]: row for row in _read_csv(sites_csv)}
-    scores = {row["site_id"]: row for row in _read_csv(priority_csv)}
+def _feature(geometry: dict[str, Any], properties: dict[str, Any]) -> dict[str, Any]:
+    return {"type": "Feature", "geometry": geometry, "properties": properties}
+
+
+def sites_features(sites_csv: Path, species_csv: Path | None = None) -> dict[str, Any]:
+    """147 处优先湿地 → 点要素。
+
+    属性刻意与论文的字段一一对应，方便地图上按"沿海/内陆""是否与保护地重叠""PC1 分值"
+    着色与缩放；`species_count` 等来自补充材料同一张表。
+    """
+    species_by_site: dict[str, list[str]] = {}
+    if species_csv and species_csv.exists():
+        for row in _read_csv(species_csv):
+            species_by_site.setdefault(row["site_id"], []).append(
+                row["english"] or row["scientific"])
     features = []
-    for site_id, score in scores.items():
-        site = sites.get(site_id)
-        if not site:
-            continue
-        pc1 = float(score.get("pc1") or 0)
+    for row in _read_csv(sites_csv):
+        pc1 = float(row["pc1"]) if row.get("pc1") else None
+        rank = int(float(row["rank"])) if row.get("rank") else None
+        names = species_by_site.get(row["site_id"], [])
         features.append(_feature(
-            {"type": "Point", "coordinates": [float(site["lon"]), float(site["lat"])]},
+            {"type": "Point", "coordinates": [float(row["lon"]), float(row["lat"])]},
             {
-                "site_id": site_id,
-                "name": site.get("site_name") or site_id,
-                "kind": site.get("kind") or None,
-                "protected_status": site.get("protected_status") or None,
+                "site_id": row["site_id"],
+                "name": row["name"],
+                "country": row["country"],
+                "province": row.get("section") or None,
+                "wetland_type": row.get("wetland_type") or None,
+                "type_source": row.get("type_source") or None,
+                "protected": row.get("overlaps_protected_bold") == "True",
+                "designations": row.get("designations") or None,
+                "ramsar": row.get("has_ramsar") == "True",
+                "flyway_network": row.get("has_flyway_network") == "True",
                 "pc1": pc1,
                 "pc1_band": pc1_band(pc1),
-                "priority": str(score.get("priority", "")).upper() == "TRUE",
-                "species_meeting_1pct": int(float(score.get("species_meeting_1pct") or 0)),
-                "threatened_species_meeting_1pct":
-                    int(float(score.get("threatened_species_meeting_1pct") or 0)),
-                "top_species": score.get("top_species") or None,
-                "synthetic": True,
+                "rank": rank,
+                "species_meeting_1pct": int(float(row.get("species_count") or 0)),
+                "over_10pct": row.get("over_10pct") == "True",
+                "over_50pct": row.get("over_50pct") == "True",
+                "threatened": row.get("threatened") or None,
+                "top_species": "、".join(names[:5]) or None,
+                "synthetic": False,
+                "source": "Scientific Reports 16:1916 (2026) Supplementary Table 3",
             },
         ))
     return {"type": "FeatureCollection", "features": features}
 
 
-def export(workdir: Path, *, out_dir: Path | None = None) -> dict[str, Any]:
+def export(workdir: Path, *, out_dir: Path | None = None,
+           data_dir: Path | None = None) -> dict[str, Any]:
     out = out_dir or (workdir / "geometry")
     out.mkdir(parents=True, exist_ok=True)
+    data = data_dir or (HERE / "data" / "rfi")
+    sites_csv = data / "sites.csv"
+    if not sites_csv.exists():
+        raise SystemExit(f"找不到 {sites_csv}；先用 extract_supp_table3.py 生成站点数据集")
 
-    change_raster = workdir / "water_change.tif"
-    baseline_mask = workdir / "water_mask_2010.tif"
-    if not change_raster.exists():
-        raise SystemExit(f"找不到 {change_raster}；先跑 `python run_case.py`")
+    sites = sites_features(sites_csv, data / "site_species.csv")
+    (out / "priority_sites.geojson").write_text(
+        json.dumps(sites, ensure_ascii=False), encoding="utf-8")
 
-    files: dict[str, Any] = {}
-    change = vectorize_raster(change_raster, keep=[-1, 1])  # stable 面积太大，默认不画
-    (out / "water_change.geojson").write_text(
-        json.dumps(change, ensure_ascii=False), encoding="utf-8")
-    files["water_change"] = {
-        "path": str(out / "water_change.geojson"),
-        "features": len(change["features"]),
-        "classes": [f["properties"]["class"] for f in change["features"]],
-    }
-
-    if baseline_mask.exists():
-        baseline = vectorize_raster(baseline_mask, keep=[1])
-        for feature in baseline["features"]:
-            feature["properties"]["class"] = "water"
-        (out / "water_baseline.geojson").write_text(
-            json.dumps(baseline, ensure_ascii=False), encoding="utf-8")
-        files["water_baseline"] = {"path": str(out / "water_baseline.geojson"),
-                                   "features": len(baseline["features"])}
-
-    sites_csv = workdir / "data" / "yellow-sea" / "sites.csv"
-    priority_csv = workdir / "priority_sites.csv"
-    if sites_csv.exists() and priority_csv.exists():
-        sites = sites_features(sites_csv, priority_csv)
-        (out / "sites.geojson").write_text(json.dumps(sites, ensure_ascii=False), encoding="utf-8")
-        files["sites"] = {
-            "path": str(out / "sites.geojson"),
-            "features": len(sites["features"]),
-            "legend": {"pc1_bands": [{"min": t, "band": b} for t, b in PC1_BANDS]},
-        }
+    by_country: dict[str, list[dict[str, Any]]] = {}
+    for feature in sites["features"]:
+        by_country.setdefault(feature["properties"]["country"], []).append(feature)
+    for country, feats in by_country.items():
+        slug = country.lower().replace(" ", "-")
+        (out / f"priority_sites_{slug}.geojson").write_text(
+            json.dumps({"type": "FeatureCollection", "features": feats}, ensure_ascii=False),
+            encoding="utf-8")
 
     manifest = {
         "case": "geocard.case.eaaf-wetland-priority",
-        "synthetic": True,
+        "synthetic": False,
         "crs": "EPSG:4326",
-        "note": "全部几何来自合成/示意数据，仅用于平台可视化与教学演示",
-        "files": files,
+        "source": {
+            "citation": "Crosby et al. Identifying priority wetland sites in the East "
+                        "Asian–Australasian Flyway for migratory bird conservation. "
+                        "Scientific Reports 16, 1916 (2026)",
+            "doi": "10.1038/s41598-025-31727-2",
+            "table": "Supplementary Table 3（CC-BY 4.0）",
+        },
+        "note": "站点坐标与 PC1 分值为论文公开发表的结果；支撑 PC1 的逐笔计数数据受许可限制未公开。",
+        "files": {
+            "priority_sites": {
+                "path": str(out / "priority_sites.geojson"),
+                "features": len(sites["features"]),
+                "legend": {
+                    "wetland_type": {"coastal": "沿海", "inland": "内陆"},
+                    "protected": {"true": "与保护地重叠（原文粗体标记）",
+                                  "false": "未与保护地重叠"},
+                    "pc1_bands": [{"min": t, "band": b, "label": PC1_BAND_LABELS[b]}
+                                  for t, b in PC1_BANDS],
+                },
+            },
+            "by_country": {country: {"file": f"priority_sites_{country.lower().replace(' ', '-')}.geojson",
+                                     "features": len(feats)}
+                           for country, feats in by_country.items()},
+        },
+        "caveats": [
+            "正文 Table 4 记 108 处受保护或部分受保护，补充材料粗体标记为 117 处，原文未解释差异。",
+            "蒙古 11 处原文给的是名次（rank）而非 PC1 分值；我国内陆 15 处只有叙述性说明。",
+        ],
     }
     (out / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -182,14 +163,18 @@ def export(workdir: Path, *, out_dir: Path | None = None) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="把案例产物转成地图可用的 GeoJSON")
     parser.add_argument("--workdir", default=str(HERE / "output"))
-    parser.add_argument("--out", default=None)
+    parser.add_argument("--data-dir", default=str(HERE / "data" / "rfi"))
+    parser.add_argument("--out", default=str(HERE / "output" / "geometry"))
     args = parser.parse_args(argv)
-    manifest = export(Path(args.workdir), out_dir=Path(args.out) if args.out else None)
+    manifest = export(Path(args.workdir), out_dir=Path(args.out), data_dir=Path(args.data_dir))
     print("GeoJSON 已生成：")
     for key, info in manifest["files"].items():
-        extra = f"（{info['features']} 个要素）" if "features" in info else ""
-        print(f"  {key:16s} {info['path']} {extra}")
-    print("  注意：坐标为 EPSG:4326，属性里带 synthetic=true")
+        if key == "by_country":
+            for country, meta in info.items():
+                print(f"  {country:14s} {meta['file']} （{meta['features']} 个要素）")
+            continue
+        print(f"  {key:16s} {info['path']} （{info['features']} 个要素）")
+    print("  坐标 EPSG:4326；属性 synthetic=false，来源为论文补充材料 Table 3")
     return 0
 
 

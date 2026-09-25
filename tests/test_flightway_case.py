@@ -1,8 +1,13 @@
-"""候鸟—湿地案例：契约、方法链路与可见性分层的测试。
+"""RFI 优先湿地案例：契约、五步链路与可见性分层的测试。
 
-这个案例的价值在于它是一条**真链路**（合成数据 → 四个算子 → 三个交付物），
-所以测试不 mock 算子：直接跑，断言"算出来的东西形状与量级正确"，
-以及契约层面的规则（参数范围、fixed 参数、组成可见性）确实生效。
+这个案例的价值在于它按**论文真正的方法**跑（框架比较 → 数据汇集 → PC1 取舍 →
+刻画与 χ² → 报告），数据是论文公开的站点级结果。测试不 mock 算子：直接跑，
+断言"结论与原文公开数字一致"，以及契约层面的规则（参数镜像、fixed 参数、可见性继承）。
+
+这里同时锁住两件容易被"顺手改好"的事：
+  · 原文两份公开材料之间的不一致（补充材料粗体 117 处 vs 正文 Table 4 的 108 处；
+    2 处我国站点低于阈值却仍在名单内）必须**照原样报出来**，不许悄悄对齐；
+  · 受限的逐笔计数数据必须仍然让整案对访客不可见（可见性继承）。
 """
 
 from __future__ import annotations
@@ -15,12 +20,8 @@ from pathlib import Path
 import pytest
 
 from geonexus.geocard import load_geocard
-from geonexus.geomcp import build_request
-from geonexus.geomcp.server import GeoMCPServer
 from geonexus.recipe import (
-    STATUS_APPROVED,
     RecipeParamError,
-    RecipeRegistry,
     load_recipe,
     materialize,
 )
@@ -28,13 +29,15 @@ from geonexus.recipe import (
 CASE_DIR = Path(__file__).resolve().parent.parent / "examples" / "flightway_wetland"
 CARD = CASE_DIR / "case.card.yaml"
 RECIPE = CASE_DIR / "recipe.yaml"
+DATA = CASE_DIR / "data" / "rfi"
+EXTENSION_DIR = CASE_DIR / "extensions" / "habitat_change"
 
 
-def _load_module(name: str):
+def _load_module(name: str, directory: Path = CASE_DIR):
     """导入案例目录里的脚本（它们不是包，只是可执行示例）。"""
-    if str(CASE_DIR) not in sys.path:
-        sys.path.insert(0, str(CASE_DIR))
-    path = CASE_DIR / f"{name}.py"
+    if str(directory) not in sys.path:
+        sys.path.insert(0, str(directory))
+    path = directory / f"{name}.py"
     spec = importlib.util.spec_from_file_location(f"flightway_{name}", path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
@@ -43,28 +46,29 @@ def _load_module(name: str):
 
 
 @pytest.fixture(scope="module")
-def sample_data(tmp_path_factory) -> Path:
-    """生成一份样例数据（合成，固定种子）。"""
-    make_sample_data = _load_module("make_sample_data")
-    out = tmp_path_factory.mktemp("flightway-data")
-    make_sample_data.generate(out, region="yellow-sea", seed=20260925)
-    return out / "yellow-sea"
+def rfi_skills():
+    return _load_module("rfi_skills")
 
 
 @pytest.fixture(scope="module")
-def executed_case(tmp_path_factory, sample_data) -> dict:
+def executed_case(tmp_path_factory, rfi_skills) -> dict:
     """按方案真跑一遍，返回运行清单（与 `run_case.py --json` 同一形状）。"""
     import shutil
 
     run_case = _load_module("run_case")
-    workdir = tmp_path_factory.mktemp("flightway-run")
-    shutil.copytree(sample_data.parent, workdir / "data")
+    workdir = tmp_path_factory.mktemp("rfi-run")
+    shutil.copytree(DATA, workdir / "data" / "rfi")
 
     card = load_geocard(CARD)
     recipe = load_recipe(RECIPE)
     params = {
-        "region": "yellow-sea", "baseline_year": 2010, "target_year": 2024,
-        "ndwi_threshold": 0.0, "pc1_threshold": 0.2, "min_count": 0,
+        "data_dir": "data/rfi",
+        "threshold_prc_mongolia": 10.0,
+        "threshold_others": 1.0,
+        "include_expert_exceptions": True,
+        "include_published_sites": True,
+        "one_percent_rule": True,
+        "counts": "",
         "report_format": "html",
     }
     plan = materialize(recipe, params, run_id="test-run")
@@ -84,14 +88,16 @@ def test_card_and_recipe_validate() -> None:
     card = load_geocard(CARD)
     card.validate()
     assert card.type == "workflow"
-    assert card.recipe_ref.recipe_id == "recipe://geonexus/eaaf-wetland-priority@1.0.0"
-    assert card.recipe_ref.version == "1.0.0"
-    assert card.recipe_ref.data_snapshot  # 没有数据快照就无法区分"重跑"与"数据变了"
-    assert card.provenance.source.startswith("https://mp.weixin.qq.com/")
+    assert card.recipe_ref.recipe_id == "recipe://geonexus/eaaf-wetland-priority@2.0.0"
+    assert card.recipe_ref.version == "2.0.0"
+    assert card.recipe_ref.data_snapshot          # 没有数据快照就无法区分"重跑"与"数据变了"
+    # 出处是论文本身（DOI），不再是科普文章 —— 案例要能指回一手来源
+    assert card.provenance.source == "https://doi.org/10.1038/s41598-025-31727-2"
     recipe = load_recipe(RECIPE)
     recipe.validate()
     assert recipe.entry() == "s1"
-    assert recipe.deliverable_names() == ["water_change_map", "priority_sites", "report"]
+    assert recipe.deliverable_names() == [
+        "priority_sites", "priority_selection", "country_characteristics", "report"]
 
 
 def test_card_params_mirror_the_recipe_params() -> None:
@@ -103,228 +109,228 @@ def test_card_params_mirror_the_recipe_params() -> None:
     assert set(card_params) == set(recipe_params)
     for name, spec in recipe_params.items():
         mirror = card_params[name]
-        assert mirror.type == spec.type
-        assert mirror.scope == spec.scope
-        assert mirror.default == spec.default
-        assert mirror.minimum == spec.minimum and mirror.maximum == spec.maximum
-        assert list(mirror.enum) == list(spec.enum)
+        assert mirror.type == spec.type, name
+        assert mirror.scope == spec.scope, name
+        assert mirror.default == spec.default, name
+        assert mirror.minimum == spec.minimum and mirror.maximum == spec.maximum, name
+        assert list(mirror.enum) == list(spec.enum), name
 
 
 def test_the_one_percent_rule_is_a_definition_not_a_knob() -> None:
     """1% 规则是定义：`scope: fixed`；改它必须被拒。"""
     recipe = load_recipe(RECIPE)
-    fixed = recipe.param("one_percent_rule")
-    assert fixed is not None and fixed.scope == "fixed" and fixed.default is True
-    assert "1%" in (fixed.description or "")
-    with pytest.raises(RecipeParamError) as exc:
-        # 试着把它关掉 —— 关掉算出来的就不是 PC1
-        recipe_one = materialize(recipe, {"one_percent_rule": False}, run_id="r")
-        del recipe_one
-    assert exc.value.code == "param_fixed"
-
-
-def test_param_contract_rejects_out_of_range_values() -> None:
-    recipe = load_recipe(RECIPE)
-    with pytest.raises(RecipeParamError) as exc:
-        materialize(recipe, {"ndwi_threshold": 3.0}, run_id="r")
-    assert (exc.value.field, exc.value.code) == ("ndwi_threshold", "param_out_of_range")
+    fixed = {p.name: p for p in recipe.params}["one_percent_rule"]
+    assert fixed.scope == "fixed"
     with pytest.raises(RecipeParamError):
-        materialize(recipe, {"region": "amazon"}, run_id="r")
-    # 默认值能把整条链填满，不需要调用方逐个给
-    plan = materialize(recipe, {}, run_id="r")
-    assert plan.params["pc1_threshold"] == 0.2
-    assert plan.params["one_percent_rule"] is True
+        materialize(recipe, {"one_percent_rule": False})
 
 
-def test_recipe_is_usable_from_the_catalogue_and_geo_plan() -> None:
-    """平台侧看到的入口：目录里有它，且 `geo.plan` 能物化出任务图。"""
-    registry = RecipeRegistry()
-    registry.register(load_recipe(RECIPE), status=STATUS_APPROVED, provider_url="http://node-a")
-    server = GeoMCPServer(name="case-node", recipe_registry=registry)
-    response = server._dispatcher.dispatch(build_request(
-        "geo.plan",
-        {"recipe": "recipe://geonexus/eaaf-wetland-priority", "params": {"region": "yangtze"},
-         "run_id": "plan-1"},
-        id="p1",
-    ))
-    result = response["result"]
-    steps = [t["step"] for t in result["tasks"]]
-    assert sorted(steps) == ["s1", "s2", "s3", "s4", "s5"]
-    # 顺序必须是**合法拓扑序**：s3 依赖 s1+s2、s5 依赖 s2+s3+s4
-    position = {step: index for index, step in enumerate(steps)}
-    assert position["s1"] < position["s3"] and position["s2"] < position["s3"]
-    assert position["s2"] < position["s5"] and position["s3"] < position["s5"]
-    assert position["s4"] < position["s5"]
-    assert result["params"]["region"] == "yangtze"
-    assert set(result["deliverables"]) == {"water_change_map", "priority_sites", "report"}
-    # 路径里的模板已经求值，执行器拿到的是可直接用的相对路径
-    s1 = next(t for t in result["tasks"] if t["step"] == "s1")
-    assert s1["params"]["stack"] == "data/yangtze/stack_2010.tif"
+def test_the_regional_calibration_is_a_knob() -> None:
+    """区域校准阈值（中国/蒙古 10、其余八国 1）是作者的方法学选择，不是定义 —— 必须可改。"""
+    recipe = load_recipe(RECIPE)
+    params = {p.name: p for p in recipe.params}
+    assert params["threshold_prc_mongolia"].scope != "fixed"
+    assert params["threshold_prc_mongolia"].default == 10.0
+    assert params["threshold_others"].default == 1.0
+    plan = materialize(recipe, {"threshold_prc_mongolia": 1.0})
+    assert plan.run_id  # 能物化就说明参数没被 fixed 挡住
 
 
 # --------------------------------------------------------------------------- #
-# 真跑一遍
+# 数据：与原文公开数字逐项对照
+# --------------------------------------------------------------------------- #
+def test_site_dataset_matches_the_published_tables() -> None:
+    """147 处 · 10 国 · 沿海 91 / 内陆 56 —— 与论文 Table 4 完全一致。"""
+    import csv
+
+    with open(DATA / "sites.csv", encoding="utf-8") as handle:
+        sites = list(csv.DictReader(handle))
+    with open(DATA / "country_summary.csv", encoding="utf-8") as handle:
+        countries = list(csv.DictReader(handle))
+
+    assert len(sites) == 147
+    assert sum(1 for s in sites if s["wetland_type"] == "coastal") == 91
+    assert sum(1 for s in sites if s["wetland_type"] == "inland") == 56
+    expected = {"Bangladesh": 8, "Cambodia": 9, "PRC": 60, "Indonesia": 17, "Lao PDR": 3,
+                "Malaysia": 6, "Mongolia": 11, "Philippines": 12, "Thailand": 12, "Viet Nam": 9}
+    for row in countries:
+        got = sum(1 for s in sites if s["country"] == row["country"])
+        assert got == int(row["priority_sites"]) == expected[row["country"]], row["country"]
+    # 每处站点都有公开的中心坐标（否则地图上画不出来）
+    assert all(s["lat"] and s["lon"] for s in sites)
+
+
+def test_the_papers_two_published_protection_numbers_are_both_kept() -> None:
+    """补充材料粗体 117 处 vs 正文 Table 4 的 108 处：不许悄悄对齐成同一个数。"""
+    import csv
+
+    with open(DATA / "sites.csv", encoding="utf-8") as handle:
+        sites = list(csv.DictReader(handle))
+    with open(DATA / "country_summary.csv", encoding="utf-8") as handle:
+        countries = list(csv.DictReader(handle))
+    bold = sum(1 for s in sites if s["overlaps_protected_bold"] == "True")
+    table4 = sum(int(c["protected_or_partial"]) for c in countries)
+    assert bold == 117 and table4 == 108 and bold != table4
+    provenance = (DATA / "PROVENANCE.md").read_text(encoding="utf-8")
+    assert "117" in provenance and "108" in provenance   # 差异必须写在数据说明里
+
+
+# --------------------------------------------------------------------------- #
+# 五步链路
 # --------------------------------------------------------------------------- #
 def test_every_step_succeeds(executed_case) -> None:
     runs = executed_case["execution"]["runs"]
-    assert [r["step"] for r in runs] == ["s1", "s2", "s3", "s4", "s5"] or \
-        sorted(r["step"] for r in runs) == ["s1", "s2", "s3", "s4", "s5"]
+    assert [r["step"] for r in runs] == ["s1", "s2", "s3", "s4", "s5"]
     assert all(r["status"] == "ok" for r in runs), runs
+    assert [r["skill"] for r in runs] == [
+        "rfi-framework-review", "rfi-site-data", "rfi-pc1-select",
+        "rfi-characterise", "rfi-report"]
 
 
-def test_water_change_is_consistent(executed_case) -> None:
-    results = executed_case["execution"]["results"]
-    s2, s3 = results["s2"], results["s3"]
-    assert s2["water_area_km2"] > 0
-    assert s3["baseline_water_km2"] > s3["stable_water_km2"] >= 0
-    # 净变化 = 增加 − 损失；损失率 = 损失 / 基线
-    assert s3["net_change_km2"] == pytest.approx(
-        s3["gained_water_km2"] - s3["lost_water_km2"], abs=1e-6)
-    assert s3["loss_rate_pct"] == pytest.approx(
-        s3["lost_water_km2"] / s3["baseline_water_km2"] * 100.0, abs=0.01)
-    # 合成数据刻意让目标年收缩：损失必须大于增加
-    assert s3["lost_water_km2"] > s3["gained_water_km2"]
+def test_framework_review_counts_match_the_paper(executed_case) -> None:
+    """三套框架在 10 国的站点数：Ramsar 148、EAAFP 网络 49、湿地 IBA/KBA 465（原文 Table 1）。"""
+    totals = executed_case["execution"]["results"]["s1"]["totals"]
+    assert totals == {"ramsar": 148, "flyway_network": 49, "wetland_iba_kba": 465}
 
 
-def test_pc1_ranks_and_thresholds(executed_case) -> None:
-    s4 = executed_case["execution"]["results"]["s4"]
-    assert s4["site_count"] == 8
-    scores = [s["pc1"] for s in s4["top_sites"]]
-    assert scores == sorted(scores, reverse=True), "top_sites 必须按 PC1 降序"
-    assert 0 < s4["top_sites"][0]["pc1"] < 2, "样例数据只有 20 个种群，PC1 量级不该超过个位数"
-    assert 0 <= s4["priority_count"] <= s4["site_count"]
-    assert s4["skipped_species"] == [], "计数表里的物种都应在种群量表里找得到"
+def test_site_data_step_validates_against_the_paper(executed_case) -> None:
+    s2 = executed_case["execution"]["results"]["s2"]
+    assert s2["validated"] is True and not s2["problems"]
+    funnel = s2["funnel"]
+    assert funnel["priority_sites"] == 147
+    assert funnel["candidate_sites"] == 467 and funnel["assessed_sites_min"] == 270
+    assert funnel["coastal"] == 91 and funnel["inland"] == 56
+    assert funnel["species_rows"] > 900          # 963 条"某站点达到 1% 的物种"记录
 
 
-def test_pc1_table_matches_the_scores(executed_case) -> None:
-    results = executed_case["execution"]["results"]
-    rows = (Path(results["s4"]["priority_table"]).read_text(encoding="utf-8")
-            .strip().splitlines())
-    header, *body = rows
-    assert header.startswith("rank,site_id,site_name")
-    assert len(body) == results["s4"]["site_count"]
-    first = body[0].split(",")
-    assert first[0] == "1" and float(first[4]) == pytest.approx(
-        results["s4"]["top_sites"][0]["pc1"], abs=1e-4)
-
-
-def test_water_change_raster_is_readable(executed_case) -> None:
-    rasterio = pytest.importorskip("rasterio")
-    path = Path(executed_case["execution"]["results"]["s3"]["change_raster"])
-    assert path.exists() and path.stat().st_size > 0
-    with rasterio.open(path) as src:
-        assert src.count == 1
-        assert src.dtypes[0] == "int8"
-        # 合成数据：目标年收缩 ⇒ 损失像元多于增加像元
-        lost = int((src.read(1) == -1).sum())
-        gained = int((src.read(1) == 1).sum())
-    assert lost > gained > 0
-
-
-# --------------------------------------------------------------------------- #
-# 交付物
-# --------------------------------------------------------------------------- #
-def test_deliverables_are_the_declared_conclusions(executed_case) -> None:
-    deliverables = {d["name"]: d for d in executed_case["deliverables"]}
-    assert set(deliverables) == {"water_change_map", "priority_sites", "report"}
-    for name, item in deliverables.items():
-        assert item["exists"], f"{name} 没有落盘"
-        assert item["size_bytes"] and item["size_bytes"] > 0
-        assert (item["checksum"] or "").startswith("sha256:")
-    assert deliverables["report"]["role"] == "knowledge"
-    assert deliverables["report"]["media_type"] == "text/html"
-    assert deliverables["water_change_map"]["role"] == "data"
-
-
-def test_report_carries_method_source_and_limits(executed_case) -> None:
-    report = Path(next(d for d in executed_case["deliverables"] if d["name"] == "report")["path"])
-    html = report.read_text(encoding="utf-8")
-    for section in ("结论", "方法", "优先地点", "数据来源与快照", "局限"):
-        assert section in html, f"报告缺少「{section}」"
-    assert "10.1038/s41598-025-31727-2" in html        # 方法来源可追溯
-    assert "合成" in html and "不得用于任何科研" in html  # 合成数据必须显式声明
-    assert "PC1" in html and "1%" in html
-    # 数值要真的进报告，而不是占位符
+def test_pc1_selection_reproduces_the_published_list(executed_case) -> None:
+    """按公开分值严格套用区域校准阈值得到 145 处；补上原文已列入的 2 处得 147 处。"""
     s3 = executed_case["execution"]["results"]["s3"]
-    assert f"{s3['lost_water_km2']:,.3f}" in html
+    assert s3["selected_count"] == 147
+    assert s3["rule_only_selected_count"] == 145
+    discrepancies = s3["threshold_discrepancies"]
+    assert {d["site"] for d in discrepancies} == {"Danzhou-Lingao coast", "Fangcheng coast"}
+    assert all(d["pc1"] < d["threshold"] for d in discrepancies)
 
 
-# --------------------------------------------------------------------------- #
-# 阈值语义（论文的区域校准 vs 样例尺度）
-# --------------------------------------------------------------------------- #
-def test_paper_threshold_yields_no_priority_site_on_sample_data(tmp_path, sample_data) -> None:
-    """用论文的区域校准阈值（10）跑样例数据：0 个入选。
-
-    这不是 bug，而是**尺度差异**的诚实体现：10 是在 270+ 个种群的迁飞区尺度上校准的，
-    样例只有 20 个物种。测试把这件事钉住，免得有人把默认值改成 10 之后以为链路坏了。
-    """
+def test_expert_exceptions_and_calibration_change_the_result(tmp_path) -> None:
+    """关掉专家例外、或把中国与蒙古的阈值降到 1，结果必须随之变化（阈值是真在用的）。"""
     import shutil
 
-    skills = _load_module("skills")
-    workdir = tmp_path / "run"
-    workdir.mkdir()
-    shutil.copytree(sample_data.parent, workdir / "data")
+    rfi_skills = _load_module("rfi_skills")
 
-    def score(threshold: float) -> dict:
-        from types import SimpleNamespace
+    class _Ctx:
+        def __init__(self, workdir):
+            self.workdir = workdir
 
-        context = SimpleNamespace(workdir=str(workdir))
-        return skills.pc1_priority_score_handler({
-            "counts": "data/yellow-sea/waterbird_counts.csv",
-            "populations": "data/yellow-sea/species_populations.csv",
-            "threshold": threshold, "one_percent": True, "min_count": 0,
-        }, context)
+    def run(**overrides):
+        workdir = tmp_path / f"run-{len(list(tmp_path.iterdir()))}"
+        shutil.copytree(DATA, workdir / "data" / "rfi")
+        params = {"data_dir": "data/rfi", "threshold_prc_mongolia": 10.0,
+                  "threshold_others": 1.0, "include_expert_exceptions": True,
+                  "include_published_sites": True}
+        params.update(overrides)
+        out = rfi_skills.pc1_select_handler(params, _Ctx(workdir))
+        return json.loads(Path(out["selection_json"]).read_text(encoding="utf-8"))
 
-    sample_calibrated = score(0.2)
-    paper_calibrated = score(10.0)
-    assert sample_calibrated["priority_count"] > 0
-    assert paper_calibrated["priority_count"] == 0
-    assert paper_calibrated["top_sites"][0]["pc1"] == sample_calibrated["top_sites"][0]["pc1"]
+    strict = run(include_published_sites=False)
+    assert strict["selected_count"] == 145                  # 纯规则：2 处我国站点落选
+    relaxed = run(threshold_prc_mongolia=1.0, include_published_sites=False)
+    assert relaxed["selected_count"] > 145                  # 取消区域校准会纳入更多北方站点
+    no_exceptions = run(include_expert_exceptions=False)
+    assert len(no_exceptions["exceptions_used"]) == 0
+
+
+def test_characterisation_reproduces_the_paper_chi_squares(executed_case) -> None:
+    """复算原文的三个 χ²：8.33（沿海/内陆）、32.39（保护状态）、72.53（HDI 三档）。"""
+    payload = json.loads(Path(
+        executed_case["execution"]["results"]["s4"]["characterisation_json"]
+    ).read_text(encoding="utf-8"))
+    stats = payload["statistics"]
+    assert stats["coastal_vs_inland"]["chi2"] == 8.33
+    assert stats["protection_status"]["chi2"] == 32.39
+    assert stats["hdi_tiers"]["chi2"] == 72.53
+    assert stats["coastal_vs_inland"]["df"] == 1
+    assert stats["hdi_tiers"]["df"] == 2
+    # 观测值与原文一致
+    assert stats["coastal_vs_inland"]["observed"] == [91, 56]
+    assert stats["protection_status"]["observed"] == [108, 39]
+    assert payload["hdi_counts"] == {"Very high": 18, "High": 97, "Medium": 32}
+
+
+def test_deliverables_are_the_declared_conclusions(executed_case) -> None:
+    deliverables = executed_case["deliverables"]
+    assert [d["name"] for d in deliverables] == [
+        "priority_sites", "priority_selection", "country_characteristics", "report"]
+    for item in deliverables:
+        assert item["exists"], item
+        assert item["size_bytes"] and item["size_bytes"] > 0
+        assert item["checksum"] and item["checksum"].startswith("sha256:")
+    roles = {d["name"]: d["role"] for d in deliverables}
+    assert roles["report"] == "knowledge"
+    assert set(roles.values()) == {"data", "knowledge"}
+
+
+def test_report_carries_method_limits_and_data_availability(executed_case) -> None:
+    path = next(d["path"] for d in executed_case["deliverables"] if d["name"] == "report")
+    html = Path(path).read_text(encoding="utf-8")
+    for needle in ["10.1038/s41598-025-31727-2",            # 出处
+                   "方法（原文五步）",                        # 方法
+                   "数据可用性",                              # 数据边界
+                   "没有数据",                                # 原文承认的局限
+                   "栖息地质量",                              # PC1 不含什么
+                   "117", "108"]:                            # 两个保护状态数字都在
+        assert needle in html, needle
+    # 报告必须明说 PC1 不是本报告重算的
+    assert "不重算" in html or "不复算" in html
 
 
 # --------------------------------------------------------------------------- #
 # 可见性分层
 # --------------------------------------------------------------------------- #
-def test_visibility_inherits_from_the_restricted_component(executed_case) -> None:
+def test_visibility_inherits_from_the_restricted_counts(executed_case) -> None:
+    """逐笔计数数据受限 ⇒ 拿不到它的人，整案不可见（平台应返回 404，不是 403）。"""
     card = executed_case["card"]
-    run_case = executed_case["run_case"]
-    author = run_case.visibility_report(card, restricted_hidden=False)
-    viewer = run_case.visibility_report(card, restricted_hidden=True)
-
-    # 案例自己的档位是 public，但组成里有一份受限点位 ⇒ 组合后取最严值
-    assert card.compliance is not None and card.compliance.sensitivity == "public"
-    assert author["visibility"] == "restricted"
+    report = executed_case["run_case"].visibility_report(card, restricted_hidden=True)
+    assert report["visible"] is False
+    assert "geocard.eaaf.waterbird-counts-restricted" in report["missing"]
+    author = executed_case["run_case"].visibility_report(card, restricted_hidden=False)
     assert author["visible"] is True
-    assert author["levels"]["geocard.eaaf.priority-sites-restricted"] == "restricted"
-
-    # 看不见那份点位的人，看不见这个案例（不存在与无权同等对待）
-    assert viewer["visible"] is False
-    assert viewer["missing"] == ["geocard.eaaf.priority-sites-restricted"]
-    assert viewer["visibility"] == "secret"
+    assert author["visibility"] == "restricted"
 
 
 def test_the_restricted_component_is_required() -> None:
-    """受限项必须是必需项：可选依赖不参与判定，那这条规则就白写了。"""
     card = load_geocard(CARD)
     restricted = [c for c in card.composition.components
-                  if c.id == "geocard.eaaf.priority-sites-restricted"]
-    assert len(restricted) == 1
-    assert restricted[0].required is True
+                  if c.id == "geocard.eaaf.waterbird-counts-restricted"]
+    assert restricted and restricted[0].required is True
+    # 公开的站点表不应被误标成受限：论文的补充材料本来就把经度纬度公开了
+    public = [c for c in card.composition.components
+              if c.id in ("geocard.eaaf.rfi-priority-sites", "geocard.eaaf.rfi-country-summary")]
+    assert len(public) == 2
 
 
 # --------------------------------------------------------------------------- #
-# 合成数据必须自带标记
+# 扩展：原文建议的后续方向（NDWI 栖息地变化）单独存放、仍然自证为合成数据
 # --------------------------------------------------------------------------- #
-def test_sample_data_is_labelled_synthetic(sample_data) -> None:
-    rasterio = pytest.importorskip("rasterio")
-    manifest = json.loads((sample_data / "sample-data.json").read_text(encoding="utf-8"))
-    assert manifest["synthetic"] is True
-    assert "不得用于任何科研结论" in manifest["caveat"]
-    with rasterio.open(sample_data / "stack_2010.tif") as src:
-        assert src.tags().get("GEONEXUS_SYNTHETIC") == "TRUE"
-        assert src.count == 2
-    counts = (sample_data / "waterbird_counts.csv").read_text(encoding="utf-8")
-    assert counts.splitlines()[0].startswith("site_id")     # 表头
-    assert "TRUE" in counts.splitlines()[1]                  # 每行都标 synthetic
-    populations = (sample_data / "species_populations.csv").read_text(encoding="utf-8")
-    assert populations.splitlines()[0].startswith("# GEONEXUS_SYNTHETIC=TRUE")
+def test_the_habitat_change_extension_is_kept_but_marked_as_not_the_paper_method() -> None:
+    recipe = load_recipe(EXTENSION_DIR / "recipe.yaml")
+    card = load_geocard(EXTENSION_DIR / "case.card.yaml")
+    recipe.validate()
+    card.validate()
+    assert recipe.id == "recipe://geonexus/eaaf-habitat-change@1.0.0"
+    readme = (EXTENSION_DIR / "README.md").read_text(encoding="utf-8")
+    assert "不是" in readme and "论文" in readme     # 必须写明它不是论文方法
+    # 案例主体的组成项里不能再出现合成影像/示意计数
+    main_card = load_geocard(CARD)
+    ids = {c.id for c in main_card.composition.components}
+    assert "geocard.eaaf.wetland-imagery-sample" not in ids
+    assert "geocard.eaaf.waterbird-counts-sample" not in ids
+
+
+def test_extracted_dataset_declares_its_provenance_and_licence() -> None:
+    text = (DATA / "PROVENANCE.md").read_text(encoding="utf-8")
+    assert "10.1038/s41598-025-31727-2" in text
+    assert "CC-BY" in text
+    assert "Supplementary Table 3" in text
+    assert "wetland_type" in text        # 推断字段要说明

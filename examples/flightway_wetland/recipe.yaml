@@ -1,57 +1,62 @@
 recipe_version: "1.0"
-id: recipe://geonexus/eaaf-wetland-priority@1.0.0
-name: 东亚—澳大利亚迁飞区 · 湿地水面变化与优先地点评估
+id: recipe://geonexus/eaaf-wetland-priority@2.0.0
+name: 东亚—澳大利亚迁飞区 · 优先湿地识别（按原文五步复现）
 description: >-
-  2 份数据 + 3 个算子 + 1 份报告：遥感水面变化（NDWI）与水鸟优先分值（PC1，含 1%
-  规则）合成一条可复用的评估链路。研究区、年份、阈值都可改；1% 规则不可改。
+  严格按 Crosby et al. 2026（Scientific Reports 16:1916）的五步流程组织：比较三套国际框架 →
+  汇集站点与水鸟数据 → 用 CSR1 的 1% 阈值与 PC1 及区域校准阈值取舍 → 与各国专家核定边界（人工步）
+  → 刻画沿海/内陆、保护状态与 HDI 并做 χ² 检验。逐笔水鸟计数数据受许可限制未公开，本方案复核
+  原文的取舍规则与统计量，不重算 PC1；可用 `counts` 参数导入受限数据走完整计算路径。
 license: CC-BY-4.0
-tags: [eaaf, waterbird, wetland, ndwi, pc1, synthetic-sample]
+tags: [eaaf, waterbird, wetland, rfi, pc1, csr1, real-data]
 
 params:
-  - name: region
-    type: enum
-    enum: [yellow-sea, yangtze, sanjiang]
-    default: yellow-sea
-    target: s1.params.region
-    description: 研究区（示意窗口）；数据按 data/<region>/ 取。
-  - name: baseline_year
-    type: integer
-    default: 2010
-    minimum: 1990
-    maximum: 2020
-    target: s1.params.year
-  - name: target_year
-    type: integer
-    default: 2024
-    minimum: 2000
-    maximum: 2030
-    target: s2.params.year
-  - name: ndwi_threshold
+  - name: data_dir
+    type: string
+    default: data/rfi
+    description: 站点级结果数据集目录（由 extract_supp_table3.py 从论文补充材料生成）。
+  - name: threshold_prc_mongolia
     type: number
-    default: 0.0
-    minimum: -1.0
-    maximum: 1.0
-    target: s1.params.threshold
-  - name: pc1_threshold
-    type: number
-    default: 0.2
+    default: 10.0
     minimum: 0.0
-    maximum: 20.0
-    target: s4.params.threshold
+    maximum: 200.0
+    target: s3.params.threshold_prc_mongolia
     description: >-
-      样例数据默认 0.2；论文的区域校准是中国/蒙古 10、其余八国 1（那是 270+ 种群
-      尺度上的阈值）。接入真实种群量后改回 10。
+      原文第七节的区域校准：中国与蒙古 PC1 入选阈值取 10（作者依据专家评审）。改小会纳入更多
+      北方站点，名单不再是原文那一份 —— 这是敏感性分析用的，不是默认值。
+  - name: threshold_others
+    type: number
+    default: 1.0
+    minimum: 0.0
+    maximum: 200.0
+    target: s3.params.threshold_others
+    description: 其余八国的 PC1 入选阈值（原文取 1）。
+  - name: include_expert_exceptions
+    type: boolean
+    default: true
+    target: s3.params.include_expert_exceptions
+    description: >-
+      是否纳入原文点名的三处蒙古专家例外（Tolbo 9.4 / Terkhiin Tsagaan 6.0 / Buir 8.0）。
+      关掉它，中国与蒙古就纯粹按 PC1 ≥ 10 取舍。
+  - name: include_published_sites
+    type: boolean
+    default: true
+    target: s3.params.include_published_sites
+    description: >-
+      公开结果为准：原文补充材料已列为优先站点、但按公开分值严格套用阈值应落选的站点是否保留。
+      关掉它得到"纯规则"结果（145 处）；开着得到原文名单（147 处）。差异逐条写进报告。
   - name: one_percent_rule
     type: boolean
     scope: fixed
     default: true
-    target: s4.params.one_percent
-    description: 1% 规则是不可调的定义，不是参数。
-  - name: min_count
-    type: integer
-    default: 0
-    minimum: 0
-    target: s4.params.min_count
+    target: s3.params.one_percent
+    description: 1% 规则（Ramsar 第 6 条）是定义，不是可调阈值 —— 关掉它算出来的就不是 PC1。
+  - name: counts
+    type: string
+    default: ""
+    target: s3.params.counts
+    description: >-
+      可选：受限的逐笔水鸟计数数据集（字段见补充材料 Table 1）。给了它才走
+      count → CSR1 score → PC1 的完整计算；不给则只复核原文的取舍规则与统计量。
   - name: report_format
     type: enum
     enum: [html]
@@ -59,116 +64,121 @@ params:
     target: s5.params.format
 
 requires:
-  - geocard.eaaf.wetland-imagery-sample
-  - geocard.eaaf.waterbird-counts-sample
-  # 精确点位是**本案的组成项**，即使当前的可执行链路只算到"每个地点的分值"：
-  # 分值要落到地图上就要用到坐标表。把它写进 requires 还有第二个作用 ——
-  # 它受限，于是引用它的组合案例对访客也不可见（可见性继承）。
-  - geocard.eaaf.priority-sites-restricted
+  # 公开数据组成项：站点级结果、国别汇总、框架站点数（都来自论文公开的表格）
+  - geocard.eaaf.rfi-priority-sites
+  - geocard.eaaf.rfi-country-summary
+  # 受限组成项：支撑 PC1 的逐笔计数数据（Wetlands International 许可，未公开）。
+  # 引用它的组合案例对访客不可见 —— 这正是可见性继承要演示的行为。
+  - geocard.eaaf.waterbird-counts-restricted
 
 steps:
   - id: s1
     kind: skill
-    uses: wetland-water-extent
-    description: 基线年水面提取（NDWI = Green−NIR / Green+NIR）。
+    uses: rfi-framework-review
+    description: 比较 Ramsar / EAAFP 迁飞区网络 / IBA-KBA 三套框架及其水鸟相关标准（原文第一步）。
     params:
-      stack: data/${params.region}/stack_${params.baseline_year}.tif
-      year: ${params.baseline_year}
-      threshold: ${params.ndwi_threshold}
+      data_dir: ${params.data_dir}
     outputs:
-      water_mask: 基线年水面掩膜（uint8，1=水）
-      stats_json: 基线年水面统计（面积/占比/阈值）
-    resources: {cpu: 1, memory_mb: 1024}
-    timeout_seconds: 600
+      framework_table: 框架站点数对比表（CSV）
+      framework_json: 框架比较明细（JSON，含 Ramsar 第 2/4/5/6 条）
+    resources: {cpu: 1, memory_mb: 256}
+    timeout_seconds: 120
 
   - id: s2
     kind: skill
-    uses: wetland-water-extent
-    description: 目标年水面提取（同一阈值，保证两期可比）。
+    uses: rfi-site-data
+    depends_on: [s1]
+    description: 汇集 147 处优先湿地的站点级数据，并校验它与原文公开数字是否一致（第二步）。
     params:
-      stack: data/${params.region}/stack_${params.target_year}.tif
-      year: ${params.target_year}
-      threshold: ${params.ndwi_threshold}
+      data_dir: ${params.data_dir}
     outputs:
-      water_mask: 目标年水面掩膜（uint8，1=水）
-      stats_json: 目标年水面统计
+      sites_table: 规范化站点表（CSV，147 行）
+      funnel_json: 候选→评估→入选漏斗与校验结论（JSON）
+    resources: {cpu: 1, memory_mb: 512}
+    timeout_seconds: 300
 
   - id: s3
     kind: skill
-    uses: wetland-water-change
-    depends_on: [s1, s2]
-    description: 两期水面逐像元对比：损失 / 增加 / 净变化 / 损失率。
+    uses: rfi-pc1-select
+    depends_on: [s2]
+    description: >-
+      复核 PC1 取舍规则：中国与蒙古阈值 10、其余八国 1，另加 3 处蒙古专家例外；
+      给出"能否重现 147 处"的结论（第三步）。
     params:
-      baseline_year: ${params.baseline_year}
-      target_year: ${params.target_year}
-    inputs:
-      baseline_mask: step://s1/water_mask
-      target_mask: step://s2/water_mask
+      data_dir: ${params.data_dir}
+      threshold_prc_mongolia: ${params.threshold_prc_mongolia}
+      threshold_others: ${params.threshold_others}
+      include_expert_exceptions: ${params.include_expert_exceptions}
+      one_percent: ${params.one_percent_rule}
+      include_published_sites: ${params.include_published_sites}
+      counts: ${params.counts}
     outputs:
-      change_raster: 变化栅格（-1 损失 / 0 稳定 / 1 增加）
-      summary_json: 变化统计（km² 与损失率）
-    resources: {cpu: 1, memory_mb: 1024}
+      selection_table: 逐站点取舍表（CSV，含所用阈值与理由）
+      selection_json: 取舍规则与结果（JSON）
+    resources: {cpu: 1, memory_mb: 512}
+    timeout_seconds: 300
 
   - id: s4
     kind: skill
-    uses: waterbird-priority-score
-    description: >-
-      PC1 优先分值：对每个达到国际重要数量（≥ 种群 1%）的种群，累加「本地点个体数 ÷
-      种群总量」，再按阈值判定优先地点。
+    uses: rfi-characterise
+    depends_on: [s3]
+    description: 刻画沿海/内陆、保护状态与 HDI 档，并用 χ² 复算原文的三个统计量（第五步）。
     params:
-      counts: data/${params.region}/waterbird_counts.csv
-      populations: data/${params.region}/species_populations.csv
-      threshold: ${params.pc1_threshold}
-      one_percent: ${params.one_percent_rule}
-      min_count: ${params.min_count}
+      data_dir: ${params.data_dir}
     outputs:
-      priority_table: 优先地点表（PC1、达标种群数、是否优先）
-      scores_json: 完整分值（含各达标种群的比例）
-    resources: {cpu: 1, memory_mb: 512}
+      country_table: 国别刻画表（CSV）
+      characterisation_json: 刻画结果与 χ²（JSON）
+    resources: {cpu: 1, memory_mb: 256}
+    timeout_seconds: 300
 
   - id: s5
     kind: skill
-    uses: wetland-report
-    depends_on: [s2, s3, s4]
-    description: 渲染结论报告（结论/方法/优先地点/来源/局限）。
+    uses: rfi-report
+    depends_on: [s1, s2, s3, s4]
+    description: 按论文形态渲染报告（框架/漏斗/国别表/物种/χ²/局限/数据可用性）。
     params:
-      region: ${params.region}
-      baseline_year: ${params.baseline_year}
-      target_year: ${params.target_year}
-      threshold: ${params.pc1_threshold}
-      synthetic: true
+      data_dir: ${params.data_dir}
       source:
         citation: "Identifying priority wetland sites in the East Asian–Australasian Flyway for migratory bird conservation"
         doi: "10.1038/s41598-025-31727-2"
+        journal: "Scientific Reports 16, 1916 (2026)"
       data_snapshot:
-        sample_data: synthetic-20260925
+        site_level: supplementary-table-3
+        counts: restricted-not-public
     inputs:
-      water: step://s2/stats_json
-      change: step://s3/summary_json
-      priority: step://s4/scores_json
+      framework: step://s1/framework_json
+      funnel: step://s2/funnel_json
+      selection: step://s3/selection_json
+      characterisation: step://s4/characterisation_json
     outputs:
-      report: 结论报告（HTML）
+      report: 评估报告（HTML）
     timeout_seconds: 300
 
 entrypoint: s1
 
 outputs:
-  - name: water_change_map
-    from: s3.change_raster
-    role: data
-    media_type: image/tiff
-    description: 水面变化栅格——损失/增加的空间形态。
   - name: priority_sites
-    from: s4.priority_table
+    from: s2.sites_table
     role: data
     media_type: text/csv
-    description: 优先地点表——PC1 分值可逐项核对。
+    description: 147 处优先湿地站点表（名称、坐标、PC1、达到 1% 的物种数、保护地标记）。
+  - name: priority_selection
+    from: s3.selection_table
+    role: data
+    media_type: text/csv
+    description: 逐站点取舍表 —— 每个站点用了哪个阈值、为什么入选或落选。
+  - name: country_characteristics
+    from: s4.country_table
+    role: data
+    media_type: text/csv
+    description: 国别刻画表 —— 沿海/内陆、保护状态、HDI 档与补充材料粗体标记的对照。
   - name: report
     from: s5.report
     role: knowledge
     media_type: text/html
-    description: 评估报告——结论、方法与局限。
+    description: 评估报告 —— 结论、方法、统计检验、局限与数据可用性。
 
 data_snapshot:
-  sample_data: synthetic-20260925
-  method: "Scientific Reports 2026 (DOI 10.1038/s41598-025-31727-2)"
+  site_level: supplementary-table-3        # 论文补充材料（公开，CC-BY）
+  counts: restricted-not-public            # Wetlands International 许可，未公开
+  method: "Scientific Reports 16:1916 (2026), DOI 10.1038/s41598-025-31727-2"

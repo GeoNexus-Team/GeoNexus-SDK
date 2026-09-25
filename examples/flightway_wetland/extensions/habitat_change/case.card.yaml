@@ -1,0 +1,137 @@
+geocard_version: "1.0"
+id: geocard.case.eaaf-habitat-change-demo
+type: workflow
+name: 扩展演示 · 湿地水面变化与优先地点评估（合成样例）
+description: >-
+  把一个横跨 10 国的候鸟保护研究，组织成一条能跑的案例：遥感水面变化（NDWI）
+  加上水鸟优先分值（PC1，含 1% 规则），产出可下载的结论报告。数据为合成样例，
+  真实数据按 README 的「数据槽位」表替换。
+tags:
+  - eaaf
+  - waterbird
+  - wetland
+  - flyway
+  - synthetic-sample
+
+spatial:
+  bbox: [120.30, 32.60, 121.40, 33.40]
+  crs: "EPSG:4326"
+
+# 案例自己的档位是 public（案例简介本来就是给人看的）；
+# 但它引用了受限的精确点位，于是**组合后的可见性**取最严值 = restricted。
+# 这正是可见性继承要解决的情形：公开的壳 + 受限的内容。
+compliance:
+  sensitivity: public
+temporal:
+  start: "2010-01-01"
+  end: "2024-12-31"
+
+# 组成 = 这个案例由哪些资产与算子构成（**引用**，不复制任何数据）。
+# 注意其中一项是受限的（精确点位），它的可见性会决定整个案例对外是否可见：
+# 见 docs/cases/flightway-wetland.md 的「可见性分层」一节。
+composition:
+  components:
+    - id: geocard.eaaf.wetland-imagery-sample
+      role: data
+      step: s1
+      alias: imagery
+    - id: geocard.eaaf.waterbird-counts-sample
+      role: data
+      step: s4
+      alias: counts
+    # 这一项是**受限**的：它是本案例可见性的关键组成项。
+    # required=true（默认）意味着：看不见它的人，也看不见这个案例（平台返回 404）；
+    # 这是刻意的 —— 精确点位会指向可被干扰的停歇地，不能靠"案例简介是公开的"绕过。
+    - id: geocard.eaaf.priority-sites-restricted
+      role: data
+      step: s4
+      alias: precise_sites
+    - id: wetland-water-extent
+      role: skill
+      step: s1
+    - id: wetland-water-change
+      role: skill
+      step: s3
+    - id: waterbird-priority-score
+      role: skill
+      step: s4
+    - id: wetland-report
+      role: skill
+      step: s5
+
+# 参数契约：哪些能改、范围多少、哪些是作者钉死的。
+# 与 recipe.yaml 的 params 是**同一份定义**（ParamSpec），不另立一套。
+params:
+  params:
+    - name: region
+      type: enum
+      enum: [yellow-sea, yangtze, sanjiang]
+      default: yellow-sea
+      target: s1.params.region
+      description: 研究区（示意窗口）。方案里的数据路径按 region 取子目录。
+    - name: baseline_year
+      type: integer
+      default: 2010
+      minimum: 1990
+      maximum: 2020
+      target: s1.params.year
+      description: 基线年。原文引用的沿海湿地损失窗口是 2000–2015。
+    - name: target_year
+      type: integer
+      default: 2024
+      minimum: 2000
+      maximum: 2030
+      target: s2.params.year
+      description: 目标年（对比期）。
+    - name: ndwi_threshold
+      type: number
+      default: 0.0
+      minimum: -1.0
+      maximum: 1.0
+      target: s1.params.threshold
+      description: NDWI 水体判定阈值。论文未给出遥感产品与阈值，因此这是案例参数。
+    - name: pc1_threshold
+      type: number
+      default: 0.2
+      minimum: 0.0
+      maximum: 20.0
+      target: s4.params.threshold
+      description: >-
+        PC1 入选阈值。论文按区域校准：中国与蒙古用 10、其余八国用 1；那是在 270+
+        个种群的迁飞区尺度上校准的。样例数据只有 20 个种群，PC1 量级天然在 0–1，
+        所以样例配置默认 0.2。接入真实种群量后应改回 10。
+    - name: one_percent_rule
+      type: boolean
+      scope: fixed
+      default: true
+      target: s4.params.one_percent
+      description: >-
+        1% 规则（Ramsar 第 6 条标准）。**作者钉死**：这是该指标的定义，不是可调参数 ——
+        关掉它算出来的就不是 PC1。
+    - name: min_count
+      type: integer
+      default: 0
+      minimum: 0
+      target: s4.params.min_count
+      description: 计数低于该值不计入（用于剔除明显不完整的单次记录）。
+    - name: report_format
+      type: enum
+      enum: [html]
+      default: html
+      target: s5.params.format
+      description: 报告格式（当前只支持 html）。
+
+recipe_ref:
+  recipe_id: recipe://geonexus/eaaf-habitat-change@1.0.0
+  version: "1.0.0"
+  entrypoint: s1
+  data_snapshot:
+    sample_data: synthetic-20260925
+    method: "Scientific Reports 2026 (DOI 10.1038/s41598-025-31727-2)"
+
+license:
+  name: CC-BY-4.0
+provenance:
+  provider: GeoNexus 案例库
+  source: https://mp.weixin.qq.com/s/G97nAGpTjEG8BNmsczERmg
+  lineage: 科普文章 → 案例（原文事实 + 合成数据 + 待补槽位）

@@ -1,40 +1,95 @@
 {
   "case": "geocard.case.eaaf-wetland-priority",
-  "synthetic": true,
+  "synthetic": false,
   "crs": "EPSG:4326",
-  "note": "全部几何来自合成/示意数据，仅用于平台可视化与教学演示",
+  "source": {
+    "citation": "Crosby et al. Identifying priority wetland sites in the East Asian–Australasian Flyway for migratory bird conservation. Scientific Reports 16, 1916 (2026)",
+    "doi": "10.1038/s41598-025-31727-2",
+    "table": "Supplementary Table 3（CC-BY 4.0）"
+  },
+  "note": "站点坐标与 PC1 分值为论文公开发表的结果；支撑 PC1 的逐笔计数数据受许可限制未公开。",
   "files": {
-    "water_change": {
-      "path": "/Volumes/mac/Users/mac/Repos/GeoNexus/core/examples/flightway_wetland/output/geometry/water_change.geojson",
-      "features": 2,
-      "classes": [
-        "loss",
-        "gain"
-      ]
-    },
-    "water_baseline": {
-      "path": "/Volumes/mac/Users/mac/Repos/GeoNexus/core/examples/flightway_wetland/output/geometry/water_baseline.geojson",
-      "features": 1
-    },
-    "sites": {
-      "path": "/Volumes/mac/Users/mac/Repos/GeoNexus/core/examples/flightway_wetland/output/geometry/sites.geojson",
-      "features": 8,
+    "priority_sites": {
+      "path": "/Volumes/mac/Users/mac/Repos/GeoNexus/core/examples/flightway_wetland/output/geometry/priority_sites.geojson",
+      "features": 147,
       "legend": {
+        "wetland_type": {
+          "coastal": "沿海",
+          "inland": "内陆"
+        },
+        "protected": {
+          "true": "与保护地重叠（原文粗体标记）",
+          "false": "未与保护地重叠"
+        },
         "pc1_bands": [
           {
-            "min": 0.5,
-            "band": "high"
+            "min": 100.0,
+            "band": "very-high",
+            "label": "极高（≥100）"
           },
           {
-            "min": 0.25,
-            "band": "medium"
+            "min": 10.0,
+            "band": "high",
+            "label": "高（10–100）"
+          },
+          {
+            "min": 1.0,
+            "band": "medium",
+            "label": "中（1–10）"
           },
           {
             "min": 0.0,
-            "band": "low"
+            "band": "low",
+            "label": "低（<1 或未公布分值）"
           }
         ]
       }
+    },
+    "by_country": {
+      "Bangladesh": {
+        "file": "priority_sites_bangladesh.geojson",
+        "features": 8
+      },
+      "Cambodia": {
+        "file": "priority_sites_cambodia.geojson",
+        "features": 9
+      },
+      "PRC": {
+        "file": "priority_sites_prc.geojson",
+        "features": 60
+      },
+      "Indonesia": {
+        "file": "priority_sites_indonesia.geojson",
+        "features": 17
+      },
+      "Lao PDR": {
+        "file": "priority_sites_lao-pdr.geojson",
+        "features": 3
+      },
+      "Malaysia": {
+        "file": "priority_sites_malaysia.geojson",
+        "features": 6
+      },
+      "Mongolia": {
+        "file": "priority_sites_mongolia.geojson",
+        "features": 11
+      },
+      "Philippines": {
+        "file": "priority_sites_philippines.geojson",
+        "features": 12
+      },
+      "Thailand": {
+        "file": "priority_sites_thailand.geojson",
+        "features": 12
+      },
+      "Viet Nam": {
+        "file": "priority_sites_viet-nam.geojson",
+        "features": 9
+      }
     }
-  }
+  },
+  "caveats": [
+    "正文 Table 4 记 108 处受保护或部分受保护，补充材料粗体标记为 117 处，原文未解释差异。",
+    "蒙古 11 处原文给的是名次（rank）而非 PC1 分值；我国内陆 15 处只有叙述性说明。"
+  ]
 }

@@ -1,0 +1,30 @@
+{
+  "sites": 147,
+  "by_country": {
+    "Bangladesh": 8,
+    "Cambodia": 9,
+    "PRC": 60,
+    "Indonesia": 17,
+    "Lao PDR": 3,
+    "Malaysia": 6,
+    "Mongolia": 11,
+    "Philippines": 12,
+    "Thailand": 12,
+    "Viet Nam": 9
+  },
+  "coastal": 91,
+  "inland": 56,
+  "overlaps_protected_bold": 117,
+  "paper_table4_protected_or_partial": 108,
+  "paper_table4_unprotected": 39,
+  "with_score": 121,
+  "with_rank": 11,
+  "with_narrative_only": 15,
+  "species_rows": 963,
+  "expert_exceptions": {
+    "Tolbo Lake": 9.4,
+    "Terkhiin Tsagaan Lake": 6.0,
+    "Buir Lake": 8.0
+  },
+  "problems": []
+}
