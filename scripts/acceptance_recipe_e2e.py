@@ -496,7 +496,56 @@ def main() -> int:  # noqa: PLR0915 - a linear checklist is the point
               [x.get("level") for x in ns_view.get("layers", [])] == ["L2", "L3", "L4"],
               str([x.get("level") for x in ns_view.get("layers", [])]))
 
-        section("11. 后台页签的数据面")
+        section("11. 第二个案例：候鸟—湿地（真目录 + 真物化）")
+        # 这一节的证据分两半：**平台侧**证明"另一个案例能被目录收录并物化"，
+        # **本机侧**由 examples/flightway_wetland/run_case.py 证明它真的跑得出交付物
+        # （4 个湿地算子在同一进程内执行，产出 TIFF/CSV/HTML）。
+        wetland_recipe = ROOT / "examples" / "flightway_wetland" / "recipe.yaml"
+        wetland_card = ROOT / "examples" / "flightway_wetland" / "case.card.yaml"
+        reg2 = subprocess.run(  # noqa: S603
+            [PYTHON, "-m", "geonexus.cli", "recipe", "register", str(wetland_recipe),
+             "--url", f"http://127.0.0.1:{reg_port}", "--status", "approved",
+             "--provider", f"http://127.0.0.1:{node_port}"],
+            cwd=str(ROOT), capture_output=True, text=True, check=False,
+        )
+        check("湿地方案进入目录", reg2.returncode == 0,
+              (reg2.stdout or reg2.stderr).strip().splitlines()[0] if (reg2.stdout or reg2.stderr) else "")
+        wetland_catalogue = call(f"{base}/api/recipes?all=true")[1]
+        check("平台目录里能看到它",
+              any(r.get("id") == "recipe://geonexus/eaaf-wetland-priority@1.0.0"
+                  for r in wetland_catalogue.get("items", [])),
+              str([r.get("id") for r in wetland_catalogue.get("items", [])]))
+
+        wetland_plan = call(f"{base}/api/recipes/plan", "POST", {
+            "recipe": "recipe://geonexus/eaaf-wetland-priority@1.0.0",
+            "params": {"region": "yangtze", "target_year": 2020},
+            "runId": "wetland-plan", "nodeUrl": f"http://127.0.0.1:{node_port}"})
+        wetland_tasks = (wetland_plan[1].get("plan") or {}).get("tasks", [])
+        check("湿地方案物化出 5 步",
+              sorted(t.get("step") for t in wetland_tasks) == ["s1", "s2", "s3", "s4", "s5"],
+              str([t.get("step") for t in wetland_tasks]))
+        check("交付物是方案声明的三项",
+              sorted((wetland_plan[1].get("plan") or {}).get("deliverables", {})) ==
+              ["priority_sites", "report", "water_change_map"],
+              str(sorted((wetland_plan[1].get("plan") or {}).get("deliverables", {}))))
+        wx = next((t for t in wetland_tasks if t.get("step") == "s1"), {})
+        check("参数模板按 region 求值（换区不改路径）",
+              (wx.get("params") or {}).get("stack") == "data/yangtze/stack_2010.tif",
+              str((wx.get("params") or {}).get("stack")))
+        wetland_bad = call(f"{base}/api/recipes/plan", "POST", {
+            "recipe": "recipe://geonexus/eaaf-wetland-priority@1.0.0",
+            "params": {"ndwi_threshold": 3}, "nodeUrl": f"http://127.0.0.1:{node_port}"})
+        check("越界阈值在物化阶段就被拒（带字段名）",
+              wetland_bad[0] == 400 and wetland_bad[1].get("field") == "ndwi_threshold",
+              f"status={wetland_bad[0]} field={wetland_bad[1].get('field')}")
+        # 卡片也要能过契约校验（案例卡片本身是 workflow，带组成与参数契约）
+        card_check = subprocess.run(  # noqa: S603
+            [PYTHON, "-m", "geonexus.cli", "card", "validate", str(wetland_card)],
+            cwd=str(ROOT), capture_output=True, text=True, check=False)
+        check("湿地案例卡片契约合法", card_check.returncode == 0,
+              card_check.stdout.strip().splitlines()[0] if card_check.stdout else "")
+
+        section("12. 后台页签的数据面")
         admin_recipes = call(f"{base}/api/admin/recipes", token=token)[1]
         check("方案页签：绑定 + 目录 + 待审计数",
               admin_recipes.get("bindingCount", 0) >= 1 and admin_recipes.get("catalogueCount", 0) >= 1,

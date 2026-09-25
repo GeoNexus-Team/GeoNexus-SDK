@@ -1,0 +1,81 @@
+# 方案模版骨架 —— 参数与 case.card.yaml 的 params **同名同义**（同一份定义）
+recipe_version: "1.0"
+id: recipe://<namespace>/<name>@<semver>
+name: <方案名>
+description: >-
+  <N 份数据 + M 个算子 + 报告：这条链路算什么、产出什么>。
+license: <CC-BY-4.0>
+tags: [<主题>]
+
+params:
+  - name: <region>
+    type: enum
+    enum: [<a>, <b>]
+    default: <a>
+    target: s1.params.<region>
+  - name: <year>
+    type: integer
+    default: <2024>
+    minimum: <1990>
+    maximum: <2030>
+    target: s1.params.<year>
+  - name: <rule>
+    type: boolean
+    scope: fixed
+    default: true
+    target: s4.params.<rule>
+    description: <定义性参数：关掉它算出来的就不是同一个指标>
+
+requires:            # 方案期望能解析到的资产（预检用；不是"数据副本"）
+  - <dataset.card.id>
+
+steps:
+  - id: s1
+    kind: skill
+    uses: <operator-skill-name>
+    description: <这一步做什么，一句话>
+    params:
+      <input>: <path-or-${params.<name>}>
+    outputs:
+      <output-name>: <这个输出是什么>
+    resources: {cpu: 1, memory_mb: 1024}
+    timeout_seconds: 600
+
+  - id: s2
+    kind: skill
+    uses: <another-skill>
+    depends_on: [s1]
+    description: <与上一步的差别（例如另一年/另一个期次）>
+    inputs:
+      <input-name>: step://s1/<output-name>   # 上游产物按引用传给下游
+    outputs:
+      <output-name>: <说明>
+
+  - id: s3
+    kind: skill
+    uses: <report-skill>
+    depends_on: [s2]
+    description: 渲染结论报告（结论/方法/来源/局限）
+    params:
+      <context>: ${params.<name>}
+    inputs:
+      <data>: step://s2/<output-name>
+    outputs:
+      report: 报告文件
+
+entrypoint: s1
+
+outputs:
+  - name: <data-product>
+    from: s2.<output-name>
+    role: data
+    media_type: <image/tiff | text/csv>
+    description: <这是什么，以及它不能回答什么>
+  - name: report
+    from: s3.report
+    role: knowledge
+    media_type: text/html
+    description: <结论本身，含方法与数据口径>
+
+data_snapshot:
+  <source>: <version>

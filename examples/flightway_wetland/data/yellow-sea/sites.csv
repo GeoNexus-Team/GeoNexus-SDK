@@ -1,0 +1,10 @@
+# GEONEXUS_SYNTHETIC=TRUE,illustrative coordinates inside the sample AOI;,not the paper's 147 priority wetland boundaries
+site_id,site_name,kind,lon,lat,protected_status
+site-01,示意地点 01（大型潮滩）,coastal,120.8781,33.2486,unprotected
+site-02,示意地点 02（河口沙洲）,coastal,120.6627,33.2648,protected_or_partial
+site-03,示意地点 03（围垦养殖塘）,artificial,120.9997,32.8365,protected_or_partial
+site-04,示意地点 04（高潮位休息地）,coastal,121.0397,32.9819,unprotected
+site-05,示意地点 05（盐田）,artificial,121.213,32.7557,protected_or_partial
+site-06,示意地点 06（内陆湖泊）,inland,120.6918,32.9072,protected_or_partial
+site-07,示意地点 07（洪泛平原）,inland,121.1103,32.8878,unprotected
+site-08,示意地点 08（小型停歇地）,inland,120.7047,32.9105,protected_or_partial

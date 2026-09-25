@@ -1,0 +1,71 @@
+{
+  "region": "yellow-sea",
+  "region_name": "黄海—渤海沿海湿地（示意窗口）",
+  "bbox": [
+    120.3,
+    32.6,
+    121.4,
+    33.4
+  ],
+  "region_note": "原文称黄海—渤海为迁徙通道上的「咽喉」；2000–2015 年该区域约 1794.8 km²（29%）沿海湿地损失",
+  "wetland_kind": "coastal",
+  "synthetic": true,
+  "seed": 20260925,
+  "baseline_year": 2010,
+  "target_year": 2024,
+  "caveat": "全部数据为合成/示意，仅用于跑通链路与模版验证；不得用于任何科研结论。",
+  "files": {
+    "baseline_stack": {
+      "path": "data/yellow-sea/stack_2010.tif",
+      "width": 240,
+      "height": 160,
+      "pixel_size_m": 490.3,
+      "water_pixels": 14950,
+      "true_water_km2": 3593.892
+    },
+    "target_stack": {
+      "path": "data/yellow-sea/stack_2024.tif",
+      "width": 240,
+      "height": 160,
+      "pixel_size_m": 490.3,
+      "water_pixels": 11582,
+      "true_water_km2": 2784.244
+    },
+    "counts": {
+      "path": "data/yellow-sea/waterbird_counts.csv",
+      "rows": 160,
+      "sites": 8,
+      "species": 20
+    },
+    "populations": {
+      "path": "data/yellow-sea/species_populations.csv",
+      "species": 20
+    },
+    "sites": {
+      "path": "data/yellow-sea/sites.csv",
+      "sites": 8
+    }
+  },
+  "species": [
+    "勺嘴鹬",
+    "大滨鹬",
+    "远东杓鹬",
+    "斑腿鹬",
+    "黑脸琵鹭",
+    "丹顶鹤",
+    "白鹤",
+    "白头鹤",
+    "白枕鹤",
+    "东方白鹳",
+    "鸿雁",
+    "小白额雁",
+    "青头潜鸭",
+    "大杓鹬",
+    "半蹼鹬",
+    "绿头鸭",
+    "赤颈鸭",
+    "翘鼻麻鸭",
+    "环颈鸻",
+    "红嘴鸥"
+  ]
+}

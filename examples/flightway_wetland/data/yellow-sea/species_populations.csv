@@ -1,0 +1,22 @@
+# GEONEXUS_SYNTHETIC=TRUE,illustrative flyway population sizes;,replace with the EAAF 1% thresholds before any real use
+species,scientific,flyway_population,globally_threatened
+勺嘴鹬,Calidris pygmaea,700,TRUE
+大滨鹬,Calidris tenuirostris,380000,TRUE
+远东杓鹬,Numenius madagascariensis,32000,TRUE
+斑腿鹬,Tringa guttifer,1200,TRUE
+黑脸琵鹭,Platalea minor,6200,TRUE
+丹顶鹤,Grus japonensis,3800,TRUE
+白鹤,Leucogeranus leucogeranus,4000,TRUE
+白头鹤,Grus monacha,16000,TRUE
+白枕鹤,Antigone vipio,10000,TRUE
+东方白鹳,Ciconia boyciana,9000,TRUE
+鸿雁,Anser cygnoides,90000,TRUE
+小白额雁,Anser erythropus,30000,TRUE
+青头潜鸭,Aythya baeri,1000,TRUE
+大杓鹬,Numenius arquata,20000,TRUE
+半蹼鹬,Limnodromus semipalmatus,23000,TRUE
+绿头鸭,Anas platyrhynchos,5000000,FALSE
+赤颈鸭,Mareca penelope,2000000,FALSE
+翘鼻麻鸭,Tadorna tadorna,700000,FALSE
+环颈鸻,Charadrius hiaticula,400000,FALSE
+红嘴鸥,Chroicocephalus ridibundus,3000000,FALSE

@@ -8,6 +8,39 @@ project uses Semantic Versioning.
 
 ### Added
 
+- **Case template (v1.0) + a runnable worked example** — how a research article
+  becomes a platform-usable case, and one end-to-end instance.
+  - `docs/case-template.md`: the field set (identity / spatio-temporal extent /
+    composition / parameter contract / deliverables / dataset slots), the
+    seven-step conversion workflow, and an acceptance checklist. The two rules
+    that matter most: **definitions are `fixed` parameters, situations are
+    `reusable`** (turning a definition into a knob lets someone compute a
+    different metric under the same name), and **synthetic data must be
+    labelled inside the file**, not only in prose.
+  - `templates/case-template/`: a fillable skeleton (`case.card.yaml`,
+    `recipe.yaml`, `datasets.md`); placeholders must disappear before a case is
+    real.
+  - `examples/flightway_wetland/`: the worked example — a migratory-bird /
+    wetland study (EAAF priority wetlands, *Scientific Reports* 2026,
+    DOI 10.1038/s41598-025-31727-2) turned into a case that really runs:
+    `run_case.py` executes five steps with four real operators on synthetic
+    inputs and produces three downloadable deliverables (water-change raster,
+    priority-site table, HTML report).
+  - The example doubles as a demo of both batch-2 rules: the 1% rule is a
+    `scope: fixed` parameter (it is the metric's definition), and the case's own
+    sensitivity is `public` while it cites a `restricted` precise-site dataset —
+    so the composite is `restricted` for anyone who can resolve it and
+    **invisible** for anyone who cannot.
+  - `docs/cases/flightway-wetland.md`: the fact ledger separating what the
+    article states (with page references) from what this case inferred and what
+    is synthetic — plus the gap list (site boundaries vs points, flyway network
+    vs single AOI, human/expert steps having no node type, run id not yet
+    injected by the platform).
+  - `tests/test_flightway_case.py` (16 tests) checks the contract, runs the real
+    chain, and pins the threshold semantics: 0.2 (sample-calibrated) selects
+    sites, 10 (the paper's regional calibration) selects none — a scale
+    difference, not a bug.
+
 - **GeoCard 1.1 sections: `composition` / `params` / `recipe_ref`** — a card can
   now describe a *whole solution* without containing one.
   - `composition.components[]` (`{id, role, step?, required?, alias?}`) lists the

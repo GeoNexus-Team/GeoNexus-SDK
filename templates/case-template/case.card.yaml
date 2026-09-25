@@ -1,0 +1,76 @@
+# 案例模版骨架 —— 把 <...> 全部替换掉（见 docs/case-template.md）
+geocard_version: "1.0"
+id: geocard.case.<主题>-<区域或指标>
+type: workflow
+name: <做了什么 + 在哪里 + 什么时候>
+description: >-
+  <一句话说清这个案例回答什么问题、结论指向什么；不要复述摘要>。
+tags:
+  - <主题>
+  - <species-or-metric>
+  - <region>
+  # - synthetic-sample   # 用合成数据时必须带上，并在文件内部标注
+
+spatial:
+  bbox: [<west>, <south>, <east>, <north>]
+  crs: "EPSG:4326"
+temporal:
+  start: "<YYYY-MM-DD>"    # 数据时间（研究覆盖的时段）
+  end: "<YYYY-MM-DD>"
+
+# 案例自己的档位通常 public（简介本来就是给人看的）；
+# 若组成里有受限项，组合后的可见性会自动取最严值。
+compliance:
+  sensitivity: public
+
+composition:
+  components:
+    # 数据：能拿到就引用真实资产；拿不到就用带 synthetic 标记的样例资产
+    - id: <dataset.card.id>
+      role: data
+      step: s1
+      alias: <local-name>
+    # 受限组成项：required 保持默认 true —— 看不见它的人，也看不见这个案例
+    # - id: <restricted.dataset.id>
+    #   role: data
+    #   step: s4
+    - id: <operator-skill-name>
+      role: skill
+      step: s1
+
+params:
+  params:
+    # 情境参数（复用者可改）
+    - name: <region>
+      type: enum
+      enum: [<a>, <b>]
+      default: <a>
+      target: s1.params.<region>
+      description: <这个参数的合理范围来自哪一句/哪一节>
+    - name: <year>
+      type: integer
+      default: <2024>
+      minimum: <1990>
+      maximum: <2030>
+      target: s1.params.<year>
+    # 定义性参数（作者钉死）：阈值规则、指标口径一律 fixed
+    - name: <rule>
+      type: boolean
+      scope: fixed
+      default: true
+      target: s4.params.<rule>
+      description: <这是定义，不是可调参数>
+
+recipe_ref:
+  recipe_id: recipe://<namespace>/<name>@<semver>
+  version: "<semver>"
+  entrypoint: s1
+  data_snapshot:
+    <source>: <version>
+
+license:
+  name: <CC-BY-4.0 | 其他>
+provenance:
+  provider: <谁提供的>
+  source: <链接或 DOI>
+  lineage: <原文/报告 → 案例的转换说明>
