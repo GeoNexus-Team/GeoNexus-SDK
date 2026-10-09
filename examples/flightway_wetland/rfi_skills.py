@@ -62,19 +62,21 @@ def _read_csv(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
-def _write_csv(path: Path, rows: list[dict[str, Any]], fields: list[str]) -> Path:
+def _write_csv(path: Path, rows: list[dict[str, Any]], fields: list[str]) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
-    return path
+    # 返回 str 而不是 Path：技能输出要走 GeoMCP 的 JSON 序列化，
+    # WindowsPath 在 HTTP 传输上会直接 500（本机进程内跑则暴露不出来）。
+    return str(path)
 
 
-def _write_json(path: Path, payload: Any) -> Path:
+def _write_json(path: Path, payload: Any) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return path
+    return str(path)
 
 
 def chi_square_gof(observed: list[float]) -> dict[str, float]:
@@ -598,7 +600,7 @@ def rfi_report_handler(params: dict[str, Any], context: Any) -> dict[str, Any]:
 """
     out_path = _workdir(context) / "report.html"
     out_path.write_text(html, encoding="utf-8")
-    return {"report": out_path, "bytes": out_path.stat().st_size}
+    return {"report": str(out_path), "bytes": out_path.stat().st_size}
 
 
 # --------------------------------------------------------------------------- #

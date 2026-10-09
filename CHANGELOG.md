@@ -193,6 +193,17 @@ project uses Semantic Versioning.
   proves the checker can fail (one fake of each kind).
   New: `docs/MIGRATION.md` (old `TaskManager` / `federation` users).
 
+### Fixed
+
+- **GeoMCP transport no longer 500s when a skill returns non-JSON values.**
+  A handler returning `pathlib.Path` (or a `set`) crashed `json.dumps` inside
+  `JSONResponse` — invisible when running in-process, fatal over HTTP; it bit a
+  real Windows node running the EAAF case (`WindowsPath is not JSON serializable`).
+  `geomcp/server.py` now normalizes responses through `_json_safe` (Path→str,
+  set→sorted list, recursive), covered by a regression test; the case skills were
+  also fixed to return string paths, since the wire format should not rely on
+  the transport's mercy.
+
 ### Changed
 
 - **`examples/flightway_wetland` rebuilt on the paper's own data and method**

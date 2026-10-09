@@ -9,6 +9,7 @@ is provided by :meth:`GeoMCPServer.create_app`.
 from __future__ import annotations
 
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Any, Protocol
 
@@ -113,6 +114,23 @@ class _Tool:
         }
 
 
+
+def _json_safe(value: Any) -> Any:
+    """传输层防御：把 Path / set 这类"能算出来但不能上线"的值转成 JSON 安全形态。
+
+    技能 handler 应该自己返回可序列化的值；但第三方 handler 忘了是常态 ——
+    与其让整个节点在 json.dumps 上抛 500（调用方连 JSON-RPC 错误都拿不到），
+    不如在这里转换一次，并在文档里写明：输出走线请用字符串路径。
+    """
+    if isinstance(value, os.PathLike):
+        return str(value)
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, (set, frozenset)):
+        return sorted(str(v) for v in value)
+    return value
 class GeoMCPServer:
     """GeoMCP capability server.
 
@@ -804,7 +822,7 @@ class GeoMCPServer:
                 -32600,
             ):
                 status = 400
-            return JSONResponse(response, status_code=status)
+            return JSONResponse(_json_safe(response), status_code=status)
 
         @app.get("/health")
         async def health_endpoint() -> dict[str, Any]:

@@ -166,3 +166,29 @@ def test_geomcp_contract_gate(tmp_path) -> None:
             assert "contract" in exc_info.value.message.lower()
     finally:
         running.stop()
+
+
+def test_execute_output_with_path_survives_http(tmp_path) -> None:
+    """回归：handler 返回 Path 不能把传输层打成 500。
+
+    Windows 节点上真实踩过的坑——rfi 技能返回 pathlib.Path，进程内执行
+    （run_case.py）看不出问题，一上 GeoMCP 的 JSON 序列化就炸
+    （TypeError: Object of type WindowsPath is not JSON serializable）。
+    传输层现在统一过 _json_safe；技能侧也应返回字符串，两头都要立得住。
+    """
+    node = GeoNode(name="test-node", port=0, workdir=str(tmp_path))
+    node.register_skill(
+        name="pathy",
+        handler=lambda params, context: {"out": tmp_path / "result.csv", "seen": {"b", "a"}},
+        input_schema={"required": []},
+    )
+    running = node.start_in_thread(port=0)
+    running.wait_until_ready()
+    try:
+        with GeoMCPClient(f"http://127.0.0.1:{running.port}", timeout=10) as client:
+            result = client.execute(skill="pathy")
+        outputs = result["outputs"]
+        assert outputs["out"] == str(tmp_path / "result.csv")   # Path → str
+        assert outputs["seen"] == ["a", "b"]                     # set → 有序列表
+    finally:
+        running.stop()
