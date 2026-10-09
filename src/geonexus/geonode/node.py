@@ -100,6 +100,7 @@ class GeoNode:
             skill_registry=self.skill_registry,
             registry_url=registry_url,
             recipe_registry=recipe_registry,
+            artifact_roots=[self.workdir],
         )
 
     # ------------------------------------------------------------------ #

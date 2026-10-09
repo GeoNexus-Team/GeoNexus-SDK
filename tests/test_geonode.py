@@ -164,3 +164,31 @@ def test_ndvi(tmp_path) -> None:
         assert change["mean"] < 0.0  # vegetation declined
     finally:
         running.stop()
+
+
+def test_artifact_endpoint_serves_workdir_files_only(tmp_path) -> None:
+    """GET /artifact：workdir 内的产物可读；穿越与外部路径必须拒绝。
+
+    远端节点的交付物回传靠这个受控出口 —— 白名单一旦形同虚设，
+    平台侧就等于拿到了任意文件读取。
+    """
+    import httpx
+
+    from geonexus.geonode import GeoNode
+
+    node = GeoNode(name="art-node", port=0, workdir=str(tmp_path))
+    (tmp_path / "report.html").write_text("<h1>ok</h1>", encoding="utf-8")
+    running = node.start_in_thread(port=0)
+    running.wait_until_ready()
+    try:
+        base = f"http://127.0.0.1:{running.port}"
+        ok = httpx.get(f"{base}/artifact", params={"path": str(tmp_path / "report.html")}, timeout=10)
+        assert ok.status_code == 200 and "charset=utf-8" in ok.headers["content-type"]
+        outside = httpx.get(f"{base}/artifact", params={"path": "/etc/passwd"}, timeout=10)
+        assert outside.status_code == 403
+        deep = httpx.get(f"{base}/artifact", params={"path": str(tmp_path / ".." / "escape.txt")}, timeout=10)
+        assert deep.status_code == 403
+        missing = httpx.get(f"{base}/artifact", params={"path": str(tmp_path / "nope.csv")}, timeout=10)
+        assert missing.status_code == 404
+    finally:
+        running.stop()

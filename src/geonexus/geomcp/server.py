@@ -170,6 +170,7 @@ class GeoMCPServer:
         forward_api_key: str | None = None,
         model_backend: Any | None = None,
         recipe_registry: Any | None = None,
+        artifact_roots: list[str] | None = None,
     ) -> None:
         self.name = name
         self.engine = engine
@@ -177,6 +178,8 @@ class GeoMCPServer:
         self.forward_timeout = forward_timeout
         self.api_keys = set(api_keys or ())
         self.forward_api_key = forward_api_key
+        # 产物文件服务（GET /artifact）的白名单根（GeoNode 会传自己的 workdir）
+        self.artifact_roots = [str(r) for r in (artifact_roots or [])]
         self.geocard_registry = geocard_registry
         self.skill_registry = skill_registry
         #: ``geonexus.model.ModelBackend``（或任何有 ``invoke_card`` 的对象）。
@@ -823,6 +826,37 @@ class GeoMCPServer:
             ):
                 status = 400
             return JSONResponse(_json_safe(response), status_code=status)
+
+        @app.get("/artifact")
+        async def artifact_endpoint(request: Request, path: str):
+            """受控读取节点本地产物 —— 只开放白名单根之下的普通文件。
+
+            为什么需要：执行面把产物写在自己机器上（"数据留在原地"），平台要展示
+            远端节点跑出来的报告/CSV，就必须有个受控出口，否则永远 404。
+            白名单 = 构造参数（GeoNode 传 workdir）+ GEONODE_ARTIFACT_ROOTS + 进程 CWD；
+            配置了 api_keys 的节点，取产物同样要带 X-API-Key —— 结果文件可能含敏感内容。
+            """
+            import mimetypes
+            import os as _os
+
+            from fastapi.responses import FileResponse as _FileResponse
+
+            if self.api_keys and request.headers.get("X-API-Key") not in self.api_keys:
+                return JSONResponse({"error": "artifact requires a valid X-API-Key header"}, status_code=401)
+            roots = list(self.artifact_roots)
+            roots += [r for r in _os.environ.get("GEONODE_ARTIFACT_ROOTS", "").split(_os.pathsep) if r]
+            roots.append(_os.getcwd())
+            target = _os.path.realpath(_os.path.abspath(path))
+            allowed = any(target == r or target.startswith(r + _os.sep)
+                          for r in (_os.path.realpath(x) for x in roots))
+            if not allowed:
+                return JSONResponse({"error": "artifact path is outside the node's allowed roots"}, status_code=403)
+            if not _os.path.isfile(target):
+                return JSONResponse({"error": "artifact not found"}, status_code=404)
+            media = mimetypes.guess_type(target)[0] or "application/octet-stream"
+            if media.startswith("text/"):
+                media += "; charset=utf-8"
+            return _FileResponse(target, media_type=media, filename=_os.path.basename(target))
 
         @app.get("/health")
         async def health_endpoint() -> dict[str, Any]:

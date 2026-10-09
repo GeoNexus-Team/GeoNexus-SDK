@@ -388,13 +388,26 @@ def main() -> int:  # noqa: PLR0915 - a linear checklist is the point
                    token=token)
         check("运行返回 202", run[0] == 202, f"status={run[0]} {json.dumps(run[1], ensure_ascii=False)[:200]}")
         steps = run[1].get("steps", [])
-        failed_steps = [s for s in steps if s.get("status") != "succeeded"]
+        # 202 只承诺"整组已登记"：此时步骤是 queued，推进在后台进行
+        check("202 时整组已登记为 queued",
+              [s.get("step") for s in steps] == ["s1", "s2", "s3"]
+              and all(s.get("status") == "queued" for s in steps),
+              json.dumps(steps, ensure_ascii=False))
+        group = run[1].get("group") or run[1].get("runId")
+        rows: list[dict] = []
+        for _ in range(120):  # 轮询到终态（后台推进器每步都是真实任务）
+            rows = call(f"{base}/api/cases/{case_id}/runs?group={group}", token=token)[1].get("items", [])
+            if rows and all(r.get("status") in ("succeeded", "failed", "skipped", "canceled") for r in rows):
+                break
+            time.sleep(0.25)
+        failed_steps = [r for r in rows if r.get("status") != "succeeded"]
         detail = ""
         if failed_steps:
-            failed_run = call(f"{base}/api/runs/{failed_steps[0].get('runId')}", token=token)[1]
+            failed_run = call(f"{base}/api/runs/{failed_steps[0].get('id')}", token=token)[1]
             detail = json.dumps((failed_run.get("run") or {}).get("error"), ensure_ascii=False)
-        check("三步都成功", [s.get("step") for s in steps] == ["s1", "s2", "s3"]
-              and not failed_steps, detail or json.dumps(steps, ensure_ascii=False))
+        check("三步都成功（组轮询到终态）",
+              [r.get("stepId") for r in rows] == ["s1", "s2", "s3"] and not failed_steps,
+              detail or json.dumps(rows, ensure_ascii=False)[:400])
 
         section("6. 交付物：结论 + 可下载报告")
         dels = call(f"{base}/api/cases/{case_id}/deliverables", token=token)[1]
@@ -446,6 +459,16 @@ def main() -> int:  # noqa: PLR0915 - a linear checklist is the point
                      {"caseId": case_id, "params": {"year": 2021}, "runId": "acceptance-run-2"},
                      token=token)
         check("第二次运行成功", again[0] == 202, f"status={again[0]}")
+        # 后台推进：等第二组也到终态，再数交付物（异步语义下不能抢跑）
+        again_group = again[1].get("group") or again[1].get("runId")
+        for _ in range(120):
+            rows2 = call(f"{base}/api/cases/{case_id}/runs?group={again_group}", token=token)[1].get("items", [])
+            if rows2 and all(r.get("status") in ("succeeded", "failed", "skipped", "canceled") for r in rows2):
+                break
+            time.sleep(0.25)
+        check("第二次也三步成功", [r.get("stepId") for r in rows2] == ["s1", "s2", "s3"]
+              and all(r.get("status") == "succeeded" for r in rows2),
+              json.dumps([r.get("status") for r in rows2]))
         total = call(f"{base}/api/cases/{case_id}/deliverables", token=token)[1].get("count")
         check(f"交付物累计 {2 * len(declared)} 条（两次运行各 {len(declared)} 份）",
               total == 2 * len(declared), f"count={total}")

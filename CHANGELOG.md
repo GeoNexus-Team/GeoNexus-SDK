@@ -193,6 +193,13 @@ project uses Semantic Versioning.
   proves the checker can fail (one fake of each kind).
   New: `docs/MIGRATION.md` (old `TaskManager` / `federation` users).
 
+### Added
+
+- **`GET /artifact` on GeoNodes** — a controlled exit for outputs written on the
+  node machine (`workdir` + `GEONODE_ARTIFACT_ROOTS` whitelist, X-API-Key enforced
+  when the node has keys). Without it, deliverables produced by a *remote* node
+  are unreachable from the platform, and "查看报告" dead-ends in a 404.
+
 ### Fixed
 
 - **GeoMCP transport no longer 500s when a skill returns non-JSON values.**
