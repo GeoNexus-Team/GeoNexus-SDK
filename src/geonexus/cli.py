@@ -434,6 +434,69 @@ def cmd_recipe_fork(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_register(args: argparse.Namespace) -> int:
+    """轻量登记向导：探测 → 建卡 → 校验 → 提交（默认 dry-run，绝不默认发布）。"""
+    import json as _json
+
+    from .register import build_card, probe_target, submit, validate_card
+
+    probe = probe_target(args.target)
+    overrides: dict[str, str] = {}
+    for kv in args.set or []:
+        key, _, val = kv.partition("=")
+        overrides[key.strip()] = val.strip()
+    if args.interactive:
+        print(f"探测结果：{probe.kind}  @ {probe.target}")
+        for w in probe.warnings:
+            print(f"  ! {w}")
+        for key, label, hint in (
+            ("name", "名称", probe.facts.get("title") or ""),
+            ("license", "许可（如 CC-BY-4.0 / proprietary）", ""),
+            ("sensitivity", "敏感度 public/internal/restricted", "public"),
+            ("provider", "提供方", ""),
+        ):
+            if key in overrides:
+                continue
+            ans = input(f"  {label}{' [' + hint + ']' if hint else ''}: ").strip()
+            if ans:
+                overrides[key] = ans
+            elif hint:
+                overrides[key] = hint
+    card, warnings = build_card(probe, overrides)
+    problems = validate_card(card)
+    if args.json:
+        print(_json.dumps({"probe": probe.as_dict(), "card": card,
+                           "warnings": warnings, "problems": problems},
+                          ensure_ascii=False, indent=2))
+    else:
+        print(f"类型：{probe.kind} → GeoCard type={card['type']}")
+        print(f"卡片：{card['id']}  ·  {card['name']}")
+        if card.get("spatial"):
+            print(f"范围：{card['spatial']['bbox']}（{card['spatial']['crs']}）")
+        else:
+            print("范围：无（非空间资产，走侧栏）")
+        for w in warnings:
+            print(f"  ! {w}")
+        for pr in problems:
+            print(f"  ✗ 校验：{pr}")
+    if problems:
+        return 1
+    result = submit(
+        card, to=args.to, registry_url=args.registry_url, platform_url=args.platform_url,
+        token=args.token, login=tuple(args.login.split(":", 1)) if args.login else None,
+        status=args.status, node_url=args.node_url)
+    if not args.json:
+        if result.get("submitted"):
+            print(f"已提交到 {result['to']}（status={args.status}）：{result.get('card_id')}")
+        elif args.to == "dry":
+            print("dry-run：未提交。加 --to registry / --to platform 才会真的登记。")
+        else:
+            print(f"提交失败：{result}")
+    else:
+        print(_json.dumps({"submit": result}, ensure_ascii=False))
+    return 0 if (result.get("submitted") or args.to == "dry") else 1
+
+
 def cmd_node_start(args: argparse.Namespace) -> int:
     from .geonode import GeoNode
 
@@ -1771,6 +1834,23 @@ def build_parser() -> argparse.ArgumentParser:
         "(repeatable, V1.0 write-side bridge)",
     )
     p_start.set_defaults(func=cmd_node_start)
+
+    reg = sub.add_parser("register", help="Lightweight third-party asset registration wizard")
+    reg.add_argument("target", help="URL or local path of the asset to register")
+    reg.add_argument("--to", choices=["dry", "registry", "platform"], default="dry",
+                     help="where to submit (default: dry-run, nothing is published)")
+    reg.add_argument("--registry-url", default="http://127.0.0.1:8790")
+    reg.add_argument("--platform-url", default="http://127.0.0.1:3302")
+    reg.add_argument("--token", default=None, help="platform bearer token")
+    reg.add_argument("--login", default=None, help="platform login as user:password")
+    reg.add_argument("--status", choices=["pending", "approved"], default="pending",
+                     help="review status on submit (default pending: registration is not publication)")
+    reg.add_argument("--node-url", default=None, help="node that serves the asset, if any")
+    reg.add_argument("--set", action="append", default=None,
+                     help="override field as key=value (name/license/sensitivity/provider/id/...)")
+    reg.add_argument("-i", "--interactive", action="store_true", help="ask the human judgements")
+    reg.add_argument("--json", action="store_true", help="machine-readable output")
+    reg.set_defaults(func=cmd_register)
 
     registry = sub.add_parser("registry", help="Shared GeoCard Registry commands")
     registry_sub = registry.add_subparsers(dest="registry_command", required=True)

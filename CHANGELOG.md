@@ -195,6 +195,20 @@ project uses Semantic Versioning.
 
 ### Added
 
+- **`geonexus register` — lightweight third-party asset registration** (plan W1).
+  A shared, read-only probe core (`geonexus.register`): OGC API (features /
+  coverages / tiles / processes), STAC, WMS capabilities, GeoNode health, and
+  file sniffing (GeoTIFF magic + rasterio bounds, CSV lat/lon columns, GeoJSON
+  coordinates, safetensors header) — never executing probed weights. Missing
+  facts become warnings, not invented defaults (no bbox ⇒ no `spatial`, the
+  card stays a sidebar asset). `build_card` maps kind → GeoCard type/protocol,
+  `validate_card` runs the real schema, `submit` targets the registry
+  (`status=pending` by default) or the platform, and the CLI defaults to
+  `--to dry` so nothing publishes unless asked. Wizard (`-i`) asks only the
+  human judgements: name, licence, sensitivity, provider.
+
+### Added
+
 - **`GET /artifact` on GeoNodes** — a controlled exit for outputs written on the
   node machine (`workdir` + `GEONODE_ARTIFACT_ROOTS` whitelist, X-API-Key enforced
   when the node has keys). Without it, deliverables produced by a *remote* node
