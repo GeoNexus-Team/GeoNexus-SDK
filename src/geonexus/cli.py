@@ -575,6 +575,12 @@ def cmd_node_start(args: argparse.Namespace) -> int:
     from .geonode import GeoNode
 
     recipe_registry = None
+    gaag_registry = None
+    if args.gaag_db:
+        from .gaag import GAAGRegistry
+
+        gaag_registry = GAAGRegistry(persist_path=args.gaag_db)
+        print(f"  GAAG registry from {args.gaag_db}; geo.execute contract_binding enabled")
     if getattr(args, "recipes", None):
         from .recipe import RecipeRegistry
 
@@ -587,6 +593,7 @@ def cmd_node_start(args: argparse.Namespace) -> int:
         host=args.host,
         port=args.port,
         recipe_registry=recipe_registry,
+        gaag_registry=gaag_registry,
     )
     if not args.bare:
         _register_demo_assets(node)
@@ -1898,6 +1905,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         metavar="PATH",
         help="Recipe catalogue JSON; enables geo.plan on this node (V1.1)",
+    )
+    p_start.add_argument(
+        "--gaag-db",
+        default=None,
+        metavar="PATH",
+        help="GAAG contract registry SQLite file; enables V2 contract_binding on this node",
     )
     p_start.add_argument(
         "--ogc-process",
