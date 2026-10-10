@@ -26,6 +26,7 @@ from .protocol import (
     GEOCARD_NOT_FOUND,
     INVALID_ARGUMENT,
     INVALID_PARAMS,
+    PUSHDOWN_UNRESOLVED,
     RECIPE_NOT_FOUND,
     RECIPE_PARAM_INVALID,
     SKILL_NOT_FOUND,
@@ -173,6 +174,7 @@ class GeoMCPServer:
         recipe_registry: Any | None = None,
         artifact_roots: list[str] | None = None,
         gaag_registry: Any | None = None,
+        pushdown_defaults: dict[str, Any] | None = None,
     ) -> None:
         self.name = name
         self.engine = engine
@@ -187,6 +189,9 @@ class GeoMCPServer:
         # V2 GAAG：合约注册中心（可选）。有它，contract_binding 才可验证。
         self.gaag_registry = gaag_registry
         self._contract_gate: Any | None = None
+        # V2 下推成本模型的缺省估算（data_bytes/bandwidth_bps/remote_queue_s），
+        # 请求的 pushdown_spec 可覆盖；都没有时 auto 老实回退 local 并说明理由
+        self.pushdown_defaults = dict(pushdown_defaults or {})
         self.geocard_registry = geocard_registry
         self.skill_registry = skill_registry
         #: ``geonexus.model.ModelBackend``（或任何有 ``invoke_card`` 的对象）。
@@ -294,7 +299,8 @@ class GeoMCPServer:
             "resources": list(self._resources.keys()),
             "skills": skills,
             # V2 特性广告：客户端按 capabilities 协商，不靠猜（协议冻结纪律）
-            "v2": {"contract_binding": self.gaag_registry is not None},
+            "v2": {"contract_binding": self.gaag_registry is not None,
+                   "pushdown": True},
             "geocards": [c["id"] for c in cards],
             "geocard_ids": [c["id"] for c in cards],
             "recipes": self._recipe_summaries(),
@@ -639,6 +645,16 @@ class GeoMCPServer:
                         },
                     )
 
+        # 2a. V2 pushdown: decide WHERE this runs before spending anything.
+        pushdown_decision: dict[str, Any] | None = None
+        if params.pushdown_spec:
+            pushdown_decision = self._decide_pushdown(params, resolved_cards)
+            if pushdown_decision["decision"] == "push":
+                delegated, owner_url = self._delegate_to_owner(params, resolved_cards)
+                pushdown_decision["owner"] = owner_url
+                delegated["pushdown"] = pushdown_decision
+                return delegated
+
         # 2b. V2 GAAG contract binding: when declared, it MUST verify —
         #     semantic similarity + contract consistency, both or nothing.
         if params.contract_binding:
@@ -649,15 +665,123 @@ class GeoMCPServer:
         clean_params = params.model_copy(deep=True)
         clean_params.params.pop(DELEGATE_MARKER, None)
         if self.engine is not None:
-            return self.engine.execute(clean_params)
-        tool = self._tools.get(clean_params.skill)
-        if tool is not None:
-            return self._run_tool(tool, clean_params)
-        raise GeoMCPProtocolError(
-            SKILL_NOT_FOUND,
-            f"Skill not found: {clean_params.skill}",
-            {"available": list(self._tools.keys())},
-        )
+            result = self.engine.execute(clean_params)
+        else:
+            tool = self._tools.get(clean_params.skill)
+            if tool is None:
+                raise GeoMCPProtocolError(
+                    SKILL_NOT_FOUND,
+                    f"Skill not found: {clean_params.skill}",
+                    {"available": list(self._tools.keys())},
+                )
+            result = self._run_tool(tool, clean_params)
+        if pushdown_decision is not None and isinstance(result, dict):
+            result["pushdown"] = pushdown_decision   # 决策要可解释：两侧估算都带上
+        return result
+
+    # ------------------------------------------------------------------ #
+    # V2 下推：在哪里算，先算一笔账
+    # ------------------------------------------------------------------ #
+    def _decide_pushdown(self, params: ExecuteParams,
+                         resolved_cards: list[GeoCard]) -> dict[str, Any]:
+        """local（数据拉来本节点算）vs push（推到数据属主节点算）的成本决策。
+
+        估算全部显式：请求的 pushdown_spec 覆盖节点缺省，缺省覆盖内置保守值；
+        **估不出来就老实回退 local 并写理由**，不编数字做决策。决策与两侧估算
+        一并写进执行结果，事后可复盘（"为什么这次在远端跑"必须有答案）。
+        """
+        spec = dict(params.pushdown_spec or {})
+        strategy = str(spec.get("strategy", "auto")).lower()
+        if strategy == "migrate":          # 方案文档用词：migrate = 数据迁来算
+            strategy = "local"
+        if strategy not in ("local", "push", "auto"):
+            raise GeoMCPProtocolError(
+                INVALID_ARGUMENT,
+                f"pushdown_spec.strategy 只认 local|migrate|push|auto，收到 {strategy!r}",
+                {"field": "pushdown_spec.strategy"},
+            )
+        est = {**self.pushdown_defaults, **{k: v for k, v in spec.items()
+                                            if k != "strategy" and v is not None}}
+        data_bytes = est.get("data_bytes")
+        bandwidth = est.get("bandwidth_bps")
+        remote_queue = est.get("remote_queue_s")
+        reasons: list[str] = []
+
+        pull_s = push_s = None
+        if data_bytes is not None and bandwidth:
+            pull_s = round(float(data_bytes) / float(bandwidth), 3)   # 数据拉来本节点
+        if remote_queue is not None:
+            push_s = round(float(remote_queue), 3)                    # 属主排队+远端执行开销
+
+        if strategy == "local":
+            decision, why = "local", "strategy=local（调用方指定，数据迁移成本自担）"
+        elif strategy == "push":
+            decision, why = "push", "strategy=push（调用方指定）"
+        else:  # auto
+            if pull_s is None or push_s is None:
+                decision = "local"
+                why = ("auto 回退 local：估算不全（缺 data_bytes/bandwidth_bps/"
+                       "remote_queue_s 之一），不做无依据的决策")
+                reasons.append("missing-estimates")
+            elif push_s < pull_s:
+                decision, why = "push", f"auto：push 估算 {push_s}s < 拉数据 {pull_s}s"
+            else:
+                decision, why = "local", f"auto：拉数据 {pull_s}s ≤ push 估算 {push_s}s"
+        return {
+            "requested": str(spec.get("strategy", "auto")),
+            "decision": decision,
+            "owner": None,                       # _delegate_to_owner 解析后回填
+            "estimates": {"pull_data_s": pull_s, "push_exec_s": push_s,
+                          "data_bytes": data_bytes, "bandwidth_bps": bandwidth,
+                          "remote_queue_s": remote_queue},
+            "reasons": reasons + [why],
+        }
+
+    def _delegate_to_owner(self, params: ExecuteParams,
+                           resolved_cards: list[GeoCard]) -> dict[str, Any]:
+        """push 决策落地：解析属主节点并委托（复用一跳委托语义）。"""
+        if not self.registry_url:
+            raise GeoMCPProtocolError(
+                PUSHDOWN_UNRESOLVED,
+                "pushdown 决策为 push，但本节点未绑定 registry，无法解析数据属主",
+                {"reason": "no_registry_binding"},
+            )
+        owners: dict[str, str] = {}
+        from ..registry import RegistryClient, RegistryClientError
+
+        try:
+            with RegistryClient(self.registry_url) as registry:
+                for card in resolved_cards:
+                    try:
+                        entry = registry.get(card.id)
+                    except RegistryClientError as miss:
+                        if miss.code == 404:
+                            continue          # 查无此卡 → 走 owner_unknown，不是查询故障
+                        raise
+                    if isinstance(entry, dict) and entry.get("node_url"):
+                        owners[card.id] = entry["node_url"]
+        except RegistryClientError as exc:
+            raise GeoMCPProtocolError(
+                PUSHDOWN_UNRESOLVED,
+                f"pushdown 属主解析失败：registry 查询出错：{exc}",
+                {"reason": "registry_lookup_failed"},
+            ) from exc
+        missing = [c.id for c in resolved_cards if c.id not in owners]
+        if missing:
+            raise GeoMCPProtocolError(
+                PUSHDOWN_UNRESOLVED,
+                f"pushdown 决策为 push，但以下 GeoCard 的属主解析不到：{missing}",
+                {"reason": "owner_unknown", "cards": missing},
+            )
+        target = sorted(set(owners.values()))
+        if len(target) > 1:
+            raise GeoMCPProtocolError(
+                PUSHDOWN_UNRESOLVED,
+                f"pushdown 暂不支持多属主拆分执行：{target}",
+                {"reason": "multi_owner", "owners": target},
+            )
+        unknown = [c.id for c in resolved_cards if self._resolve_card(c.id) is None]
+        return self._delegate(params, unknown or [c.id for c in resolved_cards]), target[0]
 
     def _enforce_contract_binding(self, params: ExecuteParams) -> None:
         """V2: 声明 contract_binding 的执行必须过 ContractGate 双重验证。

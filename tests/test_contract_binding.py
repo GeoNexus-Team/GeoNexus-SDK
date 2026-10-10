@@ -101,5 +101,8 @@ def test_binding_without_registry_is_rejected(tmp_path):
 
 
 def test_capabilities_advertise_v2(tmp_path):
-    assert _node(tmp_path, _registry()).server.capabilities()["v2"] == {"contract_binding": True}
-    assert _node(tmp_path, None).server.capabilities()["v2"] == {"contract_binding": False}
+    # v2 广告是协商面：每加一个 V2 特性就在这里钉住它的形状
+    assert _node(tmp_path, _registry()).server.capabilities()["v2"] == {
+        "contract_binding": True, "pushdown": True}
+    assert _node(tmp_path, None).server.capabilities()["v2"] == {
+        "contract_binding": False, "pushdown": True}

@@ -195,6 +195,21 @@ project uses Semantic Versioning.
 
 ### Added
 
+- **GeoMCP V2: pushdown engine in `geo.execute`** (plan W5, slice 2).
+  `pushdown_spec.strategy` ∈ local|migrate(alias)|push|auto. `auto` compares
+  `data_bytes/bandwidth_bps` (pull data here) against `remote_queue_s` (run at
+  the data owner) and picks the cheaper side; missing estimates fall back to
+  `local` with a `missing-estimates` reason — the server never invents numbers
+  to make a decision. `push` resolves the owner through the bound registry and
+  reuses one-hop delegation; unresolvable owners raise the new **2008
+  PUSHDOWN_UNRESOLVED** (auto never does — it degrades with a reason). The
+  decision, both estimates and reasons land in the result under `pushdown`,
+  because "why did this run remotely" must always have an answer. Spec §1a and
+  conformance vector `execute-pushdown-bad-strategy` (2004) pin the semantics.
+  9 tests incl. a real two-node delegation case.
+
+### Added
+
 - **Public product market, registry side** (plan W2): the registry now holds
   `plugin` entries — `(name, version)` identity like recipes, `install_ref`
   (wheel URL or pip requirement), `sha256`, `plane`, and the same review

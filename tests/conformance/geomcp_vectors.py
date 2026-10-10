@@ -47,6 +47,14 @@ REQUESTS: list[tuple[str, dict[str, Any], Any, dict[str, Any]]] = [
         {"error_code": 2001},  # SKILL_NOT_FOUND
     ),
     (
+        # V2：pushdown 的 strategy 只认 local|migrate|push|auto，其余 2004
+        "geo.execute",
+        {"skill": "echo", "geocards": [], "params": {},
+         "pushdown_spec": {"strategy": "teleport"}},
+        "e8",
+        {"error_code": 2004},  # INVALID_ARGUMENT
+    ),
+    (
         # V2：声明 contract_binding 而节点无 GAAG 注册中心 → 必须拒绝。
         # 授权声明"查无对证"不能默默放行；支持 V2 的实现以此向量为准。
         "geo.execute",
@@ -95,6 +103,7 @@ CASE_IDS: list[str] = [
     "execute-success",
     "execute-geocard-not-found",
     "execute-skill-not-found",
+    "execute-pushdown-bad-strategy",
     "execute-contract-binding-rejected",
     "execute-execution-failed",
     "execute-contract-not-satisfied",

@@ -49,8 +49,21 @@ The 1.x method set and error codes are frozen; V2 extends them **additively**:
   as data; it is never silently ignored.
 - `geo.capabilities` advertises `"v2": {"contract_binding": <bool>}` so clients
   negotiate instead of guessing.
-- `geo.execute` params MAY carry `pushdown_spec` and `federated_sources`
-  (reserved; see the roadmap — servers without support ignore them today).
+- `geo.execute` params MAY carry `pushdown_spec`
+  (`{"strategy": "local"|"migrate"|"push"|"auto", "data_bytes"?, "bandwidth_bps"?,
+  "remote_queue_s"?}`). Semantics (normative):
+  * `local` (and its alias `migrate`) — execute on the receiving node; data
+    transfer cost is borne and recorded.
+  * `push` — execute on the node owning the referenced GeoCards via one-hop
+    delegation. Unresolvable owner (no registry binding / unknown card /
+    multi-owner split) MUST return **2008** (`PUSHDOWN_UNRESOLVED`).
+  * `auto` — compare `data_bytes/bandwidth_bps` (pull) against `remote_queue_s`
+    (push); the cheaper side wins. Missing estimates MUST fall back to `local`
+    with a `missing-estimates` reason — servers never invent numbers to decide.
+  * The decision, both estimates and the reasons MUST appear in the execution
+    result under `pushdown` (explainability is part of the contract).
+  * An unknown `strategy` value is **2004** (`INVALID_ARGUMENT`).
+- `federated_sources` remains reserved for the federation slice.
 
 ## 2. JSON-RPC envelope
 
@@ -92,6 +105,7 @@ Error codes:
 | -32603 | Internal error                   |
 | 2000   | Contract not satisfied           |
 | 2007   | Contract binding rejected (V2)   |
+| 2008   | Pushdown unresolved (V2)         |
 | 2001   | Skill not found                  |
 | 2002   | GeoCard not found                |
 | 2003   | Execution failed                 |
