@@ -537,10 +537,10 @@ def cmd_register(args: argparse.Namespace) -> int:
                 overrides[key] = hint
     card, warnings = build_card(probe, overrides)
     problems = validate_card(card)
+    payload = {"probe": probe.as_dict(), "card": card,
+               "warnings": warnings, "problems": problems}
     if args.json:
-        print(_json.dumps({"probe": probe.as_dict(), "card": card,
-                           "warnings": warnings, "problems": problems},
-                          ensure_ascii=False, indent=2))
+        pass  # 单一 JSON 文档：submit 结果稍后并进同一次输出（BFF 要能 parse）
     else:
         print(f"类型：{probe.kind} → GeoCard type={card['type']}")
         print(f"卡片：{card['id']}  ·  {card['name']}")
@@ -566,7 +566,8 @@ def cmd_register(args: argparse.Namespace) -> int:
         else:
             print(f"提交失败：{result}")
     else:
-        print(_json.dumps({"submit": result}, ensure_ascii=False))
+        payload["submit"] = result
+        print(_json.dumps(payload, ensure_ascii=False, indent=2))
     return 0 if (result.get("submitted") or args.to == "dry") else 1
 
 

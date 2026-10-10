@@ -193,6 +193,15 @@ project uses Semantic Versioning.
   proves the checker can fail (one fake of each kind).
   New: `docs/MIGRATION.md` (old `TaskManager` / `federation` users).
 
+### Fixed
+
+- **`market install` used a non-wheel temp filename** — pip validates wheel
+  filename structure (`name-ver-pytag-abi-plat.whl`), so downloads now keep the
+  URL's basename (sanitised) inside a temp dir.
+- **Managed installs (`--target`) pass `--no-deps`** — the managed directory
+  holds only the plugin body; dependencies (like `geonexus-sdk`) come from the
+  node environment, otherwise a second conflicting SDK copy lands in the target.
+
 ### Added
 
 - **GeoMCP V2: pushdown engine in `geo.execute`** (plan W5, slice 2).

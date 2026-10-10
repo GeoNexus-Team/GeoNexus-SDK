@@ -49,15 +49,23 @@ def install_plugin(entry: dict[str, Any], *, target: str | None = None,
                           f"{entry.get('status')}：只有 approved 才能安装（先过审）")
     ref = entry.get("install_ref", "")
     name, version = entry.get("name"), entry.get("version")
-    target_args = ["--target", str(target)] if target else []
+    # --target 托管安装只放插件本体：依赖（如 geonexus-sdk）由节点环境提供，
+    # 否则托管目录里会躺第二份 SDK，导入时谁赢全看运气。
+    target_args = ["--target", str(target), "--no-deps"] if target else []
     verified: str | None = None
 
     if ref.startswith(("http://", "https://")):
         expected = entry.get("sha256")
         if not expected:
             raise MarketError(f"URL 引荐缺少 sha256，拒绝安装：{ref}")
-        with tempfile.NamedTemporaryFile(suffix=".whl", delete=False) as tmp:
-            tmp_path = Path(tmp.name)
+        # pip 会校验 wheel 文件名结构（name-ver-pytag-abi-plat.whl），
+        # 所以临时文件必须沿用 URL 里的规范名，不能叫 tmpXXXX.whl
+        import re as _re
+        fname = ref.rsplit("/", 1)[-1].split("?")[0]
+        if not _re.fullmatch(r"[A-Za-z0-9_.\-]+\.whl", fname):
+            fname = f"{name}-{version}-py3-none-any.whl"
+        tmp_dir = Path(tempfile.mkdtemp(prefix="gnx-market-"))
+        tmp_path = tmp_dir / fname
         try:
             with httpx.stream("GET", ref, timeout=timeout, follow_redirects=True) as res:
                 if res.status_code != 200:
@@ -71,7 +79,8 @@ def install_plugin(entry: dict[str, Any], *, target: str | None = None,
                     f"sha256 不匹配，中止安装：期望 {expected[:16]}… 实际 {verified[:16]}…")
             _pip(["install", *target_args, str(tmp_path)])
         finally:
-            tmp_path.unlink(missing_ok=True)
+            import shutil as _sh
+            _sh.rmtree(tmp_dir, ignore_errors=True)
     else:
         if entry.get("sha256"):
             # pip 索引引荐拿不到确定字节，校验和无法预验证 —— 说清楚，不假装验过
