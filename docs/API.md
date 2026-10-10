@@ -90,6 +90,14 @@ signatures; type hints are shipped (`py.typed`).
 
 ## `geonexus.adapters` — standards adapters
 
+- OGE (v1.1): Open Earth Engine 计算平台适配器
+  - `OgeClient` — OGE OpenAPI HTTP 客户端（登录/上传/执行/状态/结果）
+  - `OgeCredentialManager` — JWT/tk 凭证生命周期管理（自动续期）
+  - `OgeProtocolMapper` — OGE 引用协议 ↔ GeoCard ID 双向映射
+  - `OgeExecutor` — 完整执行链路（凭证 → 执行 → 轮询 → 结果）
+  - `OgeTaskPoller` — 异步任务状态轮询器
+  - `OgeCardBuilder` — OGE 算子定义 → operator_card / model_card
+  - `OgeSkillAdapter` — OGE 算子 → GeoSkill 包装（通过 GeoMCP 统一调用）
 - STAC: `import_stac_item / fetch_stac_item / stac_item_to_geocard /
   geocard_to_stac_item / geocard_to_stac_catalog / save_stac_item`.
 - OGC API Features/Processes: `fetch_ogc_collection / fetch_ogc_feature /
@@ -99,7 +107,8 @@ signatures; type hints are shipped (`py.typed`).
   parse_coveragejson / coverage_to_geotiff`.
 - OGC Processes bridge: `OgcProcessExecutor / make_ogc_process_skill /
   make_ogc_process_handler / register_ogc_process_skill`.
-- Errors: `StacAdapterError`, `OgcAdapterError`, `OgcCoverageError`,
+- Errors: `OgeClientError`, `OgeAuthError`, `OgeExecutionError`,
+  `StacAdapterError`, `OgcAdapterError`, `OgcCoverageError`,
   `OgcProcessExecutionError`.
 
 ## `geonexus.mcp_adapter` — MCP bridge

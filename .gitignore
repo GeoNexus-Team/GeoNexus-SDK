@@ -10,3 +10,9 @@ build/
 *.db-wal
 .pytest_cache/
 .ipynb_checkpoints/
+
+# 案例（flightway）的生成物不进仓库。
+# 注意：examples/*/output/ 下有历史提交的演示产物（agent/amazon_ndvi/federated 等，
+# 约 20MB 合成 GeoTIFF），那些是随仓库分发的演示资产，规则故意不覆盖它们。
+examples/flightway_wetland/output/
+examples/flightway_wetland/data.zip

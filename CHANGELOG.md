@@ -6,6 +6,12 @@ project uses Semantic Versioning.
 
 ## [Unreleased]
 
+（下一版工作记在这里）
+
+## [1.1.0] - 2026-10-10
+
+本版主题：**GeoMCP V2 三支柱落地**（合约绑定 / 计算下推 / 跨注册中心联邦）、**插件运行时与公共产品市场**、**第三方资源登记向导**、**轻客户端 GeoHarness**，外加产物受控回传与显式 CORS 开关。协议线保持 `1.0.0` 冻结不变 —— 全部为**加法**扩展（新参数、新错误码段、`geo.capabilities` 广告），客户端按能力协商而非猜版本。
+
 ### Added
 
 - **Case template (v1.0, since revised to v1.1 — see Changed) + a runnable worked example** — how a research article
@@ -38,7 +44,6 @@ project uses Semantic Versioning.
   - `tests/test_flightway_case.py` checks the contract and runs the real chain.
     (16 of its original assertions pinned the synthetic chain; the file has
     since grown to 18 tests covering the rebuild — see **Changed**.)
-
 - **GeoCard 1.1 sections: `composition` / `params` / `recipe_ref`** — a card can
   now describe a *whole solution* without containing one.
   - `composition.components[]` (`{id, role, step?, required?, alias?}`) lists the
@@ -58,7 +63,6 @@ project uses Semantic Versioning.
     Schema cannot express (duplicate params, `minimum > maximum`, blank enum
     entries) are covered in `tests/test_geocard.py`.
   - `docs/GEOCARD.md` documents all three sections.
-
 - **Report contracts (v1.1, `geonexus.gaag`)**: a conclusion becomes a citable
   asset. `report_card_from_run(plan, ...)` builds a `type: knowledge` card that
   carries `composition` / `params` / `recipe_ref` and provenance pointing at the
@@ -70,7 +74,6 @@ project uses Semantic Versioning.
   A `report` contract type joins `CONTRACT_SCHEMAS` (8 types), and
   `detect_asset_type` now answers `report` for `.html` *before* the generic
   `text` rule.
-
 - **Visibility inheritance (v1.1, `geonexus.geocard.visibility`)**: a composite
   card is not a way around access control.
   - `effective_visibility(card, lookup)` = min over the card's own level and its
@@ -86,7 +89,6 @@ project uses Semantic Versioning.
     audit view.
   - The module decides *visibility*, not *authority* — who may see what stays
     with the platform's identity layer.
-
 - **`geonexus.recipe` (v1.1)** — the executable half of a knowledge product:
   a **Recipe** says *how to run*, a GeoCard says *what it is*, and a `TaskGraph`
   is *one run*. No layer is a representation of another.
@@ -139,7 +141,6 @@ project uses Semantic Versioning.
     download the report. 36 checks, non-zero exit on the first unmet expectation.
   - `docs/RECIPE.md`, `examples/sdg_15_3_1/recipe.yaml`, `tests/test_recipe.py`,
     `tests/test_geomcp_plan.py`, `tests/test_registry_recipes.py`.
-
 - **`geonexus.model` (v1.2, Phase 3)** — model invocation contract: a
   `type: model` GeoCard finally has an execution path.
   - `invoke_model(card, inputs, ...)` runs **compute gate → provider →
@@ -160,7 +161,6 @@ project uses Semantic Versioning.
     `X-API-Key` purposes. Nodes that do not implement it answer with the
     standard `METHOD_NOT_FOUND` (-32601).
   - `docs/MODEL.md`, `tests/test_model.py` (52 tests).
-
 - **`geonexus.geotask.scheduler` (v1.2, Phase 4)** — capacity accounting and
   admission control for task execution.
   - `Scheduler` / `Reservation` / `Occupancy` / `AdmissionResult`: admission
@@ -184,7 +184,6 @@ project uses Semantic Versioning.
   - `tests/test_geotask_scheduler.py` (49 tests), including an independent
     probe that measures real concurrency inside the handler and asserts the
     scheduler's accounting matches it exactly.
-
 - **Docs consistency gate (v1.2, Phase 5)** — `scripts/check_docs.py` (run in
   CI) verifies that every public name listed in `docs/API_STABILITY.md` is
   really exported, that every `geonexus.*` dotted name in the docs resolves,
@@ -192,9 +191,6 @@ project uses Semantic Versioning.
   link and in-repo path reference exists. `tests/test_docs_consistency.py`
   proves the checker can fail (one fake of each kind).
   New: `docs/MIGRATION.md` (old `TaskManager` / `federation` users).
-
-### Added
-
 - **`examples/plugin_geokg` — GeoKG as a real market plugin** (plan W2 +
   "everything is a plugin"). A thin **adapter layer**, per GeoKG's own layering:
   the domain content stays in the `GeoKG` package, the graph engine in
@@ -210,9 +206,6 @@ project uses Semantic Versioning.
   `market install --target`) onto a node, which reported
   `plugins: [{geokg, ok}]` and answered `geokg-search` with 450 real hits
   (14 603 entities / 20 893 relations, dataset fingerprint in the payload).
-
-### Added
-
 - **GeoMCP V2: `federated_sources` cross-registry resolution** (plan W5, final
   slice). References are `<registry_url>#<card_id>`; resolution is one-hop,
   deduplicated, approved-only. Resolved cards join contract gating, their
@@ -224,34 +217,6 @@ project uses Semantic Versioning.
   when a request carries *only* federated cards (the gate used to be keyed on
   `geocards` alone — a real hole this slice closed). 7 tests incl. two-registry
   fixtures and a federation×pushdown delegation case; conformance +1 vector.
-
-### Fixed
-
-- **In-tree wheel builds poisoned plugin discovery.** Building the example
-  plugins where they live left `build/` and `*.egg-info` inside
-  `examples/plugin_*`; the moment such a directory lands on `sys.path` (a test
-  doing `sys.path.insert`), `importlib.metadata` treats it as an *installed*
-  entry point — so every `GeoNode` in the session silently gained that plugin
-  and unrelated count assertions failed (10 tests). Fixed three ways: the test
-  now loads the plugin by file path without touching `sys.path`, the artifacts
-  are gone, and `scripts/build_plugin_wheel.sh` builds from a **temp copy** and
-  refuses to leave residue (it also fails loudly if the wheel comes out without
-  metadata).
-- **Declarative plugin registration is idempotent.** A plugin whose GeoCard or
-  skill already exists on the node is no longer reported as failed
-  (`ok: false`) — "already present" is the target state, not an error.
-
-### Fixed
-
-- **`market install` used a non-wheel temp filename** — pip validates wheel
-  filename structure (`name-ver-pytag-abi-plat.whl`), so downloads now keep the
-  URL's basename (sanitised) inside a temp dir.
-- **Managed installs (`--target`) pass `--no-deps`** — the managed directory
-  holds only the plugin body; dependencies (like `geonexus-sdk`) come from the
-  node environment, otherwise a second conflicting SDK copy lands in the target.
-
-### Added
-
 - **GeoMCP V2: pushdown engine in `geo.execute`** (plan W5, slice 2).
   `pushdown_spec.strategy` ∈ local|migrate(alias)|push|auto. `auto` compares
   `data_bytes/bandwidth_bps` (pull data here) against `remote_queue_s` (run at
@@ -264,9 +229,6 @@ project uses Semantic Versioning.
   because "why did this run remotely" must always have an answer. Spec §1a and
   conformance vector `execute-pushdown-bad-strategy` (2004) pin the semantics.
   9 tests incl. a real two-node delegation case.
-
-### Added
-
 - **Public product market, registry side** (plan W2): the registry now holds
   `plugin` entries — `(name, version)` identity like recipes, `install_ref`
   (wheel URL or pip requirement), `sha256`, `plane`, and the same review
@@ -276,9 +238,6 @@ project uses Semantic Versioning.
   sha256 at publish (422 otherwise) and install verifies the downloaded bytes
   **before** pip ever runs — market poisoning gets a closed door, not a warn.
   `RegistryServer.start_in_thread` added (the R1 gap, closed). 13 tests.
-
-### Added
-
 - **Opt-in CORS for browser clients** — `GEONODE_CORS_ORIGINS` (comma list).
   Off by default: an unauthenticated node silently opening `geo.execute` to
   every browser on the internet is an incident, not a convenience. The
@@ -292,9 +251,6 @@ project uses Semantic Versioning.
   proves connect → execute → plot, screenshot in `client/screenshots/`.
 - **demo plugin gained `demo-sample-points`** — returns inline synthetic
   GeoJSON so the execute→map round trip is demonstrable end to end.
-
-### Added
-
 - **GeoMCP V2: `contract_binding` is now enforced in `geo.execute`** (plan W5,
   first slice). A declared GAAG binding must pass the ContractGate double check
   (semantic similarity + contract consistency) before execution; failing to
@@ -305,9 +261,6 @@ project uses Semantic Versioning.
   instead of guessing; conformance vector `execute-contract-binding-rejected`
   and `docs/GEOMCP.md` §1a pin the additive semantics (frozen 1.x surface
   untouched). `GeoNode(..., gaag_registry=...)` wires a GAAGRegistry in.
-
-### Added
-
 - **Plugin loading via pip entry-points** (plan W2, first half). Nodes discover
   the `geonexus.plugins` entry-point group at startup; a plugin is either a
   `register(node)` callable or a declarative object with `cards()`/`skills()`.
@@ -317,7 +270,6 @@ project uses Semantic Versioning.
   metadata first (py3.9 EntryPoint has no `.dist`, so the plugin's own
   `version` attribute is the fallback). Example plugin package
   `examples/plugin_demo_ndvi` (1 skill + 1 card) proves the packaging contract.
-
 - **`geonexus register` — lightweight third-party asset registration** (plan W1).
   A shared, read-only probe core (`geonexus.register`): OGC API (features /
   coverages / tiles / processes), STAC, WMS capabilities, GeoNode health, and
@@ -329,24 +281,10 @@ project uses Semantic Versioning.
   (`status=pending` by default) or the platform, and the CLI defaults to
   `--to dry` so nothing publishes unless asked. Wizard (`-i`) asks only the
   human judgements: name, licence, sensitivity, provider.
-
-### Added
-
 - **`GET /artifact` on GeoNodes** — a controlled exit for outputs written on the
   node machine (`workdir` + `GEONODE_ARTIFACT_ROOTS` whitelist, X-API-Key enforced
   when the node has keys). Without it, deliverables produced by a *remote* node
   are unreachable from the platform, and "查看报告" dead-ends in a 404.
-
-### Fixed
-
-- **GeoMCP transport no longer 500s when a skill returns non-JSON values.**
-  A handler returning `pathlib.Path` (or a `set`) crashed `json.dumps` inside
-  `JSONResponse` — invisible when running in-process, fatal over HTTP; it bit a
-  real Windows node running the EAAF case (`WindowsPath is not JSON serializable`).
-  `geomcp/server.py` now normalizes responses through `_json_safe` (Path→str,
-  set→sorted list, recursive), covered by a regression test; the case skills were
-  also fixed to return string paths, since the wire format should not rely on
-  the transport's mercy.
 
 ### Changed
 
@@ -388,15 +326,11 @@ project uses Semantic Versioning.
     published tables, the two documented discrepancies, the reproduction of the
     paper's χ² values, and the visibility inheritance from the restricted
     counts component.
-
 - `docs/case-template.md` (v1.1) gained a section on **reproducing a published
   study**: data split into public results / restricted raw / our inferences,
   what to do when two published sources disagree, proving the method ran by
   recomputing a published statistic, and keeping the paper's own "future work"
   in `extensions/`.
-
-### Changed
-
 - `TaskGraph.ready()` now also returns `blocked` nodes whose dependencies are
   satisfied, so a task blocked on resources is retried once capacity frees.
   `mark_blocked()` is idempotent and carries a human-readable reason.
@@ -407,8 +341,6 @@ project uses Semantic Versioning.
   (`executor_lost`, retryable) instead of propagating out of `run()`.
 - `API_STABILITY.md` documents `geonexus.geotask`, `geonexus.model` and the
   additive nature of `geo.invoke`.
-
-
 - **`geonexus.web` (v1.1)** — Web backend-for-frontend layer:
   - JWT auth (`JWTConfig` HS256/RS256, stateless, distributed-friendly;
     `BearerAuth` / `APIKeyAuth` FastAPI dependencies).
@@ -429,7 +361,6 @@ project uses Semantic Versioning.
     `--cors-origin`, `--jwt-secret`).
   - `docs/WEB.md` (auth model, endpoints, deployment topologies, security).
   - Dependencies: `PyJWT>=2.8`, `cryptography>=42.0`.
-
 - **Reflective GeoAgent (v1.1)** — LLM-assisted repair on the deterministic
   executor:
   - `plan_from_text_with_registry()` — registry-grounded goal translation
@@ -444,14 +375,12 @@ project uses Semantic Versioning.
     (`satisfied` / `score` / `notes`).
   - `PlanStep.reflections` field + `skipped` status; `docs/AGENT.md`
     updated with the reflective-execution guide.
-
 - **Web × Agent confluence (v1.1)** — `POST /api/goals` upgraded to the full
   reflective stack: registry-grounded planning → `ReflectiveExecutor`
   (LLM repairs failed steps) → `evaluate_plan` self-assessment. The task
   result carries `reflective` and `evaluation` fields; `"reflective": false`
   opts back into plain deterministic execution. `docs/WEB.md` documents the
   flow.
-
 - **MCP client bridge (v1.1)** — `geonexus.mcp_client` imports tools from
   external MCP servers (stdio or Streamable HTTP) as GeoSkills:
   `MCPToolClient.stdio(...)` / `.http(...)` / `.list_tools()` /
@@ -461,7 +390,6 @@ project uses Semantic Versioning.
   `geonexus mcp import`. Together with the server-side adapter this makes
   GeoNexus both an MCP host and client (verified end-to-end against our own
   `mcp run` server). `docs/MCP.md` client-side guide.
-
 - **OGC coverage expansion (v1.1)** — three more OGC families as adapters:
   - **OGC API - Records** (`ogc_records.py`): catalogue discovery —
     `list_ogc_records` / `fetch_ogc_record` / `ogc_record_to_geocard`
@@ -480,7 +408,6 @@ project uses Semantic Versioning.
   - CLI: `geonexus card import-ogc-records [--record --collection --bbox
     --query --limit]`, `import-ogc-tiles [--tileset --style]`,
     `import-ogc-legacy [--service wms|wmts]`; 3 CLI tests.
-
 - **Resource matching (v1.1)** — `geonexus.resource` coordinates compute
   resources: `ComputeCapability` (what a `type: compute` node provides),
   `match_resource(model_card, capabilities)` (checks `runtime.cpu` /
@@ -490,7 +417,6 @@ project uses Semantic Versioning.
   Enables routing a model to a node that satisfies its runtime — the
   "coordinate data, model and compute" step of the GeoCard workflow.
   `docs/RESOURCE.md` guide; 16 tests.
-
 - **Data registration & review workflow (v1.1)** — upload a file → generate
   a GeoCard → submit for review → approve → discoverable:
   - `geonexus.metadata`: `inspect_raster` (CRS/bounds/resolution/bands from
@@ -505,6 +431,36 @@ project uses Semantic Versioning.
     `GET /cards?status=`, `POST /cards/{id}/approve|reject`;
     client `register(status=)` / `approve` / `reject` / `list_cards(status=)`.
     9 tests.
+
+### Fixed
+
+- **In-tree wheel builds poisoned plugin discovery.** Building the example
+  plugins where they live left `build/` and `*.egg-info` inside
+  `examples/plugin_*`; the moment such a directory lands on `sys.path` (a test
+  doing `sys.path.insert`), `importlib.metadata` treats it as an *installed*
+  entry point — so every `GeoNode` in the session silently gained that plugin
+  and unrelated count assertions failed (10 tests). Fixed three ways: the test
+  now loads the plugin by file path without touching `sys.path`, the artifacts
+  are gone, and `scripts/build_plugin_wheel.sh` builds from a **temp copy** and
+  refuses to leave residue (it also fails loudly if the wheel comes out without
+  metadata).
+- **Declarative plugin registration is idempotent.** A plugin whose GeoCard or
+  skill already exists on the node is no longer reported as failed
+  (`ok: false`) — "already present" is the target state, not an error.
+- **`market install` used a non-wheel temp filename** — pip validates wheel
+  filename structure (`name-ver-pytag-abi-plat.whl`), so downloads now keep the
+  URL's basename (sanitised) inside a temp dir.
+- **Managed installs (`--target`) pass `--no-deps`** — the managed directory
+  holds only the plugin body; dependencies (like `geonexus-sdk`) come from the
+  node environment, otherwise a second conflicting SDK copy lands in the target.
+- **GeoMCP transport no longer 500s when a skill returns non-JSON values.**
+  A handler returning `pathlib.Path` (or a `set`) crashed `json.dumps` inside
+  `JSONResponse` — invisible when running in-process, fatal over HTTP; it bit a
+  real Windows node running the EAAF case (`WindowsPath is not JSON serializable`).
+  `geomcp/server.py` now normalizes responses through `_json_safe` (Path→str,
+  set→sorted list, recursive), covered by a regression test; the case skills were
+  also fixed to return string paths, since the wire format should not rely on
+  the transport's mercy.
 
 ## [1.0.0] - 2026-08-21
 

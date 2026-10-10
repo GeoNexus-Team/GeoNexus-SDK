@@ -193,6 +193,11 @@ def split_species(english: str, scientific: str, marks: str = '') -> dict:
     """
     english = re.sub(r'\s+', ' ', (english or '')).strip(' ,')
     scientific = re.sub(r'\s+', ' ', (scientific or '')).strip(' ,')
+    # IUCN 等级有时落在英文名一侧（标记片段的 x 在斜体之前），也要挪到 marks
+    tail_en = re.search(r'\s*(\((?:CR|EN|VU|NT|LC|DD|NE)\))\s*$', english)
+    if tail_en:
+        marks = f"{marks} {tail_en.group(1)}".strip()
+        english = english[:tail_en.start()].strip(' ,')
     tail = re.search(r'\s*(\*{1,2}|\d+)$', scientific)
     if tail:                      # 原文的 * / ** / 脚注数字紧跟在学名后面
         marks = f"{marks} {tail.group(1)}".strip()

@@ -62,7 +62,7 @@ on it (pyproj is used for CRS comparison; rasterio is used for GeoTIFF I/O).
 
 | # | Check | Result |
 |---|-------|--------|
-| A | `cd /Users/mac/Repos/GeoNexus/mvp` | done |
+| A | `cd /Users/mac/Repos/GeoNexus/core` | done |
 | B | `pip install -e ".[dev]"` | passed (Python 3.12 venv) |
 | C | `pytest` | **45 passed** |
 | D | `geonexus card validate examples/amazon_ndvi/geocard.yaml` | OK |

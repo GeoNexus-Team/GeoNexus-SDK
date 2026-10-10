@@ -65,7 +65,7 @@ rf018,PRC,Yalu Jiang estuary,Far Eastern Curlew,Numenius madagascariensis,EN,Tru
 rf018,PRC,Yalu Jiang estuary,Bar-tailed Godwit,Limosa lapponica,,False,True,False
 rf018,PRC,Yalu Jiang estuary,Black-tailed Godwit,Limosa limosa,,False,False,False
 rf018,PRC,Yalu Jiang estuary,Ruddy Turnstone,Arenaria interpres,,False,False,False
-rf018,PRC,Yalu Jiang estuary,Great Knot (EN),Calidris tenuirostris,,True,False,False
+rf018,PRC,Yalu Jiang estuary,Great Knot,Calidris tenuirostris,EN,True,False,False
 rf018,PRC,Yalu Jiang estuary,Broad-billed Sandpiper,Calidris falcinellus,,False,False,False
 rf018,PRC,Yalu Jiang estuary,Sharp-tailed Sandpiper,Calidris acuminata,VU,False,False,False
 rf018,PRC,Yalu Jiang estuary,Curlew Sandpiper,Calidris ferruginea,,True,False,False
@@ -93,9 +93,9 @@ rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Grey
 rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Kentish Plover,Charadrius alexandrinus,,True,False,False
 rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Lesser Sandplover,Charadrius mongolus,,True,False,False
 rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Eurasian Curlew,Numenius arquata,,False,False,False
-rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Far Eastern Curlew (EN),Numenius madagascariensis,,False,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Far Eastern Curlew,Numenius madagascariensis,EN,False,False,False
 rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Ruddy Turnstone,Arenaria interpres,,False,False,False
-rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Great Knot (EN),Calidris tenuirostris,,True,False,False
+rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Great Knot,Calidris tenuirostris,EN,True,False,False
 rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Red Knot,Calidris canutus,,True,False,False
 rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Sharp-tailed Sandpiper,Calidris acuminata,VU,False,False,False
 rf019,PRC,Liaohe Estuary National Nature Reserve and Inner Gulf of Liaodong,Dunlin,Calidris alpina,,False,False,False
@@ -124,7 +124,7 @@ rf021,PRC,"Pulandian-Jinzhou east coast, including Changshan Islands",Whimbrel,N
 rf021,PRC,"Pulandian-Jinzhou east coast, including Changshan Islands",Eurasian Curlew,Numenius arquata,,False,False,False
 rf021,PRC,"Pulandian-Jinzhou east coast, including Changshan Islands",Far Eastern Curlew,Numenius madagascariensis,EN,False,False,False
 rf021,PRC,"Pulandian-Jinzhou east coast, including Changshan Islands",Bar-tailed Godwit,Limosa lapponica,,False,False,False
-rf021,PRC,"Pulandian-Jinzhou east coast, including Changshan Islands",Great Knot (EN),Calidris tenuirostris,,False,False,False
+rf021,PRC,"Pulandian-Jinzhou east coast, including Changshan Islands",Great Knot,Calidris tenuirostris,EN,False,False,False
 rf021,PRC,"Pulandian-Jinzhou east coast, including Changshan Islands",Dunlin,Calidris alpina,,False,False,False
 rf022,PRC,"Jinzhou Bay, Dalian",Bar-tailed Godwit,Limosa lapponica,,False,False,False
 rf022,PRC,"Jinzhou Bay, Dalian",Spotted Redshank,Tringa erythropus,,False,False,False
@@ -136,7 +136,7 @@ rf023,PRC,Luannan-Zuidong coast,Kentish Plover,Charadrius alexandrinus,,False,Fa
 rf023,PRC,Luannan-Zuidong coast,Eurasian Curlew,Numenius arquata,,False,False,False
 rf023,PRC,Luannan-Zuidong coast,Far Eastern Curlew,Numenius madagascariensis,EN,False,False,False
 rf023,PRC,Luannan-Zuidong coast,Black-tailed Godwit,Limosa limosa,,True,False,False
-rf023,PRC,Luannan-Zuidong coast,Great Knot (EN),Calidris tenuirostris,,False,False,False
+rf023,PRC,Luannan-Zuidong coast,Great Knot,Calidris tenuirostris,EN,False,False,False
 rf023,PRC,Luannan-Zuidong coast,Red Knot,Calidris canutus,,False,True,False
 rf023,PRC,Luannan-Zuidong coast,Broad-billed Sandpiper,Calidris falcinellus,,False,False,False
 rf023,PRC,Luannan-Zuidong coast,Sharp-tailed Sandpiper,Calidris acuminata,VU,False,False,False
@@ -915,7 +915,7 @@ rf125,Philippines,"North Manila Bay (Bataan), – Balanga Wetlands Park-Pilar We
 rf125,Philippines,"North Manila Bay (Bataan), – Balanga Wetlands Park-Pilar Wetlands",Great White Egret,Ardea alba,,False,False,False
 rf126,Philippines,"Tubbataha Reef Natural Park, Palawan",Greater Crested Tern,Thalasseus bergii,,False,False,False
 rf126,Philippines,"Tubbataha Reef Natural Park, Palawan",Black Noddy,Anous minutus,,False,False,False
-rf127,Thailand,"Pak Thale-Laem Phak Bia coast, Phetchaburi",Spotted Greenshank (EN),Tringa guttifer,,True,False,False
+rf127,Thailand,"Pak Thale-Laem Phak Bia coast, Phetchaburi",Spotted Greenshank,Tringa guttifer,EN,True,False,False
 rf127,Thailand,"Pak Thale-Laem Phak Bia coast, Phetchaburi",Lesser Sandplover,Charadrius mongolus,,False,False,False
 rf127,Thailand,"Pak Thale-Laem Phak Bia coast, Phetchaburi",Broad-billed Sandpiper,Calidris falcinellus,,False,False,False
 rf127,Thailand,"Pak Thale-Laem Phak Bia coast, Phetchaburi",Ruff,Calidris pugnax,,False,False,False
@@ -933,7 +933,7 @@ rf129,Thailand,"Pak Nam Prasae, Rayong",Lesser Sandplover,Charadrius mongolus,,F
 rf129,Thailand,"Pak Nam Prasae, Rayong",Spotted Greenshank,Tringa guttifer,EN,False,False,False
 rf130,Thailand,"Huai Chorakhe Mak Reservoir, Buriram",Sarus Crane,Grus antigone sharpii,VU,False,False,False
 rf131,Thailand,"Krabi River Mouth, Krabi",Lesser Sandplover,Charadrius mongolus,,False,False,False
-rf131,Thailand,"Krabi River Mouth, Krabi",Spotted Greenshank (EN),Tringa guttifer,,False,False,False
+rf131,Thailand,"Krabi River Mouth, Krabi",Spotted Greenshank,Tringa guttifer,EN,False,False,False
 rf132,Thailand,"Khlong Tamru (Bang Pakong), Chachoengsao",Lesser Sandplover,Charadrius mongolus,,False,False,False
 rf132,Thailand,"Khlong Tamru (Bang Pakong), Chachoengsao",Ruff,Calidris pugnax,,False,False,False
 rf133,Thailand,"Khlong Yai, Trat",Lesser Sandplover,Charadrius mongolus,,False,False,False

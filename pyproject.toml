@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "geonexus-sdk"
-version = "1.0.0"
+version = "1.1.0"
 description = "GeoNexus - federated geospatial intelligence: GeoCard, GeoMCP, GeoNode, GeoSkill"
 readme = "README.md"
 requires-python = ">=3.10"
