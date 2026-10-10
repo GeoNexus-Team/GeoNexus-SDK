@@ -193,6 +193,20 @@ project uses Semantic Versioning.
   proves the checker can fail (one fake of each kind).
   New: `docs/MIGRATION.md` (old `TaskManager` / `federation` users).
 
+### Added
+
+- **GeoMCP V2: `federated_sources` cross-registry resolution** (plan W5, final
+  slice). References are `<registry_url>#<card_id>`; resolution is one-hop,
+  deduplicated, approved-only. Resolved cards join contract gating, their
+  provenance (source/card/owner/registry) lands in `result.federated` — also on
+  delegated results — and their owners feed the pushdown owner table, so
+  `push` can cross registry domains. Every resolution failure is **2009
+  FEDERATION_UNRESOLVED** (malformed / unreachable / unknown / unapproved /
+  bad schema); silent ignoring is forbidden. Contract gating now also runs
+  when a request carries *only* federated cards (the gate used to be keyed on
+  `geocards` alone — a real hole this slice closed). 7 tests incl. two-registry
+  fixtures and a federation×pushdown delegation case; conformance +1 vector.
+
 ### Fixed
 
 - **`market install` used a non-wheel temp filename** — pip validates wheel

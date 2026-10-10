@@ -23,6 +23,7 @@ from .protocol import (
     CONTRACT_BINDING_REJECTED,
     CONTRACT_NOT_SATISFIED,
     EXECUTION_FAILED,
+    FEDERATION_UNRESOLVED,
     GEOCARD_NOT_FOUND,
     INVALID_ARGUMENT,
     INVALID_PARAMS,
@@ -300,7 +301,7 @@ class GeoMCPServer:
             "skills": skills,
             # V2 特性广告：客户端按 capabilities 协商，不靠猜（协议冻结纪律）
             "v2": {"contract_binding": self.gaag_registry is not None,
-                   "pushdown": True},
+                   "pushdown": True, "federation": True},
             "geocards": [c["id"] for c in cards],
             "geocard_ids": [c["id"] for c in cards],
             "recipes": self._recipe_summaries(),
@@ -622,8 +623,23 @@ class GeoMCPServer:
                     )
                 resolved_cards.append(card)
 
+        # 1b. V2 federation: resolve cross-registry card references.
+        federated_meta: list[dict[str, Any]] = []
+        federated_owners: dict[str, str] = {}
+        if params.federated_sources:
+            known = {c.id for c in resolved_cards}
+            for src in dict.fromkeys(params.federated_sources):   # 去重且保序
+                card, owner, reg_url = self._resolve_federated(src)
+                if card.id not in known:
+                    resolved_cards.append(card)
+                    known.add(card.id)
+                federated_meta.append({"source": src, "card": card.id,
+                                       "owner": owner, "registry": reg_url})
+                federated_owners[card.id] = owner
+
         # 2. Contract satisfaction gating (registry / discovery -> contract).
-        if params.geocards:
+        #    联邦解析来的卡同样受门控：它的 bbox 就是合约的一部分。
+        if resolved_cards:
             spatial = params.spatial
             temporal = params.temporal
             for card in resolved_cards:
@@ -650,9 +666,12 @@ class GeoMCPServer:
         if params.pushdown_spec:
             pushdown_decision = self._decide_pushdown(params, resolved_cards)
             if pushdown_decision["decision"] == "push":
-                delegated, owner_url = self._delegate_to_owner(params, resolved_cards)
+                delegated, owner_url = self._delegate_to_owner(
+                    params, resolved_cards, known_owners=federated_owners)
                 pushdown_decision["owner"] = owner_url
                 delegated["pushdown"] = pushdown_decision
+                if federated_meta:      # 委托结果也要带联邦溯源，不能半路丢
+                    delegated["federated"] = federated_meta
                 return delegated
 
         # 2b. V2 GAAG contract binding: when declared, it MUST verify —
@@ -675,8 +694,13 @@ class GeoMCPServer:
                     {"available": list(self._tools.keys())},
                 )
             result = self._run_tool(tool, clean_params)
-        if pushdown_decision is not None and isinstance(result, dict):
-            result["pushdown"] = pushdown_decision   # 决策要可解释：两侧估算都带上
+        if isinstance(result, dict):
+            if pushdown_decision is not None:
+                # 决策要可解释：两侧估算都带上
+                result["pushdown"] = pushdown_decision
+            if federated_meta:
+                # 联邦溯源：这张卡是从哪个注册中心、谁的节点解析来的，必须留痕
+                result["federated"] = federated_meta
         return result
 
     # ------------------------------------------------------------------ #
@@ -738,7 +762,8 @@ class GeoMCPServer:
         }
 
     def _delegate_to_owner(self, params: ExecuteParams,
-                           resolved_cards: list[GeoCard]) -> dict[str, Any]:
+                           resolved_cards: list[GeoCard],
+                           known_owners: dict[str, str] | None = None) -> dict[str, Any]:
         """push 决策落地：解析属主节点并委托（复用一跳委托语义）。"""
         if not self.registry_url:
             raise GeoMCPProtocolError(
@@ -746,7 +771,7 @@ class GeoMCPServer:
                 "pushdown 决策为 push，但本节点未绑定 registry，无法解析数据属主",
                 {"reason": "no_registry_binding"},
             )
-        owners: dict[str, str] = {}
+        owners: dict[str, str] = dict(known_owners or {})
         from ..registry import RegistryClient, RegistryClientError
 
         try:
@@ -781,7 +806,51 @@ class GeoMCPServer:
                 {"reason": "multi_owner", "owners": target},
             )
         unknown = [c.id for c in resolved_cards if self._resolve_card(c.id) is None]
-        return self._delegate(params, unknown or [c.id for c in resolved_cards]), target[0]
+        return (self._delegate(params, unknown or [c.id for c in resolved_cards],
+                               extra_owners=known_owners), target[0])
+
+    def _resolve_federated(self, source: str) -> tuple[GeoCard, str, str]:
+        """解析一条跨注册中心引用：``<registry_url>#<card_id>``。
+
+        一跳、只认 approved：远端注册中心直接给出卡片与属主节点，不再递归
+        （递归链路由"注册中心互相同步"承担，执行面不做无限跳）；解析失败一律
+        2009 —— 联邦引用是调用方的显式声明，静默忽略等于偷偷换语义。
+        """
+        from ..registry import RegistryClient, RegistryClientError
+
+        reg_url, sep, card_id = source.rpartition("#")
+        if not sep or not reg_url.startswith(("http://", "https://")) or not card_id:
+            raise GeoMCPProtocolError(
+                FEDERATION_UNRESOLVED,
+                f"federated source 格式应为 <registry_url>#<card_id>：{source!r}",
+                {"reason": "malformed_source", "source": source},
+            )
+        try:
+            with RegistryClient(reg_url) as remote:
+                entry = remote.get(card_id)
+        except RegistryClientError as exc:
+            reason = "card_not_found" if exc.code == 404 else "registry_unreachable"
+            raise GeoMCPProtocolError(
+                FEDERATION_UNRESOLVED,
+                f"联邦解析失败（{reason}）：{source}（{exc}）",
+                {"reason": reason, "source": source},
+            ) from exc
+        if not isinstance(entry, dict) or entry.get("status") != "approved":
+            raise GeoMCPProtocolError(
+                FEDERATION_UNRESOLVED,
+                f"联邦条目未批准，拒绝引用：{source}",
+                {"reason": "not_approved", "source": source,
+                 "status": entry.get("status") if isinstance(entry, dict) else None},
+            )
+        try:
+            card = GeoCard.model_validate(entry["card"])
+        except Exception as exc:
+            raise GeoMCPProtocolError(
+                FEDERATION_UNRESOLVED,
+                f"联邦卡片 schema 校验失败：{source}（{exc}）",
+                {"reason": "bad_card", "source": source},
+            ) from None
+        return card, str(entry.get("node_url") or ""), reg_url
 
     def _enforce_contract_binding(self, params: ExecuteParams) -> None:
         """V2: 声明 contract_binding 的执行必须过 ContractGate 双重验证。
@@ -851,7 +920,8 @@ class GeoMCPServer:
         self.registry_url = registry_url
         logger.info("GeoMCP server '%s' registry binding: %s", self.name, registry_url)
 
-    def _delegate(self, params: ExecuteParams, unknown: list[str]) -> dict[str, Any]:
+    def _delegate(self, params: ExecuteParams, unknown: list[str],
+                  extra_owners: dict[str, str] | None = None) -> dict[str, Any]:
         """Forward a request to the node that owns the first unknown card.
 
         One-hop semantics: the forwarded request carries the delegation
@@ -862,10 +932,11 @@ class GeoMCPServer:
 
         registry_url = self.registry_url
         assert registry_url is not None  # delegation is only entered when bound
-        owners: dict[str, str] = {}
+        owners: dict[str, str] = dict(extra_owners or {})
+        to_lookup = [c for c in unknown if c not in owners]
         try:
             with RegistryClient(registry_url) as registry:
-                for card_id in unknown:
+                for card_id in to_lookup:
                     entry = registry.get(card_id)
                     if isinstance(entry, dict) and entry.get("node_url"):
                         owners[card_id] = entry["node_url"]

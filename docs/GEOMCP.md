@@ -63,7 +63,16 @@ The 1.x method set and error codes are frozen; V2 extends them **additively**:
   * The decision, both estimates and the reasons MUST appear in the execution
     result under `pushdown` (explainability is part of the contract).
   * An unknown `strategy` value is **2004** (`INVALID_ARGUMENT`).
-- `federated_sources` remains reserved for the federation slice.
+- `geo.execute` params MAY carry `federated_sources`: cross-registry card
+  references of the form `<registry_url>#<card_id>`. Resolution is **one-hop**
+  (the remote registry answers with card + owning node; recursive chaining is
+  carried by registry-to-registry sync, not by the execution plane), deduplicated,
+  and accepts **approved** entries only. Resolved cards participate in contract
+  gating like local cards; provenance (source, card, owner, registry) MUST appear
+  in the result under `federated`, including on delegated results. Their owners
+  feed the pushdown owner table. Any resolution failure — malformed source,
+  unreachable registry, unknown card, unapproved entry, schema-invalid card —
+  MUST return **2009** (`FEDERATION_UNRESOLVED`); silent ignoring is forbidden.
 
 ## 2. JSON-RPC envelope
 
@@ -106,6 +115,7 @@ Error codes:
 | 2000   | Contract not satisfied           |
 | 2007   | Contract binding rejected (V2)   |
 | 2008   | Pushdown unresolved (V2)         |
+| 2009   | Federation unresolved (V2)         |
 | 2001   | Skill not found                  |
 | 2002   | GeoCard not found                |
 | 2003   | Execution failed                 |

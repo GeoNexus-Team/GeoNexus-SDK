@@ -47,6 +47,14 @@ REQUESTS: list[tuple[str, dict[str, Any], Any, dict[str, Any]]] = [
         {"error_code": 2001},  # SKILL_NOT_FOUND
     ),
     (
+        # V2：federated_sources 格式错 → 2009（不静默忽略）
+        "geo.execute",
+        {"skill": "echo", "geocards": [], "params": {},
+         "federated_sources": ["garbage-without-hash"]},
+        "e9",
+        {"error_code": 2009},  # FEDERATION_UNRESOLVED
+    ),
+    (
         # V2：pushdown 的 strategy 只认 local|migrate|push|auto，其余 2004
         "geo.execute",
         {"skill": "echo", "geocards": [], "params": {},
@@ -103,6 +111,7 @@ CASE_IDS: list[str] = [
     "execute-success",
     "execute-geocard-not-found",
     "execute-skill-not-found",
+    "execute-federation-malformed",
     "execute-pushdown-bad-strategy",
     "execute-contract-binding-rejected",
     "execute-execution-failed",

@@ -46,6 +46,9 @@ CONTRACT_BINDING_REJECTED = 2007
 # V2（下推）：要求 push 到数据属主节点，但属主解析不出来（无 registry 绑定/
 # 注册中心查无此卡）。auto 策略不报这个错 —— 它会带理由回退 local。
 PUSHDOWN_UNRESOLVED = 2008
+# V2（联邦）：federated_sources 里的跨注册中心引用解析不出来
+#（格式错 / 远端不可达 / 查无此卡 / 未批准）。
+FEDERATION_UNRESOLVED = 2009
 
 #: GeoMCP 方法表。``geo.invoke``（V2）与 ``geo.plan``（V1.1）都是**加法式**
 #: 扩展：前者调用一个 ``type: model`` 的 GeoCard，后者把"配方 + 参数"物化成一次
