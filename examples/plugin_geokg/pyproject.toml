@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "geonexus-plugin-geokg"
+version = "0.1.0"
+description = "GeoNexus market plugin: expose the GeoKG domain knowledge graph as node skills and a knowledge GeoCard"
+requires-python = ">=3.9"
+# 关键：GeoKG **不是**硬依赖。它体积大、需要>=3.10、并且要按节点环境单独装——
+# 硬依赖会让"市场安装"在没装 GeoKG 的节点上直接失败。缺了它插件照样加载，
+# 技能调用时给出可执行的安装提示（见 geonexus_plugin_geokg.DIST_HINT）。
+dependencies = []
+
+[project.optional-dependencies]
+kg = ["GeoKG>=0.1.0"]
+
+[project.entry-points."geonexus.plugins"]
+geokg = "geonexus_plugin_geokg:plugin"
+
+[tool.setuptools]
+packages = ["geonexus_plugin_geokg"]

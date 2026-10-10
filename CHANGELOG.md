@@ -195,6 +195,24 @@ project uses Semantic Versioning.
 
 ### Added
 
+- **`examples/plugin_geokg` — GeoKG as a real market plugin** (plan W2 +
+  "everything is a plugin"). A thin **adapter layer**, per GeoKG's own layering:
+  the domain content stays in the `GeoKG` package, the graph engine in
+  `geonexus-sdk`; the plugin only exposes `geokg.admin.*` (the same logic layer
+  the `geokg` CLI and `geokg-api` HTTP surface already share, so all three give
+  identical answers) as six skills — `geokg-search / -entity / -subgraph /
+  -types / -counts / -status` — plus a `type: knowledge` GeoCard so the
+  knowledge base itself is a discoverable product (non-spatial, correctly, so it
+  does not get faked onto a globe). **GeoKG is an optional dependency, not a
+  hard one**: the plugin loads without it and every skill then names the exact
+  fix (`pip install GeoKG`) instead of crashing or returning fake data. 8 tests;
+  installed through the real market chain (publish → pending+sha256 → approve →
+  `market install --target`) onto a node, which reported
+  `plugins: [{geokg, ok}]` and answered `geokg-search` with 450 real hits
+  (14 603 entities / 20 893 relations, dataset fingerprint in the payload).
+
+### Added
+
 - **GeoMCP V2: `federated_sources` cross-registry resolution** (plan W5, final
   slice). References are `<registry_url>#<card_id>`; resolution is one-hop,
   deduplicated, approved-only. Resolved cards join contract gating, their
