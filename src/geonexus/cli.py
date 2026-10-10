@@ -434,6 +434,79 @@ def cmd_recipe_fork(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_market(args: argparse.Namespace) -> int:
+    """公共产品市场：publish / search / install / uninstall。"""
+    import json as _json
+
+    from .market import MarketError, install_plugin, sha256_file, uninstall_plugin
+    from .registry import RegistryClient
+
+    reg = args.registry_url
+    cmd = args.market_command
+    try:
+        with RegistryClient(reg, api_key=args.api_key) as client:
+            if cmd == "publish":
+                digest = sha256_file(args.file) if args.file else None
+                plugin = {
+                    "name": args.name, "version": args.version,
+                    "plane": args.plane, "install_ref": args.install_ref,
+                    "sha256": digest, "description": args.description or "",
+                    "tags": [t for t in (args.tags or "").split(",") if t],
+                }
+                out = client.publish_plugin(plugin)
+                entry = out.get("entry", {})
+                if args.json:
+                    print(_json.dumps(out, ensure_ascii=False, indent=2))
+                else:
+                    print(f"已发布 {entry.get('name')}@{entry.get('version')} "
+                          f"（status={entry.get('status')}，待审；approve 后才可安装）")
+                    if digest:
+                        print(f"  sha256: {digest}")
+                return 0
+            if cmd == "search":
+                status = None if args.status == "all" else args.status
+                items = client.list_plugins(status=status, q=args.query or "")
+                if args.json:
+                    print(_json.dumps(items, ensure_ascii=False, indent=2))
+                else:
+                    if not items:
+                        print("（没有匹配的条目）")
+                    for e in items:
+                        print(f"  {e['name']}@{e['version']}  [{e['status']}]  "
+                              f"{e.get('plane')}  {e.get('description', '')[:60]}")
+                        print(f"      ref={e['install_ref']}  sha256={e.get('sha256') or '-'}")
+                return 0
+            if cmd == "install":
+                name, _, version = args.package.partition("@")
+                if version:
+                    entry = client.get_plugin(name, version)
+                else:
+                    approved = [e for e in client.list_plugins(status="approved")
+                                if e["name"] == name]
+                    if not approved:
+                        print(f"市场里没有已批准的 {name}（search --status all 看看是否在审）")
+                        return 1
+                    entry = approved[-1]
+                out = install_plugin(entry, target=args.target)
+                if args.json:
+                    print(_json.dumps(out, ensure_ascii=False, indent=2))
+                else:
+                    print(f"已安装 {out['installed']} → {out['target']}")
+                    print(f"  sha256 校验：{out['sha256_verified'] or '无（pip 引荐，无法预验证）'}")
+                    print("  重启节点后生效（entry-points 在启动时发现）")
+                return 0
+            if cmd == "uninstall":
+                out = uninstall_plugin(args.package, target=args.target)
+                print(_json.dumps(out, ensure_ascii=False) if args.json
+                      else f"已卸载 {out['uninstalled']}（{out['target']}）"
+                           + (f" 移除：{out.get('removed')}" if out.get('removed') else ""))
+                return 0
+        return 1
+    except MarketError as exc:
+        print(f"市场操作失败：{exc}")
+        return 1
+
+
 def cmd_register(args: argparse.Namespace) -> int:
     """轻量登记向导：探测 → 建卡 → 校验 → 提交（默认 dry-run，绝不默认发布）。"""
     import json as _json
@@ -1834,6 +1907,43 @@ def build_parser() -> argparse.ArgumentParser:
         "(repeatable, V1.0 write-side bridge)",
     )
     p_start.set_defaults(func=cmd_node_start)
+
+    market = sub.add_parser("market", help="Public product market (installable plugin packages)")
+    market_sub = market.add_subparsers(dest="market_command", required=True)
+    p_pub = market_sub.add_parser("publish", help="Publish a plugin entry (lands pending)")
+    p_pub.add_argument("--registry-url", default="http://127.0.0.1:8790")
+    p_pub.add_argument("--name", required=True)
+    p_pub.add_argument("--version", required=True)
+    p_pub.add_argument("--install-ref", required=True,
+                       help="wheel/sdist URL (sha256 required) or pip requirement string")
+    p_pub.add_argument("--file", default=None,
+                       help="local wheel/sdist to hash for sha256 (recommended for URL refs)")
+    p_pub.add_argument("--plane", choices=["server", "client"], default="server")
+    p_pub.add_argument("--description", default="")
+    p_pub.add_argument("--tags", default="")
+    p_pub.add_argument("--api-key", default=None)
+    p_pub.add_argument("--json", action="store_true")
+    p_pub.set_defaults(func=cmd_market, market_command="publish")
+    p_se = market_sub.add_parser("search", help="Search/list market entries")
+    p_se.add_argument("query", nargs="?", default="")
+    p_se.add_argument("--status", choices=["approved", "pending", "rejected", "all"],
+                      default="approved")
+    p_se.add_argument("--registry-url", default="http://127.0.0.1:8790")
+    p_se.add_argument("--api-key", default=None)
+    p_se.add_argument("--json", action="store_true")
+    p_se.set_defaults(func=cmd_market, market_command="search")
+    p_in = market_sub.add_parser("install", help="Install an approved plugin entry")
+    p_in.add_argument("package", help="name or name@version")
+    p_in.add_argument("--registry-url", default="http://127.0.0.1:8790")
+    p_in.add_argument("--target", default=None, help="pip --target dir (managed installs)")
+    p_in.add_argument("--api-key", default=None)
+    p_in.add_argument("--json", action="store_true")
+    p_in.set_defaults(func=cmd_market, market_command="install")
+    p_un = market_sub.add_parser("uninstall", help="Uninstall a plugin")
+    p_un.add_argument("package")
+    p_un.add_argument("--target", default=None)
+    p_un.add_argument("--json", action="store_true")
+    p_un.set_defaults(func=cmd_market, market_command="uninstall")
 
     reg = sub.add_parser("register", help="Lightweight third-party asset registration wizard")
     reg.add_argument("target", help="URL or local path of the asset to register")

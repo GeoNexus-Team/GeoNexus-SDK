@@ -13,6 +13,7 @@ from .models import (
     REVIEW_STATUSES,
     STATUS_APPROVED,
     STATUS_REJECTED,
+    PluginEntry,
     RegistryEntry,
     RegistrySearchResult,
     SkillEntry,
@@ -35,6 +36,14 @@ class SkillEntryConflict(RegistryStoreError):
     """Raised when registering a skill name that already exists."""
 
 
+class PluginEntryConflict(RegistryStoreError):
+    """Raised when publishing a plugin name@version that already exists."""
+
+
+class PluginEntryNotFound(RegistryStoreError):
+    """Raised when reviewing/removing a plugin name@version that is absent."""
+
+
 class SkillEntryNotFound(RegistryStoreError):
     """Raised when a skill name is not present."""
 
@@ -55,6 +64,7 @@ class RegistryStore:
     def __init__(self, persist_path: str | os.PathLike | None = None) -> None:
         self._entries: dict[str, RegistryEntry] = {}
         self._skills: dict[str, SkillEntry] = {}
+        self._plugins: dict[str, PluginEntry] = {}
         self._lock = threading.RLock()
         self.contract_validator = ContractValidator()
         self.persist_path = str(persist_path) if persist_path else None
@@ -82,6 +92,9 @@ class RegistryStore:
         for raw in data.get("skills", []):
             skill_entry = SkillEntry.model_validate(raw)
             self._skills[skill_entry.skill.name] = skill_entry
+        for raw in data.get("plugins", []):
+            plugin_entry = PluginEntry.model_validate(raw)
+            self._plugins[plugin_entry.address] = plugin_entry
 
     def _save(self) -> None:
         if self.persist_path is None:
@@ -93,6 +106,7 @@ class RegistryStore:
         data = {
             "cards": [e.to_dict() for e in self._entries.values()],
             "skills": [e.to_dict() for e in self._skills.values()],
+            "plugins": [e.to_dict() for e in self._plugins.values()],
         }
         tmp = path.with_suffix(path.suffix + ".tmp")
         with open(tmp, "w", encoding="utf-8") as handle:
@@ -303,6 +317,62 @@ class RegistryStore:
         """All skill entries (insertion order)."""
         with self._lock:
             return list(self._skills.values())
+
+    # ------------------------------------------------------------------ #
+    # 公共产品市场（插件包条目）
+    # ------------------------------------------------------------------ #
+    def register_plugin(self, entry: PluginEntry) -> None:
+        """Publish a plugin entry. Duplicates (name@version) conflict."""
+        with self._lock:
+            if entry.address in self._plugins:
+                raise PluginEntryConflict(f"Plugin already published: {entry.address}")
+            self._plugins[entry.address] = entry
+            self._save()
+
+    def get_plugin(self, name: str, version: str | None = None) -> PluginEntry | None:
+        with self._lock:
+            if version:
+                return self._plugins.get(f"{name}@{version}")
+            same = [e for e in self._plugins.values() if e.name == name]
+            return max(same, key=lambda e: e.registered_at) if same else None
+
+    def list_plugins(self, status: str | None = STATUS_APPROVED) -> list[PluginEntry]:
+        """Defaults to approved only (review workflow), like cards."""
+        with self._lock:
+            items = list(self._plugins.values())
+        if status:
+            items = [e for e in items if e.status == status]
+        return sorted(items, key=lambda e: (e.name, e.registered_at))
+
+    def search_plugins(self, query: str = "", status: str | None = STATUS_APPROVED) -> list[PluginEntry]:
+        q = (query or "").lower()
+        out = []
+        for e in self.list_plugins(status=status):
+            hay = f"{e.name} {e.description} {' '.join(e.tags)}".lower()
+            if not q or q in hay:
+                out.append(e)
+        return out
+
+    def review_plugin(self, name: str, version: str, *, approve: bool,
+                      note: str | None = None, by: str | None = None) -> PluginEntry:
+        with self._lock:
+            entry = self._plugins.get(f"{name}@{version}")
+            if entry is None:
+                raise PluginEntryNotFound(f"Plugin not published: {name}@{version}")
+            entry.status = STATUS_APPROVED if approve else STATUS_REJECTED
+            entry.review_note = note
+            if by:
+                entry.submitted_by = entry.submitted_by or by
+            self._save()
+            return entry
+
+    def remove_plugin(self, name: str, version: str) -> PluginEntry:
+        with self._lock:
+            entry = self._plugins.pop(f"{name}@{version}", None)
+            if entry is None:
+                raise PluginEntryNotFound(f"Plugin not published: {name}@{version}")
+            self._save()
+            return entry
 
     def search_skills(
         self,

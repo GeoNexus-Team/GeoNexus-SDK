@@ -195,6 +195,18 @@ project uses Semantic Versioning.
 
 ### Added
 
+- **Public product market, registry side** (plan W2): the registry now holds
+  `plugin` entries — `(name, version)` identity like recipes, `install_ref`
+  (wheel URL or pip requirement), `sha256`, `plane`, and the same review
+  statuses as cards/recipes. Publishing always lands **pending**; HTTP routes
+  mirror the cards convention (no status = approved-only, `all` = everything).
+  `geonexus market publish/search/install/uninstall`: URL refs **require**
+  sha256 at publish (422 otherwise) and install verifies the downloaded bytes
+  **before** pip ever runs — market poisoning gets a closed door, not a warn.
+  `RegistryServer.start_in_thread` added (the R1 gap, closed). 13 tests.
+
+### Added
+
 - **Opt-in CORS for browser clients** — `GEONODE_CORS_ORIGINS` (comma list).
   Off by default: an unauthenticated node silently opening `geo.execute` to
   every browser on the internet is an incident, not a convenience. The

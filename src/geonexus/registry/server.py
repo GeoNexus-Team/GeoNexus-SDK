@@ -22,6 +22,8 @@ from .models import (
     SkillEntry,
 )
 from .store import (
+    PluginEntryConflict,
+    PluginEntryNotFound,
     RegistryEntryConflict,
     RegistryEntryNotFound,
     RegistryStore,
@@ -452,6 +454,46 @@ class RegistryServer:
     # ------------------------------------------------------------------ #
     # HTTP transport
     # ------------------------------------------------------------------ #
+    def start_in_thread(self, host: str | None = None, port: int | None = None) -> Any:
+        """Start the registry HTTP server in a background thread (tests/embeds)."""
+        import threading
+        import time
+
+        import uvicorn
+
+        config = uvicorn.Config(
+            self.create_app(), host=host or "127.0.0.1",
+            port=port if port is not None else 8790, log_level="warning",
+        )
+        server = uvicorn.Server(config)
+        thread = threading.Thread(target=server.run, daemon=True)
+        thread.start()
+
+        class RunningRegistry:
+            def __init__(self, srv: uvicorn.Server, thr: threading.Thread) -> None:
+                self._server = srv
+                self._thread = thr
+
+            def wait_until_ready(self, timeout: float = 15.0) -> RunningRegistry:
+                deadline = time.monotonic() + timeout
+                while time.monotonic() < deadline:
+                    if self._server.started:
+                        return self
+                    if not self._thread.is_alive():
+                        raise RuntimeError("registry thread exited before ready")
+                    time.sleep(0.05)
+                raise TimeoutError("registry not ready in time")
+
+            @property
+            def port(self) -> int:
+                return self._server.servers[0].sockets[0].getsockname()[1]
+
+            def stop(self, timeout: float = 10.0) -> None:
+                self._server.should_exit = True
+                self._thread.join(timeout=timeout)
+
+        return RunningRegistry(server, thread)
+
     def create_app(self) -> FastAPI:
         app = FastAPI(title=f"GeoCard Registry: {self.name}", version=SERVICE_VERSION)
 
@@ -658,6 +700,88 @@ class RegistryServer:
         async def delete_recipe_endpoint(recipe_id: str, request: Request) -> dict[str, Any]:
             self._require_key(request)
             return self.unregister_recipe(recipe_id)
+
+        # ── 公共产品市场（插件包条目）────────────────────────────────── #
+        @app.post("/plugins")
+        async def publish_plugin(request: Request) -> JSONResponse:
+            """发布插件条目。登记 ≠ 上架：默认 pending，approve 后才可被 install。"""
+            self._require_key(request)
+            try:
+                body = await request.json()
+            except Exception:
+                raise HTTPException(status_code=400, detail="Body must be valid JSON") from None
+            raw = body.get("plugin") if isinstance(body, dict) else None
+            if not isinstance(raw, dict):
+                raise HTTPException(status_code=422, detail="Body must contain 'plugin'")
+            from .models import PluginEntry as _PE
+
+            try:
+                entry = _PE.model_validate(raw)
+            except Exception as exc:
+                raise HTTPException(status_code=422, detail=str(exc)) from None
+            # URL 引荐必须带 sha256：没有校验和的下载地址是可投毒的
+            if entry.install_ref.startswith(("http://", "https://")) and not entry.sha256:
+                raise HTTPException(
+                    status_code=422,
+                    detail="URL install_ref requires sha256 (install verifies it)")
+            entry.status = STATUS_PENDING  # 提交即待审，不接受自封 approved
+            try:
+                self.store.register_plugin(entry)
+            except PluginEntryConflict as exc:
+                raise HTTPException(status_code=409, detail=str(exc)) from None
+            return JSONResponse({"status": "published", "entry": entry.to_dict()},
+                                status_code=201)
+
+        @app.get("/plugins")
+        async def list_plugins(status: str | None = None, q: str = "") -> dict[str, Any]:
+            # 与 /cards 同约定：不传 = 只看 approved；"all" = 全量（含待审）
+            st = None if status == "all" else status
+            if q:
+                items = (self.store.search_plugins(q, status=st) if st
+                         else self.store.search_plugins(q))
+            else:
+                items = self.store.list_plugins(status=st) if st else self.store.list_plugins()
+            return {"plugins": [e.to_dict() for e in items], "count": len(items)}
+
+        @app.get("/plugins/{name}/{version}")
+        async def get_plugin(name: str, version: str) -> dict[str, Any]:
+            entry = self.store.get_plugin(name, version)
+            if entry is None:
+                raise HTTPException(status_code=404, detail=f"Plugin not published: {name}@{version}")
+            return {"entry": entry.to_dict()}
+
+        @app.post("/plugins/{name}/{version}/approve")
+        async def approve_plugin(name: str, version: str, request: Request) -> dict[str, Any]:
+            self._require_key(request)
+            body = await request.json() if request.headers.get("content-length") else {}
+            try:
+                entry = self.store.review_plugin(name, version, approve=True,
+                                                 note=(body or {}).get("note"),
+                                                 by=(body or {}).get("by"))
+            except PluginEntryNotFound as exc:
+                raise HTTPException(status_code=404, detail=str(exc)) from None
+            return {"status": "approved", "entry": entry.to_dict()}
+
+        @app.post("/plugins/{name}/{version}/reject")
+        async def reject_plugin(name: str, version: str, request: Request) -> dict[str, Any]:
+            self._require_key(request)
+            body = await request.json() if request.headers.get("content-length") else {}
+            try:
+                entry = self.store.review_plugin(name, version, approve=False,
+                                                 note=(body or {}).get("note"),
+                                                 by=(body or {}).get("by"))
+            except PluginEntryNotFound as exc:
+                raise HTTPException(status_code=404, detail=str(exc)) from None
+            return {"status": "rejected", "entry": entry.to_dict()}
+
+        @app.delete("/plugins/{name}/{version}")
+        async def remove_plugin(name: str, version: str, request: Request) -> dict[str, Any]:
+            self._require_key(request)
+            try:
+                entry = self.store.remove_plugin(name, version)
+            except PluginEntryNotFound as exc:
+                raise HTTPException(status_code=404, detail=str(exc)) from None
+            return {"status": "removed", "entry": entry.to_dict()}
 
         @app.get("/health")
         async def health() -> dict[str, Any]:

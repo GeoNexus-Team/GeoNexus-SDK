@@ -255,6 +255,37 @@ class RegistryClient:
             entries = [e for e in entries if e["skill"]["name"] == name]
         return entries
 
+    # ------------------------------------------------------------------ #
+    # 公共产品市场（插件包条目）
+    # ------------------------------------------------------------------ #
+    def publish_plugin(self, plugin: dict[str, Any]) -> dict[str, Any]:
+        """Publish a plugin entry (lands as pending; approve to list it)."""
+        return self._call("POST", "/plugins", json={"plugin": plugin})
+
+    def list_plugins(self, status: str | None = None, q: str = "") -> list[dict[str, Any]]:
+        params: dict[str, Any] = {}
+        if status:
+            params["status"] = status
+        if q:
+            params["q"] = q
+        return self._call("GET", "/plugins", params=params).get("plugins", [])
+
+    def get_plugin(self, name: str, version: str) -> dict[str, Any]:
+        return self._call("GET", f"/plugins/{name}/{version}").get("entry", {})
+
+    def approve_plugin(self, name: str, version: str, note: str | None = None,
+                       by: str | None = None) -> dict[str, Any]:
+        return self._call("POST", f"/plugins/{name}/{version}/approve",
+                          json={"note": note, "by": by})
+
+    def reject_plugin(self, name: str, version: str, note: str | None = None,
+                      by: str | None = None) -> dict[str, Any]:
+        return self._call("POST", f"/plugins/{name}/{version}/reject",
+                          json={"note": note, "by": by})
+
+    def remove_plugin(self, name: str, version: str) -> dict[str, Any]:
+        return self._call("DELETE", f"/plugins/{name}/{version}")
+
     def get_nodes(self) -> dict[str, Any]:
         """Fetch the node view: per-node cards/skills (+ health when enabled)."""
         return self._call("GET", "/nodes")
