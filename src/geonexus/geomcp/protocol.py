@@ -39,6 +39,10 @@ EXECUTION_FAILED = 2003
 INVALID_ARGUMENT = 2004
 RECIPE_NOT_FOUND = 2005
 RECIPE_PARAM_INVALID = 2006
+# V2（GAAG）：声明了 contract_binding 但无法验证/验证不过 —— 一律拒绝执行。
+# 语义与 2000（GeoCard 合约门控）平行：2000 答"这份数据能不能服务这个请求"，
+# 2007 答"这次执行有没有被 GAAG 合约授权"。
+CONTRACT_BINDING_REJECTED = 2007
 
 #: GeoMCP 方法表。``geo.invoke``（V2）与 ``geo.plan``（V1.1）都是**加法式**
 #: 扩展：前者调用一个 ``type: model`` 的 GeoCard，后者把"配方 + 参数"物化成一次

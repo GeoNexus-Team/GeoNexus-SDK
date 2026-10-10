@@ -20,6 +20,7 @@ from ..geocard.model import GeoCard
 from ..geocard.validator import ContractValidator
 from .models import DescribeParams, ExecuteParams, InvokeParams, PlanParams
 from .protocol import (
+    CONTRACT_BINDING_REJECTED,
     CONTRACT_NOT_SATISFIED,
     EXECUTION_FAILED,
     GEOCARD_NOT_FOUND,
@@ -171,6 +172,7 @@ class GeoMCPServer:
         model_backend: Any | None = None,
         recipe_registry: Any | None = None,
         artifact_roots: list[str] | None = None,
+        gaag_registry: Any | None = None,
     ) -> None:
         self.name = name
         self.engine = engine
@@ -182,6 +184,9 @@ class GeoMCPServer:
         self.artifact_roots = [str(r) for r in (artifact_roots or [])]
         # 插件加载状态（由 GeoNode 经 entry-points 发现后写入），health 面暴露
         self.plugin_status: list[dict[str, Any]] = []
+        # V2 GAAG：合约注册中心（可选）。有它，contract_binding 才可验证。
+        self.gaag_registry = gaag_registry
+        self._contract_gate: Any | None = None
         self.geocard_registry = geocard_registry
         self.skill_registry = skill_registry
         #: ``geonexus.model.ModelBackend``（或任何有 ``invoke_card`` 的对象）。
@@ -288,6 +293,8 @@ class GeoMCPServer:
             "tools": [t.describe() for t in self._tools.values()],
             "resources": list(self._resources.keys()),
             "skills": skills,
+            # V2 特性广告：客户端按 capabilities 协商，不靠猜（协议冻结纪律）
+            "v2": {"contract_binding": self.gaag_registry is not None},
             "geocards": [c["id"] for c in cards],
             "geocard_ids": [c["id"] for c in cards],
             "recipes": self._recipe_summaries(),
@@ -632,6 +639,11 @@ class GeoMCPServer:
                         },
                     )
 
+        # 2b. V2 GAAG contract binding: when declared, it MUST verify —
+        #     semantic similarity + contract consistency, both or nothing.
+        if params.contract_binding:
+            self._enforce_contract_binding(params)
+
         # 3. Execute via the engine (Local GeoNode runtime) or a registered tool.
         #    The delegation marker is internal and must not reach handlers.
         clean_params = params.model_copy(deep=True)
@@ -646,6 +658,51 @@ class GeoMCPServer:
             f"Skill not found: {clean_params.skill}",
             {"available": list(self._tools.keys())},
         )
+
+    def _enforce_contract_binding(self, params: ExecuteParams) -> None:
+        """V2: 声明 contract_binding 的执行必须过 ContractGate 双重验证。
+
+        验证不了（没有 GAAG 注册中心 / 合约不存在）与验证不过**同样拒绝**：
+        合约绑定是授权声明，"查无此约"不能默默放行。
+        """
+        from ..gaag import ContractGate
+
+        binding = params.contract_binding
+        if self.gaag_registry is None:
+            raise GeoMCPProtocolError(
+                CONTRACT_BINDING_REJECTED,
+                f"contract_binding '{binding}' declared but this node has no GAAG registry",
+                {"contract_id": binding, "reason": "no_gaag_registry"},
+            )
+        contract = self.gaag_registry.get(binding)
+        if contract is None:
+            raise GeoMCPProtocolError(
+                CONTRACT_BINDING_REJECTED,
+                f"GAAG contract not found: {binding}",
+                {"contract_id": binding, "reason": "contract_not_found"},
+            )
+        if self._contract_gate is None:
+            self._contract_gate = ContractGate()
+        # 意图文本 = 技能名 + 参数值（词面相似度对确定性嵌入是可复现的）
+        query_text = " ".join(
+            [params.skill, *(str(v) for v in list(params.params.values())[:8])]
+        )
+        spatial = params.spatial
+        temporal = params.temporal
+        result = self._contract_gate.gate(
+            contract,
+            query_text,
+            bbox=spatial.bbox if spatial else None,
+            crs=spatial.crs if spatial else None,
+            start=temporal.start if temporal else None,
+            end=temporal.end if temporal else None,
+        )
+        if not result.passed:
+            raise GeoMCPProtocolError(
+                CONTRACT_BINDING_REJECTED,
+                f"GAAG contract '{binding}' rejected this execution: {result.message}",
+                result.to_dict(),
+            )
 
     def health(self) -> dict[str, Any]:
         """Health check payload."""

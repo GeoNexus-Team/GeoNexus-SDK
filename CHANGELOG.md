@@ -195,6 +195,19 @@ project uses Semantic Versioning.
 
 ### Added
 
+- **GeoMCP V2: `contract_binding` is now enforced in `geo.execute`** (plan W5,
+  first slice). A declared GAAG binding must pass the ContractGate double check
+  (semantic similarity + contract consistency) before execution; failing to
+  verify — no GAAG registry on the node, unknown contract, or a failed gate —
+  returns the new error **2007 `CONTRACT_BINDING_REJECTED`** with the gate
+  result as data. An authorization claim is never silently ignored.
+  `geo.capabilities` advertises `v2.contract_binding` so clients negotiate
+  instead of guessing; conformance vector `execute-contract-binding-rejected`
+  and `docs/GEOMCP.md` §1a pin the additive semantics (frozen 1.x surface
+  untouched). `GeoNode(..., gaag_registry=...)` wires a GAAGRegistry in.
+
+### Added
+
 - **Plugin loading via pip entry-points** (plan W2, first half). Nodes discover
   the `geonexus.plugins` entry-point group at startup; a plugin is either a
   `register(node)` callable or a declarative object with `cards()`/`skills()`.

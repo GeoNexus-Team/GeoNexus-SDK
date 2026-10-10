@@ -47,6 +47,14 @@ REQUESTS: list[tuple[str, dict[str, Any], Any, dict[str, Any]]] = [
         {"error_code": 2001},  # SKILL_NOT_FOUND
     ),
     (
+        # V2：声明 contract_binding 而节点无 GAAG 注册中心 → 必须拒绝。
+        # 授权声明"查无对证"不能默默放行；支持 V2 的实现以此向量为准。
+        "geo.execute",
+        {"skill": "echo", "geocards": [], "params": {}, "contract_binding": "gaag.none"},
+        "e7",
+        {"error_code": 2007},  # CONTRACT_BINDING_REJECTED
+    ),
+    (
         "geo.execute",
         {"skill": "boom", "geocards": []},
         "e4",
@@ -87,6 +95,7 @@ CASE_IDS: list[str] = [
     "execute-success",
     "execute-geocard-not-found",
     "execute-skill-not-found",
+    "execute-contract-binding-rejected",
     "execute-execution-failed",
     "execute-contract-not-satisfied",
     "execute-invalid-params",

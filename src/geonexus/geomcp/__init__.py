@@ -12,6 +12,7 @@ from .models import (
     TemporalContext,
 )
 from .protocol import (
+    CONTRACT_BINDING_REJECTED,
     CONTRACT_NOT_SATISFIED,
     EXECUTION_FAILED,
     GEOCARD_NOT_FOUND,
@@ -56,6 +57,7 @@ __all__ = [
     "METHOD_NOT_FOUND",
     "INVALID_PARAMS",
     "INTERNAL_ERROR",
+    "CONTRACT_BINDING_REJECTED",
     "CONTRACT_NOT_SATISFIED",
     "SKILL_NOT_FOUND",
     "GEOCARD_NOT_FOUND",

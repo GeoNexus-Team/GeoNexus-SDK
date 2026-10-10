@@ -120,6 +120,7 @@ class GeoNode:
         log_level: str = "info",
         registry_url: str | None = None,
         recipe_registry: Any | None = None,
+        gaag_registry: Any | None = None,
     ) -> None:
         self.name = name
         self.host = host
@@ -146,6 +147,7 @@ class GeoNode:
             registry_url=registry_url,
             recipe_registry=recipe_registry,
             artifact_roots=[self.workdir],
+            gaag_registry=gaag_registry,
         )
         # 插件（pip entry-points）是第三方能力的正门：启动即发现，坏了只坏自己
         self.plugin_status = load_plugins(self)

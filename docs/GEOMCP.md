@@ -37,6 +37,21 @@ return `400` with a JSON-RPC parse-error response. The protocol layer
 (`GeoMCPDispatcher`) is transport-independent — HTTP is one binding, and the
 MCP bridge is another.
 
+## 1a. V2 additions (additive, negotiated via capabilities)
+
+The 1.x method set and error codes are frozen; V2 extends them **additively**:
+
+- `geo.execute` params MAY carry `contract_binding` (a GAAG contract id).
+  When present, the node MUST verify it through the ContractGate double check
+  (semantic similarity + contract consistency) **before** execution. Failure to
+  verify — including "node has no GAAG registry" and "contract not found" —
+  MUST return error **2007** (`CONTRACT_BINDING_REJECTED`) with the gate result
+  as data; it is never silently ignored.
+- `geo.capabilities` advertises `"v2": {"contract_binding": <bool>}` so clients
+  negotiate instead of guessing.
+- `geo.execute` params MAY carry `pushdown_spec` and `federated_sources`
+  (reserved; see the roadmap — servers without support ignore them today).
+
 ## 2. JSON-RPC envelope
 
 Requests:
@@ -76,6 +91,7 @@ Error codes:
 | -32602 | Invalid params                   |
 | -32603 | Internal error                   |
 | 2000   | Contract not satisfied           |
+| 2007   | Contract binding rejected (V2)   |
 | 2001   | Skill not found                  |
 | 2002   | GeoCard not found                |
 | 2003   | Execution failed                 |
@@ -243,16 +259,38 @@ The planned official MCP adapter will:
 Because GeoMCP requests are plain JSON with explicit geospatial context, no
 protocol redesign is needed.
 
-## 8. Conformance
+## 8. Conformance — 两方独立验证
 
-A GeoMCP implementation conforms to this specification when it passes the
-transport-independent vector suite in `tests/conformance/`:
+GeoMCP 协议的实现正确性由 **Java 和 Python 两方各自独立验证**：
 
-- success shapes for all four methods,
-- the application error codes (2000–2004) and protocol error codes
-  (−32700…−32603),
-- id echo and `jsonrpc: "2.0"` enforcement,
-- invalid-envelope rejection (−32600).
+### Python 侧（SDK）
 
-The vectors run against `GeoMCPDispatcher` directly (no HTTP), so the same
-suite validates any transport binding.
+运行 `tests/conformance/` 中的传输无关测试向量，验证 `GeoMCPDispatcher` 的
+行为是否正确：
+
+```bash
+pytest tests/conformance/test_geomcp_conformance.py -v
+```
+
+这些向量直接测试 `GeoMCPDispatcher`（不经过 HTTP），因此同一个套件
+可以验证任何传输绑定（HTTP、stdio、MCP bridge）。包含：
+
+- 全部 4 个方法的成功形状，
+- 5 个应用错误码（2000–2004）和协议错误码（−32700…−32603），
+- id 回显和 `jsonrpc: "2.0"` 强制，
+- 无效信封拒绝（−32600）。
+
+### Java 侧（mgbackend 仓库）
+
+使用 `geonexus-contracts/` 目录中的 OpenAPI 规范和 Mock 响应文件，
+通过 `GeoMCPClientTest`（WireMock）验证客户端的正确性：
+
+```bash
+export GEONEXUS_CONTRACTS=./geonexus-contracts
+mvn test
+```
+
+### 集成对齐
+
+两边 CI 各自独立运行，不一致在集成测试时发现并修复。
+具体契约文件的管理和变更流程参见 `geonexus-contracts/README.md`。
