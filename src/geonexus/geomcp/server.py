@@ -180,6 +180,8 @@ class GeoMCPServer:
         self.forward_api_key = forward_api_key
         # 产物文件服务（GET /artifact）的白名单根（GeoNode 会传自己的 workdir）
         self.artifact_roots = [str(r) for r in (artifact_roots or [])]
+        # 插件加载状态（由 GeoNode 经 entry-points 发现后写入），health 面暴露
+        self.plugin_status: list[dict[str, Any]] = []
         self.geocard_registry = geocard_registry
         self.skill_registry = skill_registry
         #: ``geonexus.model.ModelBackend``（或任何有 ``invoke_card`` 的对象）。
@@ -653,6 +655,7 @@ class GeoMCPServer:
             "protocol": "geomcp",
             "version": PROTOCOL_VERSION,
             "time": datetime.now(timezone.utc).isoformat(),
+            "plugins": self.plugin_status,
         }
 
     # ------------------------------------------------------------------ #

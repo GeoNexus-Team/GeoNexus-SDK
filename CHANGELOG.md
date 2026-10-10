@@ -195,6 +195,16 @@ project uses Semantic Versioning.
 
 ### Added
 
+- **Plugin loading via pip entry-points** (plan W2, first half). Nodes discover
+  the `geonexus.plugins` entry-point group at startup; a plugin is either a
+  `register(node)` callable or a declarative object with `cards()`/`skills()`.
+  Loading is isolated per plugin — a broken third-party package never takes the
+  node down, and `/health` now reports `plugins: [{name, version, ok, error?}]`
+  so operators can see what did *not* load. Version comes from distribution
+  metadata first (py3.9 EntryPoint has no `.dist`, so the plugin's own
+  `version` attribute is the fallback). Example plugin package
+  `examples/plugin_demo_ndvi` (1 skill + 1 card) proves the packaging contract.
+
 - **`geonexus register` — lightweight third-party asset registration** (plan W1).
   A shared, read-only probe core (`geonexus.register`): OGC API (features /
   coverages / tiles / processes), STAC, WMS capabilities, GeoNode health, and

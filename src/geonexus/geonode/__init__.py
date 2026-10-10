@@ -1,6 +1,6 @@
 """GeoNode — sovereign cloud-native geospatial capability node (local MVP)."""
 
-from .node import GeoNode, RunningServer
+from .node import GeoNode, RunningServer, discover_plugin_entry_points, load_plugins
 from .registry import (
     DuplicateEntryError,
     EntryNotFoundError,
@@ -14,6 +14,8 @@ from .skill import Skill, SkillContext
 __all__ = [
     "GeoNode",
     "RunningServer",
+    "discover_plugin_entry_points",
+    "load_plugins",
     "GeoNodeError",
     "DuplicateEntryError",
     "EntryNotFoundError",

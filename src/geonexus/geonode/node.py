@@ -62,6 +62,51 @@ class RunningServer:
         self._thread.join(timeout=timeout)
 
 
+PLUGIN_ENTRY_POINT_GROUP = "geonexus.plugins"
+
+
+def discover_plugin_entry_points() -> list[Any]:
+    """pip entry-points 发现（py3.9 与 3.10+ 的 API 形状不同，都兼容）。"""
+    import importlib.metadata as im
+
+    eps = im.entry_points()
+    if hasattr(eps, "select"):
+        return list(eps.select(group=PLUGIN_ENTRY_POINT_GROUP))
+    return list(eps.get(PLUGIN_ENTRY_POINT_GROUP, []))
+
+
+def load_plugins(node: GeoNode, entry_points: list[Any] | None = None) -> list[dict[str, Any]]:
+    """加载第三方插件，**逐个隔离**：坏插件只坏自己，不拖垮节点，也不静默消失。
+
+    插件对象两种形态都收：
+      · 带 ``register(node)`` 的可调用对象（完全自由）；
+      · 带 ``cards()`` / ``skills()`` 的声明式对象（推荐，加载器代注册）。
+    状态进 ``node.plugin_status`` 与 health 面，运维一眼能看到谁没装上。
+    """
+    status: list[dict[str, Any]] = []
+    for ep in (entry_points if entry_points is not None else discover_plugin_entry_points()):
+        name = getattr(ep, "name", "unknown")
+        version = ""
+        try:
+            obj = ep.load()
+            # 版本以发行版元数据为准（pip 报告的就是它）；py3.9 的 EntryPoint
+            # 没有 .dist，拿不到时退回插件对象自报的 version
+            dist = getattr(ep, "dist", None)
+            version = str(getattr(dist, "version", "") or getattr(obj, "version", "") or "")
+            register = getattr(obj, "register", None)
+            if callable(register):
+                register(node)
+            else:
+                for card in (getattr(obj, "cards", None) or (lambda: []))():
+                    node.register_geocard(card)
+                for skill in (getattr(obj, "skills", None) or (lambda: []))():
+                    node.register_skill_object(skill)
+            status.append({"name": name, "version": version, "ok": True})
+        except Exception as exc:  # noqa: BLE001 - 第三方代码质量不是节点的责任
+            status.append({"name": name, "version": version, "ok": False, "error": str(exc)})
+    return status
+
+
 class GeoNode:
     """A Local GeoNode exposing GeoCard registry, Skill registry and a
     GeoMCP server over HTTP."""
@@ -102,6 +147,9 @@ class GeoNode:
             recipe_registry=recipe_registry,
             artifact_roots=[self.workdir],
         )
+        # 插件（pip entry-points）是第三方能力的正门：启动即发现，坏了只坏自己
+        self.plugin_status = load_plugins(self)
+        self.server.plugin_status = self.plugin_status
 
     # ------------------------------------------------------------------ #
     # Federation (V1.0+): bind a registry to enable node-level delegation
