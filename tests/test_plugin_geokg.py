@@ -8,15 +8,33 @@
 
 from __future__ import annotations
 
-import sys
+import importlib.util
+import pathlib
+import sys   # 仅用于 monkeypatch sys.modules 模拟缺依赖（**不**用来改 sys.path）
 
 import pytest
 
-sys.path.insert(0, "examples/plugin_geokg")   # 示例插件不随 SDK 安装，测试直接加载
+from geonexus.geocard import GeoCard
+from geonexus.geonode import GeoNode, load_plugins
 
-from geonexus.geocard import GeoCard                     # noqa: E402
-from geonexus.geonode import GeoNode, load_plugins       # noqa: E402
-from geonexus_plugin_geokg import CARD_ID, DIST_HINT, plugin  # noqa: E402
+
+def _load_plugin_module():
+    """按文件路径加载示例插件。
+
+    **不要**改成 ``sys.path.insert('examples/plugin_geokg')`` —— 一旦源码目录进了
+    sys.path，``importlib.metadata`` 就会把该目录下残留的 ``*.egg-info``（就地构建
+    wheel 的产物）当成"已安装的 entry point"，于是整个 pytest 会话里每个 GeoNode
+    都会自动加载这个插件，别处的计数断言集体错位（血泪教训，别重演）。
+    """
+    path = pathlib.Path(__file__).resolve().parent.parent / "examples/plugin_geokg/geonexus_plugin_geokg/__init__.py"
+    spec = importlib.util.spec_from_file_location("geonexus_plugin_geokg_under_test", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_p = _load_plugin_module()
+CARD_ID, DIST_HINT, plugin = _p.CARD_ID, _p.DIST_HINT, _p.plugin
 
 
 def _skill(name):

@@ -97,10 +97,19 @@ def load_plugins(node: GeoNode, entry_points: list[Any] | None = None) -> list[d
             if callable(register):
                 register(node)
             else:
+                # 声明式注册要**幂等**：同一插件被加载两次、或节点上已存在同 id 的
+                # 卡片/技能（例如手工先注册过），都不该把插件判为加载失败 ——
+                # "已经在了"就是目标状态，不是错误。
                 for card in (getattr(obj, "cards", None) or (lambda: []))():
-                    node.register_geocard(card)
+                    try:
+                        node.register_geocard(card)
+                    except DuplicateEntryError:
+                        logger.info("plugin %s: GeoCard already present: %s", name, card.id)
                 for skill in (getattr(obj, "skills", None) or (lambda: []))():
-                    node.register_skill_object(skill)
+                    try:
+                        node.register_skill_object(skill)
+                    except DuplicateEntryError:
+                        logger.info("plugin %s: skill already present: %s", name, skill.name)
             status.append({"name": name, "version": version, "ok": True})
         except Exception as exc:  # noqa: BLE001 - 第三方代码质量不是节点的责任
             status.append({"name": name, "version": version, "ok": False, "error": str(exc)})

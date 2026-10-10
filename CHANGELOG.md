@@ -227,6 +227,22 @@ project uses Semantic Versioning.
 
 ### Fixed
 
+- **In-tree wheel builds poisoned plugin discovery.** Building the example
+  plugins where they live left `build/` and `*.egg-info` inside
+  `examples/plugin_*`; the moment such a directory lands on `sys.path` (a test
+  doing `sys.path.insert`), `importlib.metadata` treats it as an *installed*
+  entry point — so every `GeoNode` in the session silently gained that plugin
+  and unrelated count assertions failed (10 tests). Fixed three ways: the test
+  now loads the plugin by file path without touching `sys.path`, the artifacts
+  are gone, and `scripts/build_plugin_wheel.sh` builds from a **temp copy** and
+  refuses to leave residue (it also fails loudly if the wheel comes out without
+  metadata).
+- **Declarative plugin registration is idempotent.** A plugin whose GeoCard or
+  skill already exists on the node is no longer reported as failed
+  (`ok: false`) — "already present" is the target state, not an error.
+
+### Fixed
+
 - **`market install` used a non-wheel temp filename** — pip validates wheel
   filename structure (`name-ver-pytag-abi-plat.whl`), so downloads now keep the
   URL's basename (sanitised) inside a temp dir.
