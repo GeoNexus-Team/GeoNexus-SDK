@@ -21,6 +21,25 @@ def _ndvi_stats(params, context):
             "min": round(min(ndvi), 4), "max": round(max(ndvi), 4)}
 
 
+def _sample_points(params, context):
+    """合成样例点（演示用，非真实观测）：验证"执行 → 内联 GeoJSON → 上图"链路。"""
+    try:
+        n = max(1, min(int(params.get("n", 5)), 50))
+    except (TypeError, ValueError):
+        raise ValueError("n 必须是 1..50 的整数")
+    base_lon, base_lat = 121.47, 31.23
+    feats = [{
+        "type": "Feature",
+        "properties": {"idx": i, "note": "synthetic demo point",
+                       "value": round(0.3 + 0.5 * abs(((i * 37) % 11) - 5) / 5, 3)},
+        "geometry": {"type": "Point",
+                     "coordinates": [round(base_lon + (i % 5) * 0.12 - 0.24, 4),
+                                     round(base_lat + (i // 5) * 0.10 - 0.10, 4)]},
+    } for i in range(n)]
+    return {"sample": "synthetic", "count": n,
+            "geojson": {"type": "FeatureCollection", "features": feats}}
+
+
 def _card():
     return (
         GeoCardBuilder(
@@ -43,9 +62,18 @@ class plugin:  # noqa: N801 - entry-point 指向的小写对象，保持导入�
 
     @staticmethod
     def skills():
-        return [Skill(
-            name="demo-ndvi-stats",
-            description="NDVI mean/min/max from red/nir arrays (plugin demo)",
-            input_schema={"required": ["red", "nir"]},
-            handler=_ndvi_stats,
-        )]
+        return [
+            Skill(
+                name="demo-ndvi-stats",
+                description="NDVI mean/min/max from red/nir arrays (plugin demo)",
+                input_schema={"required": ["red", "nir"]},
+                handler=_ndvi_stats,
+            ),
+            Skill(
+                name="demo-sample-points",
+                description="Synthetic demo points as inline GeoJSON (for map round-trip)",
+                input_schema={"required": [], "properties": {
+                    "n": {"type": "integer", "description": "点数 1..50（默认 5）", "default": 5}}},
+                handler=_sample_points,
+            ),
+        ]

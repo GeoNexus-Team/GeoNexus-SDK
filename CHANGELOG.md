@@ -195,6 +195,22 @@ project uses Semantic Versioning.
 
 ### Added
 
+- **Opt-in CORS for browser clients** — `GEONODE_CORS_ORIGINS` (comma list).
+  Off by default: an unauthenticated node silently opening `geo.execute` to
+  every browser on the internet is an incident, not a convenience. The
+  standalone client (`client/`) uses a same-origin dev proxy instead.
+- **`client/` — the lightweight GeoNexus client** (plan W3, M1 skeleton).
+  Vite+Vue3 SPA: connect to a node, browse skills from `geo.capabilities`,
+  parameter forms generated from `input_schema`, `geo.execute`, inline GeoJSON
+  results plotted on the map, path artifacts fetched through the node's
+  `/artifact` exit. Map engines are **renderer plugins** (built-in MapLibre 2D
+  + Cesium 3D via dynamic import); browser e2e (headless Chrome, real clicks)
+  proves connect → execute → plot, screenshot in `client/screenshots/`.
+- **demo plugin gained `demo-sample-points`** — returns inline synthetic
+  GeoJSON so the execute→map round trip is demonstrable end to end.
+
+### Added
+
 - **GeoMCP V2: `contract_binding` is now enforced in `geo.execute`** (plan W5,
   first slice). A declared GAAG binding must pass the ContractGate double check
   (semantic similarity + contract consistency) before execution; failing to

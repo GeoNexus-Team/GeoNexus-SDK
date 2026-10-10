@@ -833,6 +833,20 @@ class GeoMCPServer:
         """
         app = FastAPI(title=f"GeoMCP server: {self.name}", version=PROTOCOL_VERSION)
 
+        # CORS：默认**不开**。浏览器客户端（client/ SPA）直连跨域节点时，
+        # 运维显式设 GEONODE_CORS_ORIGINS="http://localhost:5175,..." 才放行 ——
+        # 无鉴权节点默认对全网浏览器开放执行是事故，不是便利。
+        cors_env = os.environ.get("GEONODE_CORS_ORIGINS", "").strip()
+        if cors_env:
+            from fastapi.middleware.cors import CORSMiddleware
+
+            app.add_middleware(
+                CORSMiddleware,
+                allow_origins=[o.strip() for o in cors_env.split(",") if o.strip()],
+                allow_methods=["GET", "POST", "OPTIONS"],
+                allow_headers=["Content-Type", "X-API-Key", "Authorization"],
+            )
+
         def _require_execute_key(request: Request, payload: dict[str, Any]) -> None:
             if not self.api_keys:
                 return

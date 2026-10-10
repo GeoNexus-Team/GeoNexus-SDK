@@ -192,3 +192,33 @@ def test_artifact_endpoint_serves_workdir_files_only(tmp_path) -> None:
         assert missing.status_code == 404
     finally:
         running.stop()
+
+
+def test_cors_only_when_env_set(tmp_path, monkeypatch) -> None:
+    """CORS 是显式开关：不设 GEONODE_CORS_ORIGINS 就没有跨域头（默认收紧）。"""
+    import httpx
+
+    from geonexus.geonode import GeoNode
+
+    node = GeoNode(name="cors-node", port=0, workdir=str(tmp_path))
+    running = node.start_in_thread(port=0)
+    running.wait_until_ready()
+    try:
+        r = httpx.options(f"http://127.0.0.1:{running.port}/geomcp",
+                          headers={"Origin": "http://example.test",
+                                   "Access-Control-Request-Method": "POST"}, timeout=10)
+        assert "access-control-allow-origin" not in r.headers
+    finally:
+        running.stop()
+
+    monkeypatch.setenv("GEONODE_CORS_ORIGINS", "http://example.test")
+    node2 = GeoNode(name="cors-node2", port=0, workdir=str(tmp_path))
+    running2 = node2.start_in_thread(port=0)
+    running2.wait_until_ready()
+    try:
+        r = httpx.options(f"http://127.0.0.1:{running2.port}/geomcp",
+                          headers={"Origin": "http://example.test",
+                                   "Access-Control-Request-Method": "POST"}, timeout=10)
+        assert r.headers.get("access-control-allow-origin") == "http://example.test"
+    finally:
+        running2.stop()
