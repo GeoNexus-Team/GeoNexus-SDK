@@ -29,16 +29,94 @@ logger = logging.getLogger(__name__)
 DEFAULT_MCP_PROTOCOL_VERSION = "2025-06-18"
 
 
-def create_mcp_server(server: GeoMCPServer) -> Any:
-    """Build an MCP server (``mcp.server.mcpserver.MCPServer``) wrapping a
-    GeoMCP server's methods as MCP tools."""
+class MCPToolResult:
+    """Result of an in-process ``call_tool`` (mirrors an MCP CallToolResult)."""
+
+    def __init__(self, content: Any) -> None:
+        self.content = content
+
+    def __repr__(self) -> str:  # pragma: no cover - debugging aid
+        return f"MCPToolResult({self.content!r})"
+
+
+class GeoMCPBridge:
+    """In-process bridge between a GeoMCP server and a GeoMCP-style caller.
+
+    Two callers share one object:
+
+    * the official MCP host (stdio / Streamable HTTP) — everything it needs is
+      delegated to the wrapped MCP server;
+    * trusted in-process services — ``await call_tool(...)`` dispatches straight
+      to the GeoMCP server without a transport round-trip.
+
+    ``http_guarded`` keeps the HTTP transport closed unless the caller presents
+    an ``X-API-Key`` header; the key itself is validated by the node in front.
+    """
+
+    TOOLS = {"geo_capabilities", "geo_describe", "geo_execute", "geo_plan", "geo_health"}
+
+    def __init__(self, server: GeoMCPServer, mcp_server: Any = None, http_guarded: bool = False) -> None:
+        self.server = server
+        self.mcp_server = mcp_server
+        self.http_guarded = http_guarded
+
+    def __getattr__(self, name: str) -> Any:
+        if self.mcp_server is None:
+            raise AttributeError(name)
+        return getattr(self.mcp_server, name)
+
+    async def call_tool(self, name: str, arguments: dict[str, Any] | None = None) -> MCPToolResult:
+        arguments = arguments or {}
+        if name == "geo_capabilities":
+            return MCPToolResult(self.server.capabilities())
+        if name == "geo_describe":
+            return MCPToolResult(self.server.describe(DescribeParams(**arguments)))
+        if name == "geo_execute":
+            return MCPToolResult(self.server.execute(ExecuteParams(**arguments)))
+        if name == "geo_plan":
+            return MCPToolResult(self.server.plan(PlanParams(**arguments)))
+        if name == "geo_health":
+            return MCPToolResult(self.server.health())
+        raise ValueError(f"unknown GeoMCP tool: {name}")
+
+    def streamable_http_app(self) -> Any:
+        if self.mcp_server is None:  # pragma: no cover - env dependent
+            raise ImportError("The MCP SDK is required for the HTTP transport.")
+        app = self.mcp_server.streamable_http_app()
+        if not self.http_guarded:
+            return app
+
+        async def guarded(scope, receive, send):  # pragma: no cover - needs ASGI loop
+            if scope.get("type") == "http":
+                headers = dict(scope.get("headers") or [])
+                if not headers.get(b"x-api-key"):
+                    await send(
+                        {
+                            "type": "http.response.start",
+                            "status": 401,
+                            "headers": [(b"content-type", b"application/json")],
+                        }
+                    )
+                    await send({"type": "http.response.body", "body": b'{"error":"API key required"}'})
+                    return
+            await app(scope, receive, send)
+
+        return guarded
+
+
+def create_mcp_server(server: GeoMCPServer, http_guarded: bool = False) -> Any:
+    """Build the GeoMCP bridge (MCP tools + in-process ``call_tool``).
+
+    When the official MCP SDK is installed the returned object also exposes the
+    MCP server itself (``.name``, ``.list_tools()``, ``.run_stdio_async()``,
+    ``.streamable_http_app()``), so existing stdio/HTTP entry points are
+    unchanged. Without the SDK only ``call_tool`` is available.
+    """
     try:
         from mcp.server.mcpserver import MCPServer
-    except ImportError as exc:  # pragma: no cover - env dependent
-        raise ImportError(
-            "The MCP bridge requires the official MCP SDK. Install it with "
-            "`pip install -e '.[mcp]'` or `pip install 'mcp>=1.2'`."
-        ) from exc
+    except ImportError:  # pragma: no cover - env dependent
+        logger.warning("MCP SDK not installed; only the in-process bridge is available.")
+        return GeoMCPBridge(server, None, http_guarded=http_guarded)
 
     mcp = MCPServer(
         name="geonexus",
@@ -119,7 +197,7 @@ def create_mcp_server(server: GeoMCPServer) -> Any:
     async def geo_health() -> dict[str, Any]:
         return server.health()
 
-    return mcp
+    return GeoMCPBridge(server, mcp, http_guarded=http_guarded)
 
 
 def run_stdio(server: GeoMCPServer) -> None:
