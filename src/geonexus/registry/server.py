@@ -73,6 +73,8 @@ class RegistryServer:
         health_cache_ttl: float = 5.0,
         peers: list[str] | None = None,
         recipe_persist_path: str | os.PathLike | None = None,
+        public_submissions: bool = False,
+        api_key_principals: dict[str, dict[str, Any]] | None = None,
     ) -> None:
         self.name = name
         self.store = RegistryStore(persist_path=persist_path)
@@ -81,7 +83,9 @@ class RegistryServer:
         if recipe_persist_path is None and persist_path:
             recipe_persist_path = f"{persist_path}.recipes.json"
         self.recipes = RecipeRegistry(persist_path=recipe_persist_path)
-        self.api_keys = set(api_keys or ())
+        self.api_keys = set(api_keys or ()) | set(api_key_principals or {})
+        self.public_submissions = bool(public_submissions)
+        self.api_key_principals = dict(api_key_principals or {})
         self.health_probe = health_probe
         self.health_timeout = health_timeout
         self.health_cache_ttl = health_cache_ttl
@@ -112,6 +116,15 @@ class RegistryServer:
         if supplied not in self.api_keys:
             raise HTTPException(status_code=401, detail="Missing or invalid X-API-Key")
 
+    def _require_scope(self, request: Request, scope: str) -> None:
+        """Principal keys carry scopes; legacy keys keep full access."""
+        supplied = request.headers.get("X-API-Key")
+        principal = self.api_key_principals.get(supplied or "")
+        if principal is None:
+            return
+        if scope not in (principal.get("scopes") or []):
+            raise HTTPException(status_code=403, detail=f"Missing scope: {scope}")
+
     # ------------------------------------------------------------------ #
     # Business API
     # ------------------------------------------------------------------ #
@@ -121,6 +134,7 @@ class RegistryServer:
         node_url: str,
         status: str | None = None,
         review_note: str | None = None,
+        submitted_by: str | None = None,
     ) -> dict[str, Any]:
         from ..geocard.model import GeoCard
         from ..geocard.validator import validate_card_schema
@@ -135,6 +149,10 @@ class RegistryServer:
                 status=status or STATUS_APPROVED,
                 review_note=review_note,
             )
+            if submitted_by:
+                entry.review_history.append(
+                    {"action": "submitted", "by": submitted_by, "at": datetime.now(timezone.utc).isoformat(), "note": None}
+                )
             self.store.register(entry)
         except RegistryEntryConflict as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -500,6 +518,7 @@ class RegistryServer:
         @app.post("/cards")
         async def register_card(request: Request) -> JSONResponse:
             self._require_key(request)
+            self._require_scope(request, "registry:submit")
             try:
                 body = await request.json()
             except Exception:
@@ -514,13 +533,16 @@ class RegistryServer:
             return JSONResponse(result, status_code=201)
 
         @app.get("/cards")
-        async def list_cards(status: str | None = None) -> dict[str, Any]:
+        async def list_cards(request: Request, status: str | None = None) -> dict[str, Any]:
             # None -> server default (approved); "all" -> every state.
+            if status not in (None, STATUS_APPROVED) and not self.public_submissions:
+                self._require_key(request)
             return self.list(status=status if status is not None else STATUS_APPROVED)
 
         @app.post("/cards/{card_id}/approve")
         async def approve_card(request: Request, card_id: str) -> dict[str, Any]:
             self._require_key(request)
+            self._require_scope(request, "registry:review")
             body = (
                 await request.json()
                 if request.headers.get("content-type", "").startswith("application/json")
@@ -531,6 +553,7 @@ class RegistryServer:
         @app.post("/cards/{card_id}/reject")
         async def reject_card(request: Request, card_id: str) -> dict[str, Any]:
             self._require_key(request)
+            self._require_scope(request, "registry:review")
             body = (
                 await request.json()
                 if request.headers.get("content-type", "").startswith("application/json")

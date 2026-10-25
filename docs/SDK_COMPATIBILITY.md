@@ -18,14 +18,23 @@
 | 1 | `geonexus.geocard.contracts`：`ContractRequest/Report/ResultManifest/validate_contract` | `platform/services/v02/integration.py:26` | 不存在 | 已实现（自包含校验：CRS/范围/时间/波段/单位/`no-export`） | 导出策略与 findings 字段是否与 dev 版一致 |
 | 2 | `create_mcp_server(server, http_guarded=...)` 且返回对象可 `await call_tool()` | `platform/services/v02/integration.py:348,723` | 无该参数、无 call_tool | 已实现 `GeoMCPBridge`（进程内分派 + 委托 MCP 服务器属性）；`http_guarded` 给 Streamable HTTP 加 `X-API-Key` 门槛 | `http_guarded` 的准确语义（鉴权？限流？）；钥匙由谁校验 |
 | 3 | `geonexus.registration`：`RegistrationError/safe_url/make_draft/validate_profile` | `geoharness/src/geo_harness/app.py:21-24`、`account.py:3` | 不存在（只有 `geonexus.register` 低层管线） | **临时适配**：`safe_url` 完整实现；`make_draft/validate_profile` 复用 `register.build` 并对 metadata 做最小约定 | metadata/binding 字段契约（草稿→提交→本地产品） |
-| 4 | `RegistryServer.__init__(..., public_submissions=...)` | `geoharness/src/geo_harness/app.py:75` | 无该参数 | **未实现**（拒绝加无行为桩） | “公开提交”是审核队列、目录可见性，还是第三方投稿开关？ |
+| 4 | `RegistryServer(public_submissions=..., api_key_principals=...)`、`register(submitted_by=)` | `geoharness/src/geo_harness/app.py:75,458` | 无这些参数 | **已实现**（见下） | 语义是否为审核队列可见性 + 作用域化写权限 |
+
+## #4 的实现约定（需评审确认）
+
+- `public_submissions=True`：允许匿名读取非 `approved` 状态的卡片列表（待审队列可见）；默认 `False` 时该操作需要 `X-API-Key`。
+- `api_key_principals={key: {subject, scopes}}`：principal 键必须持有 `registry:submit` 才能 `POST /cards`、
+  `registry:review` 才能 approve/reject；未登记为 principal 的旧键保持全权（向后兼容）。
+- `register(..., submitted_by=...)`：在 `review_history` 追加 `{"action":"submitted","by":...}`。
+- 测试：`tests/test_registry_compat.py` 4 项（列表可见性、作用域 403/201/200、submitter 记录）。
 
 ## 影响与验证
 
 - 补齐 #1–#3 后：Platform `services/v02` 可启动；`services/v02/test_case_stories.py` **6/6 通过**
   （Durham 包完整性、68 tracts、6 步 succeeded）。
 - GeoHarness 单元测试 **44 项通过**（policy / map-context / freeze / agents / observability / commands）。
-- app 级 HTTP 冒烟仍被 #4 阻断（`create_app` 构造 `RegistryServer` 时 TypeError）。
+- app 级冒烟已通过：`create_app` 可构建，`/api/metrics`、`/api/commands` 在本地会话后返回 200；
+  路由级续传测试（假 chat，X-Resume-From）通过。
 
 ## 建议
 
