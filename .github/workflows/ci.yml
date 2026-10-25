@@ -22,7 +22,7 @@ jobs:
           cache: pip
 
       - name: Install package with dev dependencies
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev,all]"
 
       - name: Lint (ruff)
         run: ruff check .

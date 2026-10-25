@@ -19,7 +19,6 @@ try:
     HAS_PSYCOPG2 = True
 except ImportError:
     psycopg2 = None  # type: ignore
-    psycopg2.extras = None  # type: ignore
     HAS_PSYCOPG2 = False
 
 from ..geocard import GeoCard

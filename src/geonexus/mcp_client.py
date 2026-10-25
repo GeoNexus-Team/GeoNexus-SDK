@@ -50,6 +50,14 @@ class MCPClientError(Exception):
     """Raised for connection, enumeration or invocation failures."""
 
 
+class MCPToolExecutionError(MCPClientError):
+    """A remote tool failed; keep its original MCP result for diagnostics."""
+
+    def __init__(self, result: dict[str, Any]) -> None:
+        self.result = result
+        super().__init__("The remote MCP tool reported an execution error.")
+
+
 def _require_sdk() -> None:
     if ClientSession is None:
         raise MCPClientError(
@@ -112,7 +120,7 @@ def _make_session_factory(
         async def _session() -> Any:
             # headers ride on a custom httpx client (the SDK's
             # streamable_http_client takes no headers argument).
-            import httpx
+            import httpx2 as httpx
 
             http_client: Any = httpx.AsyncClient(headers=http_headers or {})
             async with (
@@ -135,6 +143,7 @@ class MCPTool:
     name: str
     description: str = ""
     input_schema: dict[str, Any] = field(default_factory=dict)
+    output_schema: dict[str, Any] = field(default_factory=dict)
     _call: Callable[[dict[str, Any]], dict[str, Any]] | None = field(default=None, repr=False)
 
     def to_skill(self, prefix: str = "") -> Skill:
@@ -149,13 +158,19 @@ class MCPTool:
 
         def _handler(params: dict[str, Any], context: Any) -> dict[str, Any]:
             result = call(params)
-            return {"outputs": result, "mcp_tool": self.name}
+            output = result.get("structuredContent", result)
+            if isinstance(output, dict) and "_mcp" in output:
+                output = {key: value for key, value in output.items() if key != "_mcp"}
+            answer = {"outputs": output, "mcp_tool": self.name}
+            if "_mcp" in result:
+                answer["mcp_result"] = result["_mcp"]
+            return answer
 
         skill = Skill(
             name=effective_name,
             description=self.description or f"MCP tool {self.name}",
             input_schema=self.input_schema or {"type": "object", "properties": {}},
-            output_schema={"type": "object", "properties": {}},
+            output_schema=self.output_schema or {"type": "object", "properties": {}},
             handler=_handler,
             mcp_source=f"mcp:{self.name}",
         )
@@ -241,16 +256,39 @@ class MCPToolClient:
 
     async def _list_tools_async(self) -> list[MCPTool]:
         async with self._session_factory() as session:
-            result = await session.list_tools()
             tools: list[MCPTool] = []
-            for tool in getattr(result, "tools", []) or []:
-                tools.append(
-                    MCPTool(
-                        name=tool.name,
-                        description=getattr(tool, "description", "") or "",
-                        input_schema=_as_plain(getattr(tool, "inputSchema", {}) or {}),
+            cursor: str | None = None
+            seen: set[str] = set()
+            while True:
+                if cursor:
+                    from mcp.types import PaginatedRequestParams
+
+                    result = await session.list_tools(params=PaginatedRequestParams(cursor=cursor))
+                else:
+                    result = await session.list_tools()
+                for tool in getattr(result, "tools", []) or []:
+                    tools.append(
+                        MCPTool(
+                            name=tool.name,
+                            description=getattr(tool, "description", "") or "",
+                            input_schema=_as_plain(
+                                getattr(tool, "input_schema", None)
+                                or getattr(tool, "inputSchema", {})
+                                or {}
+                            ),
+                            output_schema=_as_plain(
+                                getattr(tool, "output_schema", None)
+                                or getattr(tool, "outputSchema", {})
+                                or {}
+                            ),
+                        )
                     )
-                )
+                cursor = getattr(result, "next_cursor", None) or getattr(result, "nextCursor", None)
+                if not cursor:
+                    break
+                if cursor in seen or len(seen) >= 1000:
+                    raise MCPClientError("MCP tools/list returned a repeated or excessive cursor.")
+                seen.add(cursor)
             return tools
 
     def call_tool(self, tool_name: str, params: dict[str, Any]) -> dict[str, Any]:
@@ -289,9 +327,24 @@ def _tool_result_to_dict(result: Any) -> dict[str, Any]:
     Prefer ``structuredContent`` when present (lossless); otherwise flatten
     text content blocks into ``{"text": ...}``.
     """
-    structured = getattr(result, "structuredContent", None)
+    envelope = (
+        result.model_dump(mode="json", by_alias=True, exclude_none=True)
+        if hasattr(result, "model_dump")
+        else {
+            "content": [_as_plain(block) for block in getattr(result, "content", []) or []],
+            "isError": bool(getattr(result, "isError", False)),
+        }
+    )
+    if getattr(result, "is_error", False) or getattr(result, "isError", False):
+        raise MCPToolExecutionError(envelope)
+    structured = getattr(result, "structured_content", None)
+    if structured is None:
+        structured = getattr(result, "structuredContent", None)
     if structured is not None:
-        return _as_plain(structured)
+        structured_data = _as_plain(structured)
+        if hasattr(result, "model_dump"):
+            return {"structuredContent": structured_data, "_mcp": envelope}
+        return structured_data
     content = getattr(result, "content", None) or []
     texts: list[str] = []
     for block in content:
@@ -302,7 +355,14 @@ def _tool_result_to_dict(result: Any) -> dict[str, Any]:
             block_text = block.get("text")
         if block_text is not None:
             texts.append(str(block_text))
-    return {"text": "\n".join(texts)}
+    data: dict[str, Any] = {"text": "\n".join(texts)}
+    if hasattr(result, "model_dump") or any(
+        getattr(block, "type", "text") != "text"
+        or (isinstance(block, dict) and block.get("type", "text") != "text")
+        for block in content
+    ):
+        data["_mcp"] = envelope
+    return data
 
 
 class _LoopThread:

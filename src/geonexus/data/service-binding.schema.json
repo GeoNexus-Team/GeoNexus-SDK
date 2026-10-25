@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ServiceBinding 0.1",
+  "type": "object",
+  "required": [
+    "binding_version",
+    "card_id",
+    "transport"
+  ],
+  "properties": {
+    "binding_version": {
+      "const": "0.1"
+    },
+    "card_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "transport": {
+      "type": "string",
+      "minLength": 1
+    },
+    "endpoint": {
+      "type": "string"
+    },
+    "node_url": {
+      "type": "string"
+    },
+    "command": {
+      "type": "string"
+    },
+    "args": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tool": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "credential_ref": {
+      "type": "string"
+    }
+  },
+  "anyOf": [
+    {
+      "required": [
+        "endpoint"
+      ],
+      "properties": {
+        "endpoint": {
+          "minLength": 1
+        }
+      }
+    },
+    {
+      "required": [
+        "command"
+      ],
+      "properties": {
+        "command": {
+          "minLength": 1
+        },
+        "transport": {
+          "const": "stdio"
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

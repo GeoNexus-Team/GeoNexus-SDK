@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -16,7 +17,7 @@ import pytest
 mcp = pytest.importorskip("mcp")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-PYTHON = REPO_ROOT / ".venv" / "bin" / "python"
+PYTHON = Path(sys.executable)
 
 
 def _rpc(payload: dict) -> str:
@@ -133,7 +134,7 @@ def test_mcp_stdio_bridge() -> None:
 
 
 def test_create_mcp_server_tools() -> None:
-    """create_mcp_server exposes exactly the four GeoMCP tools."""
+    """create_mcp_server exposes the discovery, planning, execution and model invocation tools."""
     import asyncio
 
     from geonexus.geocard import GeoCardBuilder
@@ -145,7 +146,7 @@ def test_create_mcp_server_tools() -> None:
     mcp_server = create_mcp_server(server)
     assert mcp_server.name == "geonexus"
     tool_names = {t.name for t in asyncio.run(mcp_server.list_tools())}
-    assert tool_names == {"geo_capabilities", "geo_describe", "geo_execute", "geo_health"}
+    assert tool_names == {"geo_capabilities", "geo_describe", "geo_execute", "geo_health", "geo_plan", "geo_invoke"}
 
 
 # --------------------------------------------------------------------------- #

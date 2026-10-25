@@ -24,10 +24,12 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .geocard import GeoCard
-from .registry import RegistryClient, RegistryClientError
+
+if TYPE_CHECKING:
+    from .registry import RegistryClient
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +138,8 @@ def _gpu_satisfies(required: Any, provided: Any) -> bool:
 def match_resource(
     model_card: GeoCard,
     capabilities: list[ComputeCapability],
+    *,
+    strict: bool = False,
 ) -> ResourceMatch:
     """Decide whether ``model_card`` can run on any of the compute nodes.
 
@@ -148,7 +152,8 @@ def match_resource(
 
     Unknown values on the model side are treated as satisfied; unknown
     values on the node side are treated as "assume enough" but recorded as a
-    warning-level reason. The first satisfying node wins.
+    warning-level reason. With strict=True, unknown node CPU/memory rejects
+    a declared requirement. The first satisfying node wins.
     """
     runtime = model_card.runtime
     reasons: list[str] = []
@@ -173,16 +178,20 @@ def match_resource(
         if req_cpu is not None:
             if cap.cpu is None:
                 node_reasons.append(
-                    f"cpu: model needs {req_cpu}, node capacity unknown (assumed ok)"
+                    f"cpu: model needs {req_cpu}, node capacity unknown (" + ("rejected" if strict else "assumed ok") + ")"
                 )
+                if strict:
+                    ok = False
             elif req_cpu > cap.cpu:
                 node_reasons.append(f"cpu: model needs {req_cpu}, node has {cap.cpu}")
                 ok = False
         if req_mem is not None:
             if cap.memory_gb is None:
                 node_reasons.append(
-                    f"memory: model needs {req_mem:.1f}Gi, node capacity unknown (assumed ok)"
+                    f"memory: model needs {req_mem:.1f}Gi, node capacity unknown (" + ("rejected" if strict else "assumed ok") + ")"
                 )
+                if strict:
+                    ok = False
             elif req_mem > cap.memory_gb:
                 node_reasons.append(
                     f"memory: model needs {req_mem:.1f}Gi, node has {cap.memory_gb:.1f}Gi"
@@ -236,6 +245,8 @@ def resolve_compute_capabilities(
     card's ``access.endpoint`` or the registry entry's ``node_url``).
     """
     owns = client is None
+    from .registry import RegistryClient, RegistryClientError
+
     client = client or RegistryClient(registry_url, timeout=timeout)
     try:
         results = client.search(type="compute")

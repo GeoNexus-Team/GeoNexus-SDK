@@ -75,16 +75,19 @@ class TestPgVectorStore:
     def test_schema_has_ivfflat(self):
         assert "ivfflat" in SCHEMA_SQL.lower()
 
+    @patch("geonexus.gaag.pgvector_store.HAS_PSYCOPG2", True)
     @patch("geonexus.gaag.pgvector_store.psycopg2")
     def test_init_with_dsn(self, mock_psycopg2):
         store = PgVectorStore(dsn="postgresql://localhost/test")
         assert store.dsn == "postgresql://localhost/test"
 
+    @patch("geonexus.gaag.pgvector_store.HAS_PSYCOPG2", True)
     @patch("geonexus.gaag.pgvector_store.psycopg2")
     def test_from_env_empty(self, mock_psycopg2):
         store = PgVectorStore.from_env()
         assert store is None  # No DSN set
 
+    @patch("geonexus.gaag.pgvector_store.HAS_PSYCOPG2", True)
     @patch("geonexus.gaag.pgvector_store.psycopg2")
     def test_register_calls_insert(self, mock_psycopg2):
         mock_conn = MagicMock()
@@ -117,12 +120,13 @@ class TestRegistryBackend:
         assert registry._backend == "memory"  # Fallback
         assert registry._pgvector is None
 
+    @patch("geonexus.gaag.pgvector_store.HAS_PSYCOPG2", True)
     @patch("geonexus.gaag.pgvector_store.psycopg2")
-    def test_pgvector_backend_initializes(self, mock_psycopg2):
+    def test_pgvector_backend_initializes(self, mock_psycopg2, monkeypatch):
         """With POSTGIS_DSN set → pgvector backend active."""
         import os
 
-        os.environ["POSTGIS_DSN"] = "postgresql://mock/mock"
+        monkeypatch.setenv("POSTGIS_DSN", "postgresql://mock/mock")
         mock_conn = MagicMock()
         mock_psycopg2.connect.return_value = mock_conn
         mock_psycopg2.extras.register_vector.return_value = None

@@ -29,6 +29,12 @@
       "type": "string",
       "description": "Free-text description of the asset."
     },
+    "knowledge_refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true,
+      "description": "External ontology/evidence identifiers; static references only."
+    },
     "tags": {
       "type": "array",
       "items": { "type": "string" },

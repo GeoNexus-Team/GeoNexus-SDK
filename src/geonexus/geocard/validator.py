@@ -15,7 +15,7 @@ import json
 import logging
 import os
 from dataclasses import dataclass, field
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timezone
 from pathlib import Path
 from typing import Any
 
@@ -111,7 +111,11 @@ def _parse_datetime(value: str) -> datetime:
     """Parse an ISO-8601 date or datetime into a datetime object."""
     text = value.strip()
     try:
-        return datetime.fromisoformat(text)
+        parsed = datetime.fromisoformat(text)
+        # Dates and timezone-free timestamps use UTC for contract comparisons.
+        if parsed.tzinfo is not None:
+            parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+        return parsed
     except ValueError:
         pass
     try:

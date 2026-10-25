@@ -317,4 +317,4 @@ mvn test
 ### 集成对齐
 
 两边 CI 各自独立运行，不一致在集成测试时发现并修复。
-具体契约文件的管理和变更流程参见 `geonexus-contracts/README.md`。
+跨仓库契约目录由部署环境提供；本仓库协议说明以本文和 `docs/API_STABILITY.md` 为准。

@@ -148,10 +148,7 @@ class TestResolveComputeCapabilities:
                     },
                 ]
 
-        import geonexus.resource as resource_mod
-
-        monkeypatch.setattr(resource_mod, "RegistryClient", lambda *a, **k: _FakeRegistry())
-        caps = resolve_compute_capabilities("http://registry:8790")
+        caps = resolve_compute_capabilities("http://registry:8790", client=_FakeRegistry())
         assert len(caps) == 2
         gpu = caps[0]
         assert gpu.node_url == "http://gpu:8789"
@@ -170,10 +167,7 @@ class TestResolveComputeCapabilities:
             def search(self, type: str | None = None, **kw: object) -> list[dict]:
                 return []
 
-        import geonexus.resource as resource_mod
-
-        monkeypatch.setattr(resource_mod, "RegistryClient", lambda *a, **k: _FakeRegistry())
-        assert resolve_compute_capabilities("http://registry:8790") == []
+        assert resolve_compute_capabilities("http://registry:8790", client=_FakeRegistry()) == []
 
     def test_registry_error_surfaces(self, monkeypatch: pytest.MonkeyPatch) -> None:
         class _Broken:
@@ -188,8 +182,5 @@ class TestResolveComputeCapabilities:
 
                 raise RegistryClientError("boom", code=502)
 
-        import geonexus.resource as resource_mod
-
-        monkeypatch.setattr(resource_mod, "RegistryClient", lambda *a, **k: _Broken())
         with pytest.raises(ResourceError, match="Compute discovery failed"):
-            resolve_compute_capabilities("http://registry:8790")
+            resolve_compute_capabilities("http://registry:8790", client=_Broken())

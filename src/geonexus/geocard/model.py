@@ -408,6 +408,15 @@ class GeoCard(BaseModel):
     description: str = Field(description="Free-text description.")
 
     tags: list[str] = Field(default_factory=list)
+    knowledge_refs: list[str] = Field(
+        default_factory=list,
+        description="External ontology/evidence identifiers; references, never copied graphs.",
+    )
+
+    @field_serializer("knowledge_refs")
+    def _serialize_knowledge_refs(self, value: list[str]) -> list[str] | None:
+        return value or None
+
     spatial: SpatialSection | None = None
     temporal: TemporalSection | None = None
     bands: list[Band] = Field(default_factory=list)

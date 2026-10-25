@@ -22,8 +22,7 @@ from .models import (
     SkillEntry,
 )
 from .store import (
-    PluginEntryConflict,
-    PluginEntryNotFound,
+    PluginEntryConflict, PluginEntryNotFound,
     RegistryEntryConflict,
     RegistryEntryNotFound,
     RegistryStore,
@@ -73,6 +72,8 @@ class RegistryServer:
         health_cache_ttl: float = 5.0,
         peers: list[str] | None = None,
         recipe_persist_path: str | os.PathLike | None = None,
+        public_submissions: bool = False,
+        api_key_principals: dict[str, dict[str, Any]] | None = None,
     ) -> None:
         self.name = name
         self.store = RegistryStore(persist_path=persist_path)
@@ -82,6 +83,13 @@ class RegistryServer:
             recipe_persist_path = f"{persist_path}.recipes.json"
         self.recipes = RecipeRegistry(persist_path=recipe_persist_path)
         self.api_keys = set(api_keys or ())
+        self.api_key_principals = dict(api_key_principals or {})
+        self.api_keys.update(self.api_key_principals)
+        self.public_submissions = public_submissions
+        if public_submissions and (
+            not self.api_key_principals or not self.api_keys.issubset(self.api_key_principals)
+        ):
+            raise ValueError("Public submissions require named principals and explicit scopes.")
         self.health_probe = health_probe
         self.health_timeout = health_timeout
         self.health_cache_ttl = health_cache_ttl
@@ -105,12 +113,21 @@ class RegistryServer:
         report["registry"] = self.name
         return report
 
-    def _require_key(self, request: Request) -> None:
+    def _require_key(self, request: Request, scope: str = "registry:write") -> str:
         if not self.api_keys:
-            return
+            return "local"
         supplied = request.headers.get("X-API-Key")
         if supplied not in self.api_keys:
             raise HTTPException(status_code=401, detail="Missing or invalid X-API-Key")
+        principal = self.api_key_principals.get(supplied)
+        if principal is not None:
+            scopes = principal.get("scopes", [])
+            if scope not in scopes and "registry:admin" not in scopes:
+                raise HTTPException(status_code=403, detail=f"Missing scope: {scope}")
+            return str(principal["subject"])
+        import hashlib
+
+        return "key:" + hashlib.sha256(supplied.encode()).hexdigest()[:12]
 
     # ------------------------------------------------------------------ #
     # Business API
@@ -121,10 +138,18 @@ class RegistryServer:
         node_url: str,
         status: str | None = None,
         review_note: str | None = None,
+        submitted_by: str | None = None,
     ) -> dict[str, Any]:
         from ..geocard.model import GeoCard
         from ..geocard.validator import validate_card_schema
 
+        if self.public_submissions:
+            import copy
+
+            card = copy.deepcopy(card)
+            if "trust" in card:
+                card["trust"] = {"verified": False}
+            status = STATUS_PENDING
         report = validate_card_schema(card)
         if not report.valid:
             raise HTTPException(status_code=422, detail={"schema_errors": report.errors})
@@ -134,6 +159,7 @@ class RegistryServer:
                 node_url=node_url,
                 status=status or STATUS_APPROVED,
                 review_note=review_note,
+                submitted_by=submitted_by,
             )
             self.store.register(entry)
         except RegistryEntryConflict as exc:
@@ -454,52 +480,12 @@ class RegistryServer:
     # ------------------------------------------------------------------ #
     # HTTP transport
     # ------------------------------------------------------------------ #
-    def start_in_thread(self, host: str | None = None, port: int | None = None) -> Any:
-        """Start the registry HTTP server in a background thread (tests/embeds)."""
-        import threading
-        import time
-
-        import uvicorn
-
-        config = uvicorn.Config(
-            self.create_app(), host=host or "127.0.0.1",
-            port=port if port is not None else 8790, log_level="warning",
-        )
-        server = uvicorn.Server(config)
-        thread = threading.Thread(target=server.run, daemon=True)
-        thread.start()
-
-        class RunningRegistry:
-            def __init__(self, srv: uvicorn.Server, thr: threading.Thread) -> None:
-                self._server = srv
-                self._thread = thr
-
-            def wait_until_ready(self, timeout: float = 15.0) -> RunningRegistry:
-                deadline = time.monotonic() + timeout
-                while time.monotonic() < deadline:
-                    if self._server.started:
-                        return self
-                    if not self._thread.is_alive():
-                        raise RuntimeError("registry thread exited before ready")
-                    time.sleep(0.05)
-                raise TimeoutError("registry not ready in time")
-
-            @property
-            def port(self) -> int:
-                return self._server.servers[0].sockets[0].getsockname()[1]
-
-            def stop(self, timeout: float = 10.0) -> None:
-                self._server.should_exit = True
-                self._thread.join(timeout=timeout)
-
-        return RunningRegistry(server, thread)
-
     def create_app(self) -> FastAPI:
         app = FastAPI(title=f"GeoCard Registry: {self.name}", version=SERVICE_VERSION)
 
         @app.post("/cards")
         async def register_card(request: Request) -> JSONResponse:
-            self._require_key(request)
+            subject = self._require_key(request, "registry:submit")
             try:
                 body = await request.json()
             except Exception:
@@ -510,7 +496,19 @@ class RegistryServer:
             # Review workflow (v1.1): register with status=pending to submit
             # a card for review; approve() later makes it discoverable.
             status = body.get("status")
-            result = self.register(body["card"], node_url, status=status)
+            if self.public_submissions and node_url == "unknown":
+                raise HTTPException(status_code=422, detail="A deployment endpoint is required.")
+            if self.public_submissions:
+                from ..registration import safe_url, validate_profile
+
+                try:
+                    node_url = safe_url(node_url)
+                except ValueError as exc:
+                    raise HTTPException(status_code=422, detail=str(exc)) from exc
+                report = validate_profile(body["card"])
+                if not report.valid:
+                    raise HTTPException(status_code=422, detail=report.to_dict())
+            result = self.register(body["card"], node_url, status=status, submitted_by=subject)
             return JSONResponse(result, status_code=201)
 
         @app.get("/cards")
@@ -520,23 +518,23 @@ class RegistryServer:
 
         @app.post("/cards/{card_id}/approve")
         async def approve_card(request: Request, card_id: str) -> dict[str, Any]:
-            self._require_key(request)
+            subject = self._require_key(request, "registry:review")
             body = (
                 await request.json()
                 if request.headers.get("content-type", "").startswith("application/json")
                 else {}
             )
-            return self.approve(card_id, note=(body or {}).get("note"), by=(body or {}).get("by"))
+            return self.approve(card_id, note=(body or {}).get("note"), by=subject)
 
         @app.post("/cards/{card_id}/reject")
         async def reject_card(request: Request, card_id: str) -> dict[str, Any]:
-            self._require_key(request)
+            subject = self._require_key(request, "registry:review")
             body = (
                 await request.json()
                 if request.headers.get("content-type", "").startswith("application/json")
                 else {}
             )
-            return self.reject(card_id, note=(body or {}).get("note"), by=(body or {}).get("by"))
+            return self.reject(card_id, note=(body or {}).get("note"), by=subject)
 
         @app.get("/cards/{card_id}")
         async def get_card(card_id: str) -> dict[str, Any]:
@@ -604,7 +602,7 @@ class RegistryServer:
         # 调用方去猜怎么转义。更具体的 ``/fork``、``/approve`` 先声明。
         @app.post("/recipes")
         async def register_recipe_endpoint(request: Request) -> JSONResponse:
-            self._require_key(request)
+            subject = self._require_key(request, "registry:submit")
             try:
                 body = await request.json()
             except Exception:
@@ -614,10 +612,10 @@ class RegistryServer:
             result = self.register_recipe(
                 body["recipe"],
                 provider_url=body.get("provider_url") or body.get("node_url") or "",
-                status=body.get("status"),
-                submitted_by=body.get("submitted_by") or body.get("by"),
+                status=STATUS_PENDING if self.public_submissions else body.get("status"),
+                submitted_by=subject,
                 review_note=body.get("review_note"),
-                replace=bool(body.get("replace")),
+                replace=False if self.public_submissions else bool(body.get("replace")),
             )
             return JSONResponse(result, status_code=201)
 
@@ -665,27 +663,23 @@ class RegistryServer:
 
         @app.post("/recipes/{recipe_id:path}/approve")
         async def approve_recipe_endpoint(recipe_id: str, request: Request) -> dict[str, Any]:
-            self._require_key(request)
+            subject = self._require_key(request, "registry:review")
             body = (
                 await request.json()
                 if request.headers.get("content-type", "").startswith("application/json")
                 else {}
             )
-            return self.approve_recipe(
-                recipe_id, note=(body or {}).get("note"), by=(body or {}).get("by")
-            )
+            return self.approve_recipe(recipe_id, note=(body or {}).get("note"), by=subject)
 
         @app.post("/recipes/{recipe_id:path}/reject")
         async def reject_recipe_endpoint(recipe_id: str, request: Request) -> dict[str, Any]:
-            self._require_key(request)
+            subject = self._require_key(request, "registry:review")
             body = (
                 await request.json()
                 if request.headers.get("content-type", "").startswith("application/json")
                 else {}
             )
-            return self.reject_recipe(
-                recipe_id, note=(body or {}).get("note"), by=(body or {}).get("by")
-            )
+            return self.reject_recipe(recipe_id, note=(body or {}).get("note"), by=subject)
 
         @app.get("/recipes/{recipe_id:path}")
         async def get_recipe_endpoint(
@@ -701,11 +695,24 @@ class RegistryServer:
             self._require_key(request)
             return self.unregister_recipe(recipe_id)
 
-        # ── 公共产品市场（插件包条目）────────────────────────────────── #
+        @app.get("/health")
+        async def health() -> dict[str, Any]:
+            return self.health()
+
+        @app.get("/nodes")
+        async def nodes_endpoint() -> dict[str, Any]:
+            return self.nodes()
+
+        @app.post("/sync")
+        async def sync_endpoint(request: Request) -> dict[str, Any]:
+            self._require_key(request)
+            return self.sync_peers()
+
+
         @app.post("/plugins")
         async def publish_plugin(request: Request) -> JSONResponse:
             """发布插件条目。登记 ≠ 上架：默认 pending，approve 后才可被 install。"""
-            self._require_key(request)
+            self._require_key(request, "registry:submit")
             try:
                 body = await request.json()
             except Exception:
@@ -733,26 +740,29 @@ class RegistryServer:
                                 status_code=201)
 
         @app.get("/plugins")
-        async def list_plugins(status: str | None = None, q: str = "") -> dict[str, Any]:
+        async def list_plugins(request: Request, status: str | None = None, q: str = "") -> dict[str, Any]:
             # 与 /cards 同约定：不传 = 只看 approved；"all" = 全量（含待审）
-            st = None if status == "all" else status
+            if status and status != STATUS_APPROVED:
+                self._require_key(request, "registry:review")
+            st = None if status == "all" else (status or STATUS_APPROVED)
             if q:
-                items = (self.store.search_plugins(q, status=st) if st
-                         else self.store.search_plugins(q))
+                items = self.store.search_plugins(q, status=st)
             else:
-                items = self.store.list_plugins(status=st) if st else self.store.list_plugins()
+                items = self.store.list_plugins(status=st)
             return {"plugins": [e.to_dict() for e in items], "count": len(items)}
 
         @app.get("/plugins/{name}/{version}")
-        async def get_plugin(name: str, version: str) -> dict[str, Any]:
+        async def get_plugin(name: str, version: str, request: Request) -> dict[str, Any]:
             entry = self.store.get_plugin(name, version)
             if entry is None:
                 raise HTTPException(status_code=404, detail=f"Plugin not published: {name}@{version}")
+            if entry.status != STATUS_APPROVED:
+                self._require_key(request, "registry:review")
             return {"entry": entry.to_dict()}
 
         @app.post("/plugins/{name}/{version}/approve")
         async def approve_plugin(name: str, version: str, request: Request) -> dict[str, Any]:
-            self._require_key(request)
+            self._require_key(request, "registry:review")
             body = await request.json() if request.headers.get("content-length") else {}
             try:
                 entry = self.store.review_plugin(name, version, approve=True,
@@ -764,7 +774,7 @@ class RegistryServer:
 
         @app.post("/plugins/{name}/{version}/reject")
         async def reject_plugin(name: str, version: str, request: Request) -> dict[str, Any]:
-            self._require_key(request)
+            self._require_key(request, "registry:review")
             body = await request.json() if request.headers.get("content-length") else {}
             try:
                 entry = self.store.review_plugin(name, version, approve=False,
@@ -776,25 +786,12 @@ class RegistryServer:
 
         @app.delete("/plugins/{name}/{version}")
         async def remove_plugin(name: str, version: str, request: Request) -> dict[str, Any]:
-            self._require_key(request)
+            self._require_key(request, "registry:review")
             try:
                 entry = self.store.remove_plugin(name, version)
             except PluginEntryNotFound as exc:
                 raise HTTPException(status_code=404, detail=str(exc)) from None
             return {"status": "removed", "entry": entry.to_dict()}
-
-        @app.get("/health")
-        async def health() -> dict[str, Any]:
-            return self.health()
-
-        @app.get("/nodes")
-        async def nodes_endpoint() -> dict[str, Any]:
-            return self.nodes()
-
-        @app.post("/sync")
-        async def sync_endpoint(request: Request) -> dict[str, Any]:
-            self._require_key(request)
-            return self.sync_peers()
 
         return app
 
@@ -802,3 +799,44 @@ class RegistryServer:
         import uvicorn
 
         uvicorn.run(self.create_app(), host=host, port=port, log_level=log_level)
+
+    def start_in_thread(self, host: str | None = None, port: int | None = None) -> Any:
+        """Start the registry HTTP server in a background thread (tests/embeds)."""
+        import threading
+        import time
+
+        import uvicorn
+
+        config = uvicorn.Config(
+            self.create_app(), host=host or "127.0.0.1",
+            port=port if port is not None else 8790, log_level="warning",
+        )
+        server = uvicorn.Server(config)
+        thread = threading.Thread(target=server.run, daemon=True)
+        thread.start()
+
+        class RunningRegistry:
+            def __init__(self, srv: uvicorn.Server, thr: threading.Thread) -> None:
+                self._server = srv
+                self._thread = thr
+
+            def wait_until_ready(self, timeout: float = 15.0) -> RunningRegistry:
+                deadline = time.monotonic() + timeout
+                while time.monotonic() < deadline:
+                    if self._server.started:
+                        return self
+                    if not self._thread.is_alive():
+                        raise RuntimeError("registry thread exited before ready")
+                    time.sleep(0.05)
+                raise TimeoutError("registry not ready in time")
+
+            @property
+            def port(self) -> int:
+                return self._server.servers[0].sockets[0].getsockname()[1]
+
+            def stop(self, timeout: float = 10.0) -> None:
+                self._server.should_exit = True
+                self._thread.join(timeout=timeout)
+
+        return RunningRegistry(server, thread)
+

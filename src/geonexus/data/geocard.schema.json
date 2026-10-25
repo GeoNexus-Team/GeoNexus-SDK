@@ -29,6 +29,12 @@
       "type": "string",
       "description": "Free-text description of the asset."
     },
+    "knowledge_refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true,
+      "description": "External ontology/evidence identifiers; static references only."
+    },
     "tags": {
       "type": "array",
       "items": { "type": "string" },
@@ -275,6 +281,68 @@
           "type": "string",
           "description": "Interface version, e.g. '1.0'."
         }
+      },
+      "additionalProperties": false
+    },
+    "composition": {
+      "type": "object",
+      "description": "What a composite asset (type: workflow) is made of — references only, never copies.",
+      "properties": {
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1, "description": "GeoCard id of the referenced asset." },
+              "role": { "type": "string", "enum": ["data", "model", "skill", "agent", "workflow", "knowledge", "compute"], "description": "Role in the composite; same vocabulary as GeoCard.type." },
+              "step": { "type": "string", "description": "Step id in the recipe that consumes or produces this component." },
+              "required": { "type": "boolean", "default": true },
+              "alias": { "type": "string", "description": "Local name used by the recipe, when it differs from the card id." }
+            },
+            "additionalProperties": false
+          }
+        },
+        "template": { "type": "string", "description": "Optional document/report template id bound to this composition." }
+      },
+      "additionalProperties": false
+    },
+    "params": {
+      "type": "object",
+      "description": "Reusable parameter contract: which fields a reuser may change, within what bounds, and which the author pinned.",
+      "properties": {
+        "params": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "type": { "type": "string", "enum": ["string", "number", "integer", "boolean", "time", "bbox", "geometry", "enum", "ref"] },
+              "required": { "type": "boolean", "default": false },
+              "default": { "description": "Default value; unconstrained so any JSON value is representable." },
+              "enum": { "type": "array", "description": "Allowed values; implies type 'enum' when non-empty." },
+              "minimum": { "type": "number" },
+              "maximum": { "type": "number" },
+              "scope": { "type": "string", "enum": ["reusable", "fixed"], "default": "reusable" },
+              "target": { "type": "string", "description": "Where it lands in the DAG, e.g. 'step1.params.year'." },
+              "description": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "recipe_ref": {
+      "type": "object",
+      "description": "Pointer from a card to the executable recipe (DAG) behind it.",
+      "required": ["recipe_id"],
+      "properties": {
+        "recipe_id": { "type": "string", "minLength": 1, "description": "Address of the recipe, e.g. 'recipe://geonexus/sdg-15-3-1@1.0.0'." },
+        "version": { "type": "string" },
+        "entrypoint": { "type": "string" },
+        "data_snapshot": { "type": "object", "additionalProperties": { "type": "string" } }
       },
       "additionalProperties": false
     },

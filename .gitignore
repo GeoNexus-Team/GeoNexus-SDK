@@ -10,3 +10,13 @@ build/
 *.db-wal
 .pytest_cache/
 .ipynb_checkpoints/
+.venv/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.env
+.env.*
+!.env.example
+private-runtime/
+examples/flightway_wetland/output/

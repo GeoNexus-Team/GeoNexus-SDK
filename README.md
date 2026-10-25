@@ -1,5 +1,23 @@
 # GeoNexus Reference Stack MVP
 
+## Development snapshot: 1.1.1.dev20261015
+
+This development snapshot includes `geonexus.geocard.contracts`, the official
+MCP adapter's `http_guarded` integration option, and `geonexus.registration`
+(`georegister`). It is the SDK used by the reviewed Platform / GeoHarness
+runtime, not a new production-stability claim. See
+[the release notes](docs/RELEASE_1.1.1.dev20261015.md),
+[registration and dependency boundaries](docs/ONBOARDING.md), and
+[the v0.2 contracts](docs/V02_CONTRACTS.md).
+
+Install this checkout with `pip install .` for the lightweight core, or
+`pip install '.[all]'` for the full reference runtime. Development tests use
+`pip install '.[dev,all]'`. Publishing source to GitHub does not publish a
+package to PyPI.
+
+GeoNexus v0.2 additive contracts and official MCP compatibility: [docs/V02_CONTRACTS.md](docs/V02_CONTRACTS.md).
+
+
 **GeoNexus** is an open, secure and inclusive federated geospatial intelligence
 infrastructure. It is **not** another Google Earth Engine, it is not a global
 data warehouse, and it is not a full GIS platform.
@@ -39,8 +57,8 @@ GeoMCP is the **geospatial interaction protocol** of GeoNexus — an
 MCP-compatible geospatial extension layer, implemented for the MVP as a
 lightweight **JSON-RPC 2.0** protocol (`geo.capabilities`, `geo.describe`,
 `geo.execute`, `geo.health`) with an HTTP transport (FastAPI) and a Python
-client. It leaves room for an official MCP adapter later; it does not try to
-recreate the entire MCP ecosystem.
+client. The optional official MCP adapter exposes these capabilities as MCP
+tools; the native GeoMCP JSON-RPC API and the MCP transport remain distinct.
 
 ## What is GeoNode?
 

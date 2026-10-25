@@ -229,6 +229,7 @@ def invoke_model(
     providers: dict[str, ModelProvider] | None = None,
     timeout: float = 300.0,
     require_compute: bool = True,
+    strict_compute: bool = True,
 ) -> ModelOutcome:
     """调用一个 model GeoCard：先过算力门禁，再执行。
 
@@ -238,6 +239,7 @@ def invoke_model(
         capabilities: 候选算力；不给则从 ``registry_url`` 读 ``type: compute`` 卡片。
         registry_url: 发现算力用。
         providers: 注入 provider（测试与定制部署用）。
+        strict_compute: 拒绝未知 CPU/内存容量；兼容旧部署时可显式设为 False。
         require_compute: 是否强制过算力门禁。默认 True——见包文档原则 1。
             只有"明确知道自己在没有 compute 卡片的环境里跑"时才关掉。
     """
@@ -263,7 +265,7 @@ def invoke_model(
                 caps = resolve_compute_capabilities(registry_url)
             except Exception as exc:  # noqa: BLE001 - 发现失败要变成可读的拒绝
                 return ModelOutcome.failure(NO_COMPUTE, f"无法发现算力：{exc}", reasons=[str(exc)])
-        match = match_resource(card, list(caps or []))
+        match = match_resource(card, list(caps or []), strict=strict_compute)
         invocation.compute_node = match.compute_node
         invocation.match_reasons = list(match.reasons)
         if not match.matched:
